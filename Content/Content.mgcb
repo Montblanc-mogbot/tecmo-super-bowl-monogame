@@ -1,0 +1,62 @@
+# MonoGame Content Pipeline Configuration
+# Tecmo Super Bowl Remake
+
+/outputDir:bin/DesktopGL
+/intermediateDir:obj/DesktopGL
+/platform:DesktopGL
+/config:
+/profile:Reach
+/compress:False
+
+#----------------------------------
+# Sprites (Player/Entity Graphics)
+#----------------------------------
+
+# Player sprites from Bank 10
+#/importer:TextureImporter
+#/processor:TextureProcessor
+#/processorParam:ColorKeyColor=255,0,255,255
+#/processorParam:ColorKeyEnabled=True
+#/processorParam:GenerateMipmaps=False
+#/processorParam:PremultiplyAlpha=True
+#/processorParam:ResizeToPowerOfTwo=False
+#/processorParam:MakeSquare=False
+#/processorParam:TextureFormat=Color
+#/build:Sprites/players.png
+
+#----------------------------------
+# Field/Tiles (Background Graphics)
+#----------------------------------
+
+# Field tiles from Banks 11-12
+#/importer:TextureImporter
+#/processor:TextureProcessor
+#/processorParam:ColorKeyEnabled=False
+#/processorParam:PremultiplyAlpha=True
+#/processorParam:TextureFormat=Color
+#/build:Tiles/field_tiles.png
+
+#----------------------------------
+# Fonts
+#----------------------------------
+
+#/importer:FontDescriptionImporter
+#/processor:FontDescriptionProcessor
+#/processorParam:TextureFormat=Compressed
+#/build:Fonts/YardNumbers.spritefont
+
+#----------------------------------
+# Audio
+#----------------------------------
+
+# Sound effects (to be extracted from DMC banks)
+#/importer:WavImporter
+#/processor:SoundEffectProcessor
+#/processorParam:Quality=Best
+#/build:Audio/sfx_whistle.wav
+
+# Music (to be converted from NES format)
+#/importer:Mp3Importer
+#/processor:SongProcessor
+#/processorParam:Quality=Best
+#/build:Audio/music_title.mp3
