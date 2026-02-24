@@ -1,0 +1,14 @@
+# Palette + palette-cycle scaffolding (Bank14_pal_fall_player_anim.asm)
+# NES palette values (0x00-0x3F) will be represented later; for now we store symbolic color ids.
+
+palettes:
+  - id: bg_default
+    colors: [black, dark_blue, light_blue, white]
+
+  - id: sprite_default
+    colors: [black, red, orange, white]
+
+cycles:
+  - id: changing_pal_1
+    ticks_per_frame: 8
+    frames: [sprite_default]
