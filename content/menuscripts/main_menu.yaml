@@ -1,0 +1,5 @@
+id: main_menu
+ops:
+  - kind: note
+    args:
+      text: "Bank16 MAIN_MENU_SCREEN_SCRIPT (placeholder)"

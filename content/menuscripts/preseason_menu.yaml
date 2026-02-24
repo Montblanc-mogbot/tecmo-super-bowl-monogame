@@ -1,0 +1,5 @@
+id: preseason_menu
+ops:
+  - kind: note
+    args:
+      text: "Bank16 PRESEASON_MENU_SCREEN_SCRIPT (placeholder)"

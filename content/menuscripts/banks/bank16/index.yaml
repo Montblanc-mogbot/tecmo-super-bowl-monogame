@@ -1,0 +1,4 @@
+bank: bank16
+scripts:
+  "0x00": main_menu
+  "0x01": preseason_menu
