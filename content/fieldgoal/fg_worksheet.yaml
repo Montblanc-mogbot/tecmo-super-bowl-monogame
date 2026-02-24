@@ -1,0 +1,277 @@
+# Field Goal Mechanics Data
+#
+# Source: DOCS/FG_worksheet.xlsx
+# This data defines how field goal success is calculated in Tecmo Super Bowl.
+
+id: fg_worksheet
+
+# Field Goal Distance Calculation
+# Formula: (distance * multiplier) + random_modifier
+# Distance is based on line of scrimmage + ~17 yards (endzone + holder depth)
+
+distance_multipliers:
+  # LOS to distance mapping (approximate)
+  los_to_fg_distance:
+    - los: 3
+      fg_distance: 20   # ~3 + 17
+      multiplier: 7
+    - los: 15
+      fg_distance: 32   # ~15 + 17
+      multiplier: 3
+    - los: 11
+      fg_distance: 28
+      multiplier: 7
+    - los: 7
+      fg_distance: 24
+      multiplier: 94
+    - los: 9
+      fg_distance: 26
+      multiplier: 70.5
+    - los: 8
+      fg_distance: 25
+      multiplier: 78.5
+    - los: 10
+      fg_distance: 27
+      multiplier: 77
+
+# Random Modifier
+# Set to 3, 2, 1, or 0 with 25% chance each
+# Exception: 50 KA kickers have different distribution
+random_modifier:
+  values: [3, 2, 1, 0]
+  probability_each: 0.25
+  special_50_ka_kicker: true  # 50 KA kickers handled differently
+
+# Max Arrow Range (visual indicator for kicker range)
+max_arrow_range:
+  # Based on kicker skill (KA)
+  # Higher KA = longer range shown on power bar
+  formula: "base_range + (KA * range_per_skill_point)"
+
+# Success Calculation
+# The game uses a lookup table based on:
+# 1. Final calculated distance (after multiply)
+# 2. How far the arrow is from "perfect" (notches from perfect)
+# 3. Random modifier
+
+success_lookup_table:
+  # Distance ranges and corresponding success thresholds
+  # GOOD = kick is good, MISS = kick misses
+  # Based on rows 11-31 in original spreadsheet
+  entries:
+    - index: 0
+      los: 7
+      fg_distance: 17
+      multiplier: 0x1F
+      result_good: "6C8"
+      result_miss: "1736"
+      max_notches_perfect: 36
+      max_notches_good: 43
+      max_notches_total: 53
+    - index: 1
+      los: 8
+      fg_distance: 18
+      multiplier: 0x1F
+      result_good: "7C0"
+      result_miss: "1984"
+      max_notches_perfect: 37
+      max_notches_good: 44
+      max_notches_total: 54
+    - index: 2
+      los: 9
+      fg_distance: 19
+      multiplier: 0x1F
+      result_good: "8B8"
+      result_miss: "2232"
+      max_notches_perfect: 38
+      max_notches_good: 45
+      max_notches_total: 55
+    - index: 3
+      los: 10
+      fg_distance: 20
+      multiplier: 0x1F
+      result_good: "9B0"
+      result_miss: "2480"
+      max_notches_perfect: 39
+      max_notches_good: 46
+      max_notches_total: 56
+    - index: 4
+      los: 11
+      fg_distance: 21
+      multiplier: 0x1F
+      result_good: "AA8"
+      result_miss: "2728"
+      max_notches_perfect: 40
+      max_notches_good: 47
+      max_notches_total: 57
+    - index: 5
+      los: 12
+      fg_distance: 22
+      multiplier: 0x1F
+      result_good: "BA0"
+      result_miss: "2976"
+      max_notches_perfect: 41
+      max_notches_good: 48
+      max_notches_total: 58
+    - index: 6
+      los: 13
+      fg_distance: 23
+      multiplier: 0x1F
+      result_good: "C98"
+      result_miss: "3224"
+      max_notches_perfect: 42
+      max_notches_good: 49
+      max_notches_total: 59
+    - index: 7
+      los: 14
+      fg_distance: 24
+      multiplier: 0x1F
+      result_good: "D90"
+      result_miss: "3472"
+      max_notches_perfect: 43
+      max_notches_good: 50
+      max_notches_total: 60
+    - index: 8
+      los: 15
+      fg_distance: 25
+      multiplier: 0x1F
+      result_good: "E88"
+      result_miss: "3720"
+      max_notches_perfect: 44
+      max_notches_good: 51
+      max_notches_total: 61
+    - index: 9
+      los: 16
+      fg_distance: 26
+      multiplier: 0x1F
+      result_good: "F80"
+      result_miss: "3968"
+      max_notches_perfect: 45
+      max_notches_good: 52
+      max_notches_total: 62
+    - index: 10
+      los: 17
+      fg_distance: 27
+      multiplier: 0x1F
+      result_good: "1078"
+      result_miss: "4216"
+      max_notches_perfect: 46
+      max_notches_good: 53
+      max_notches_total: 63
+    - index: 11
+      los: 18
+      fg_distance: 28
+      multiplier: 0x1F
+      result_good: "1170"
+      result_miss: "4464"
+      max_notches_perfect: 47
+      max_notches_good: 54
+      max_notches_total: 64
+    - index: 12
+      los: 19
+      fg_distance: 29
+      multiplier: 0x1F
+      result_good: "1268"
+      result_miss: "4712"
+      max_notches_perfect: 48
+      max_notches_good: 55
+      max_notches_total: 65
+    - index: 13
+      los: 20
+      fg_distance: 30
+      multiplier: 0x1F
+      result_good: "1360"
+      result_miss: "4960"
+      max_notches_perfect: 49
+      max_notches_good: 56
+      max_notches_total: 66
+    - index: 14
+      los: 21
+      fg_distance: 31
+      multiplier: 0x1F
+      result_good: "1458"
+      result_miss: "5208"
+      max_notches_perfect: 50
+      max_notches_good: 57
+      max_notches_total: 67
+    - index: 15
+      los: 22
+      fg_distance: 32
+      multiplier: 0x1F
+      result_good: "1550"
+      result_miss: "5456"
+      max_notches_perfect: 51
+      max_notches_good: 58
+      max_notches_total: 68
+    - index: 16
+      los: 23
+      fg_distance: 33
+      multiplier: 0x1F
+      result_good: "1648"
+      result_miss: "5704"
+      max_notches_perfect: 52
+      max_notches_good: 59
+      max_notches_total: 69
+    - index: 17
+      los: 24
+      fg_distance: 34
+      multiplier: 0x1F
+      result_good: "1740"
+      result_miss: "5952"
+      max_notches_perfect: 53
+      max_notches_good: 60
+      max_notches_total: 70
+    - index: 18
+      los: 25
+      fg_distance: 35
+      multiplier: 0x1F
+      result_good: "1838"
+      result_miss: "6200"
+      max_notches_perfect: 54
+      max_notches_good: 61
+      max_notches_total: 71
+    - index: 19
+      los: 26
+      fg_distance: 36
+      multiplier: 0x1F
+      result_good: "1930"
+      result_miss: "6448"
+      max_notches_perfect: 55
+      max_notches_good: 62
+      max_notches_total: 72
+    - index: 20
+      los: 27
+      fg_distance: 37
+      multiplier: 0x1F
+      result_good: "1A28"
+      result_miss: "6696"
+      max_notches_perfect: 56
+      max_notches_good: 63
+      max_notches_total: 73
+
+# Notches from Perfect
+# The power bar has notches indicating kick quality
+# Perfect = center of bar
+# Good = within acceptable range
+# Miss = outside acceptable range
+
+notch_thresholds:
+  perfect_center: 0x1F  # 31 decimal
+  per_distance_increase: 0x128  # Hex value added per distance level
+
+# Auto Tap Feature
+# For 22 yard field goals (LOS ~5), kick can be auto-tapped for success
+auto_tap:
+  enabled: true
+  los_threshold: 22
+  description: "Short FGs can be auto-made with tap"
+
+# Notes for MonoGame Implementation
+notes:
+  - "Original uses fixed-point math with hex lookup tables"
+  - "Success based on: distance * multiplier + random_modifier"
+  - "Visual power bar shows max range based on kicker KA rating"
+  - "Player must stop arrow within 'good' zone for success"
+  - "Zone sizes vary by distance - longer kicks have smaller success zones"
+  - "50 KA kickers have special handling for random modifier"
+  - "Consider using floating-point math instead of fixed-point for cleaner code"
