@@ -1,0 +1,5 @@
+max_score_limit: 153  # 0x99
+yards_for_first_down: 10
+minutes_per_quarter: 6
+length_of_field_yards: 100  # 0x64
+xp_kick_distance_yards: 2
