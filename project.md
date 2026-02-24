@@ -1,16 +1,12 @@
 # Tecmo Super Bowl MonoGame - Project
 
-## Overview
-MonoGame reimplementation of Tecmo Super Bowl NES, preserving original gameplay mechanics while using modern C# patterns.
-
-**Repository:** https://github.com/Montblanc-mogbot/tecmo-super-bowl-monogame
+**Location:** `repos/tecmo-super-bowl-monogame/project.md`  
+**Repository:** https://github.com/Montblanc-mogbot/tecmo-super-bowl-monogame  
 **Design Doc:** `docs/DESIGN.md`
 
 ---
 
-## Active Work
-
-### Phase 1: Core Framework #nextaction
+## Phase 1: Core Framework #nextaction
 
 - [ ] **Review scope and ask Matt clarifying questions** #nextaction
   - Confirm project structure approach
@@ -48,20 +44,19 @@ MonoGame reimplementation of Tecmo Super Bowl NES, preserving original gameplay 
 
 ## Completed
 
-- [x] All 32 NES banks scaffolded as YAML
-- [x] All C# model and loader classes created
-- [x] DOCS files processed
-- [x] DESIGN.md created with architecture specification
+- [x] Scaffolded all 32 NES banks as YAML with C# models/loaders
+- [x] Processed all DOCS files
+- [x] Created DESIGN.md with gameplay mechanics specification
 
 ---
 
-## Notes
+## Reference
 
-**Gameplay Mechanics (Preserved from NES):**
+**Gameplay Mechanics:**
 - Tecmo-style velocity: no momentum, instant direction changes
 - Discrete collision: frame-by-frame distance checks
 - Behavior stack: push/pop for grapple interrupts
-- Rating-driven outcomes: HP, RS, MS determine success
+- Rating-driven: HP, RS, MS determine outcomes
 
 **Key Data Files:**
 - `content/teamtext/bank16_team_text_data.yaml` - 28 NFL teams
