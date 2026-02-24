@@ -10,7 +10,7 @@ This document outlines the complete architecture for reimplementing Tecmo Super 
 2. **Component-Based Architecture** - Use MonoGame's GameComponent system
 3. **Event-Driven Communication** - Decouple systems via events/messages
 4. **Modern Rendering** - SpriteBatch, not tile-by-tile PPU simulation
-5. **Physics-Based Movement** - Real physics, not pre-calculated tables
+5. **Tecmo-Style Movement** - Velocity without momentum, instant direction changes
 
 ---
 
@@ -165,38 +165,272 @@ public class RushBehavior : PlayerBehavior
 }
 ```
 
-### Play Execution
+### On-Field Game Loop
 
-Plays are data-driven behavior assignments:
+Every frame at 60Hz:
 
 ```csharp
-public class Play
+public class OnFieldGameState : GameState
 {
-    public string Name { get; set; }
-    public Formation Formation { get; set; }
-    public Dictionary<string, PlayerBehavior> PlayerBehaviors { get; set; }
-    
-    public void AssignToTeam(Team team)
+    public override void Update(GameTime dt)
     {
-        foreach (var player in team.Players)
+        // 1. Update all player behaviors
+        foreach (var player in AllPlayers)
         {
-            if (PlayerBehaviors.TryGetValue(player.Position, out var behavior))
+            player.UpdateBehavior(dt);
+        }
+        
+        // 2. Check collisions (discrete distance checks)
+        CollisionSystem.CheckCollisions();
+        
+        // 3. Update ball (if in air)
+        if (Ball.IsInAir)
+        {
+            Ball.UpdateTrajectory(dt);
+        }
+        
+        // 4. Check play outcomes
+        CheckPlayEndConditions();
+        
+        // 5. Update clock
+        GameClock.Update(dt);
+    }
+}
+```
+
+### Movement System (Tecmo-Style)
+
+The original uses velocity without momentum - snappy, responsive controls:
+
+```csharp
+public class TecmoMovement
+{
+    public Vector2 Position { get; set; }
+    public Vector2 Velocity { get; set; }
+    
+    // From player RS (Running Speed) rating
+    public float MaxSpeed { get; set; }  // 3.0 to 6.5 pixels/frame
+    
+    // Acceleration - how quickly reach max speed
+    public float Acceleration { get; set; } = 0.4f;
+    
+    public void Update(Vector2 inputDirection)
+    {
+        if (inputDirection == Vector2.Zero)
+        {
+            // INSTANT stop (no momentum)
+            Velocity = Vector2.Zero;
+            return;
+        }
+        
+        // Snap to input direction, ramp speed
+        var targetVelocity = inputDirection * MaxSpeed;
+        Velocity = Vector2.Lerp(Velocity, targetVelocity, Acceleration);
+        
+        Position += Velocity;
+    }
+}
+```
+
+**Key characteristics:**
+- **Instant direction changes** - No turning radius, no inertia
+- **Speed ramps up** - Quick acceleration to max speed
+- **Instant stop** - Release input = immediate stop
+- **Max speed capped** by RS rating
+- **No momentum** - Players don't carry forward when stopping
+
+### Player Behavior System
+
+Frame-by-frame behavior execution (60Hz), matching the original bytecode VM:
+
+```csharp
+public abstract class Behavior
+{
+    // Run every frame, return what to do next
+    public abstract BehaviorResult Update(Player player, GameTime dt);
+}
+
+public class RushQBBehavior : Behavior
+{
+    public override BehaviorResult Update(Player player, GameTime dt)
+    {
+        // 1. Move toward QB's CURRENT position (every frame)
+        var qbPos = GameState.QB.Position;
+        var direction = Vector2.Normalize(qbPos - player.Position);
+        player.Velocity = direction * player.MaxSpeed;
+        player.Position += player.Velocity;
+        
+        // 2. Check for blocker collision every frame
+        var blocker = CheckBlockerInPath(player);
+        if (blocker != null)
+        {
+            // Engage - switch to grapple behavior (push to stack)
+            return BehaviorResult.Push(new GrappleBehavior(blocker));
+        }
+        
+        // 3. Check for QB tackle opportunity
+        if (DistanceTo(qbPos) < TackleRange)
+        {
+            return BehaviorResult.SwitchTo(new TackleAttemptBehavior());
+        }
+        
+        // 4. Continue rushing
+        return BehaviorResult.Continue;
+    }
+}
+
+public class ManCoverageBehavior : Behavior
+{
+    public Player Target { get; set; }
+    public float Cushion { get; set; } = 5f;
+    
+    public override BehaviorResult Update(Player player, GameTime dt)
+    {
+        // Track target's CURRENT position every frame
+        var targetPos = Target.Position;
+        var qbPos = GameState.QB.Position;
+        
+        // Stay between target and QB, with cushion
+        var toQB = Vector2.Normalize(qbPos - targetPos);
+        var idealPos = targetPos + toQB * Cushion;
+        
+        var direction = Vector2.Normalize(idealPos - player.Position);
+        player.Velocity = direction * player.MaxSpeed;
+        player.Position += player.Velocity;
+        
+        // Check for throw
+        if (GameState.Ball.IsThrown && GameState.Ball.Target == Target)
+        {
+            return BehaviorResult.SwitchTo(new BreakOnBallBehavior());
+        }
+        
+        return BehaviorResult.Continue;
+    }
+}
+```
+
+### Behavior Stack
+
+Grapple attempts interrupt current behavior, then resume:
+
+```csharp
+public class Player
+{
+    public Stack<Behavior> BehaviorStack { get; set; } = new();
+    
+    public void Update(GameTime dt)
+    {
+        if (BehaviorStack.Count == 0) return;
+        
+        var current = BehaviorStack.Peek();
+        var result = current.Update(this, dt);
+        
+        switch (result)
+        {
+            case BehaviorResult.Complete:
+                BehaviorStack.Pop();  // Done
+                break;
+            case BehaviorResult.Continue:
+                // Keep running same behavior
+                break;
+            case BehaviorResult.Push(Behavior newBehavior):
+                BehaviorStack.Push(newBehavior);  // Interrupt (grapple)
+                break;
+            case BehaviorResult.PopAndContinue:
+                BehaviorStack.Pop();  // Resume previous (won grapple)
+                break;
+        }
+    }
+}
+```
+
+### Collision System (Discrete)
+
+Check collision every frame with simple distance (not continuous):
+
+```csharp
+public class CollisionSystem
+{
+    public void CheckCollisions()
+    {
+        foreach (var defender in Defense.Players)
+        {
+            foreach (var offense in Offense.Players)
             {
-                player.Behavior = behavior;
+                // Simple distance check every frame
+                var distance = Vector2.Distance(defender.Position, offense.Position);
+                if (distance < CollisionRange)  // ~8 pixels
+                {
+                    ResolveCollision(defender, offense);
+                }
             }
         }
     }
 }
 ```
 
-### Physics System
+### Grapple/Tackle Resolution
 
-Modern physics instead of lookup tables:
+Rating-driven outcomes (HP = Hitting Power, RS = Running Speed):
 
 ```csharp
-public class PhysicsSystem
+public class GrappleBehavior : Behavior
 {
-    public void Update(GameTime gameTime)
+    public Player Opponent { get; set; }
+    
+    public override BehaviorResult Update(Player player, GameTime dt)
+    {
+        // Both stop moving during grapple
+        player.Velocity = Vector2.Zero;
+        Opponent.Velocity = Vector2.Zero;
+        
+        // Check winner every frame based on HP
+        var playerWinChance = 0.5f + (player.HP - Opponent.HP) * 0.004f;
+        
+        if (Random.NextFloat() < playerWinChance * dt)
+        {
+            // Win grapple - resume previous behavior
+            return BehaviorResult.PopAndContinue;
+        }
+        
+        // Continue fighting
+        return BehaviorResult.Continue;
+    }
+}
+
+public class TackleAttemptBehavior : Behavior
+{
+    public override BehaviorResult Update(Player player, GameTime dt)
+    {
+        var ballCarrier = GameState.BallCarrier;
+        if (ballCarrier == null) return BehaviorResult.Complete;
+        
+        // Pursue ball carrier
+        var direction = Vector2.Normalize(ballCarrier.Position - player.Position);
+        player.Velocity = direction * player.MaxSpeed;
+        player.Position += player.Velocity;
+        
+        // Check collision every frame
+        if (IsCollision(player, ballCarrier))
+        {
+            // Tackle check: HP vs HP + MS (break tackle chance)
+            var successChance = 0.7f + (player.HP - ballCarrier.HP) * 0.005f 
+                                      - ballCarrier.MS * 0.01f;
+            
+            if (Random.NextFloat() < successChance)
+            {
+                // Tackle made
+                ballCarrier.State = PlayerState.Tackled;
+                ballCarrier.Velocity = Vector2.Zero;
+                return BehaviorResult.Complete;
+            }
+            // Broken tackle - continue pursuit
+        }
+        
+        return BehaviorResult.Continue;
+    }
+}
+```
     {
         foreach (var entity in _physicsEntities)
         {
@@ -438,9 +672,11 @@ TecmoSuperBowl/
 │   │   │   ├── PositionComponent.cs
 │   │   │   ├── SpriteComponent.cs
 │   │   │   ├── BehaviorComponent.cs
-│   │   │   └── PhysicsComponent.cs
+│   │   │   ├── MovementComponent.cs
+│   │   │   └── CollisionComponent.cs
 │   │   ├── Systems/
-│   │   │   ├── PhysicsSystem.cs
+│   │   │   ├── MovementSystem.cs
+│   │   │   ├── CollisionSystem.cs
 │   │   │   ├── RenderingSystem.cs
 │   │   │   ├── InputSystem.cs
 │   │   │   └── AudioSystem.cs
@@ -479,8 +715,14 @@ TecmoSuperBowl/
 - **Scaled**: 1280x720 (16:9 with pillarboxing) or fullscreen
 
 ### Frame Rate
-- **Target**: 60 FPS
+- **Target**: 60 FPS (matches original NES)
 - **Fixed timestep** for gameplay logic
+
+### Movement System
+- **Tecmo-style velocity** - No momentum, instant direction changes
+- **Discrete collision** - Distance checks every frame (~8px range)
+- **Behavior stack** - Push/pop for grapple interrupts
+- **Rating-driven** - HP, RS, MS determine outcomes
 
 ### Content Pipeline
 - **Sprites**: PNG with transparency
@@ -532,12 +774,19 @@ TecmoSuperBowl/
 
 ## Conclusion
 
-This design leverages MonoGame's modern capabilities to create a much cleaner implementation than the NES original. Key simplifications:
+This design preserves Tecmo Super Bowl's classic gameplay feel while using modern C# patterns.
 
+### Key Simplifications from NES
 1. **No bank switching** - Load all data at startup
 2. **No PPU simulation** - Standard SpriteBatch rendering
 3. **No bytecode VM** - C# behavior classes
-4. **No fixed-point math** - Floating-point physics
-5. **No assembly macros** - C# methods and properties
+4. **No assembly macros** - C# methods and properties
 
-The YAML data files already created provide the foundation. The C# implementation focuses on modern game architecture patterns.
+### Preserved from Original
+1. **Tecmo-style movement** - Velocity without momentum, instant direction changes
+2. **Discrete collision** - Frame-by-frame distance checks
+3. **Behavior stack** - Push/pop for grapple interrupts
+4. **Rating-driven outcomes** - HP, RS, MS determine success
+5. **Frame-by-frame execution** - 60Hz behavior updates
+
+The YAML data files provide the foundation - all teams, plays, formations, and constants are ready to load. The C# implementation focuses on executing behaviors exactly as the original did.
