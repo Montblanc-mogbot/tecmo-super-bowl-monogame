@@ -1,0 +1,150 @@
+# bank7: scene scripts scaffold
+#
+# This bank contains scene script bytecode that controls visual presentation
+# - PPU operations, scrolling, palette fades, background drawing, etc.
+
+id: bank7_scene_scripts
+
+# Scene script opcodes (bytecode commands)
+opcodes:
+  # PPU Address and Data Commands ($60-$8F)
+  - { code: 0x60, name: SET_BG_SCRIPT_PPU_ADDR_AND_DATA, params: [ppu_hi, ppu_lo, data_lo, data_hi], description: "Set PPU addr and data pointer" }
+  - { code: 0x68, name: SET_BG_SCRIPT_PPU_ADDR, params: [ppu_hi, ppu_lo], description: "Set PPU address only" }
+  - { code: 0x70, name: DRAW_LINE_DOWN_AT_PPUADDR, params: [ppu_hi, ppu_lo, height, tile], description: "Draw vertical line" }
+  - { code: 0x78, name: DRAW_LINE_ACROSS_AT_PPUADDR, params: [ppu_hi, ppu_lo, width, tile], description: "Draw horizontal line" }
+  - { code: 0x80, name: FILL_RECT_AT_PPUADDR, params: [ppu_hi, ppu_lo, height, width, tile], description: "Fill rectangle" }
+  - { code: 0x88, name: DRAW_TILE_AT_PPUADDR, params: [ppu_hi, ppu_lo, tile], description: "Draw single tile" }
+  
+  # Cursor Movement Commands ($B0-$B5)
+  - { code: 0xB0, name: MOVE_DOWN_1_ROW, params: [], description: "Move cursor down 1 row" }
+  - { code: 0xB1, name: MOVE_DOWN_2_ROWS, params: [], description: "Move cursor down 2 rows" }
+  - { code: 0xB2, name: MOVE_DOWN_3_ROWS, params: [], description: "Move cursor down 3 rows" }
+  - { code: 0xB3, name: MOVE_DOWN_4_ROWS, params: [], description: "Move cursor down 4 rows" }
+  - { code: 0xB5, name: MOVE_DOWN_6_ROWS, params: [], description: "Move cursor down 6 rows" }
+  
+  # IRQ Commands ($C0-$C1)
+  - { code: 0xC0, name: SET_IRQ_AND_CHR, params: [irq, counter, chr0, chr1], description: "Set IRQ with CHR banks" }
+  - { code: 0xC1, name: CLEAR_IRQS_END_PAL_UPDATE, params: [], description: "Clear IRQs and end palette" }
+  
+  # Scroll Commands ($C3-$C8)
+  - { code: 0xC3, name: SET_SCROLLING, params: [y_speed, x_speed, time], description: "Set scroll speed" }
+  - { code: 0xC4, name: DECREASE_SCROLL_SPEED, params: [y_amt, x_amt], description: "Decelerate scroll" }
+  - { code: 0xC5, name: INCREASE_SCROLL_SPEED, params: [y_amt, x_amt], description: "Accelerate scroll" }
+  - { code: 0xC8, name: RESET_X_Y_SCROLL_TO_ZERO, params: [], description: "Reset scroll to 0,0" }
+  
+  # Screen Clear Commands ($CC-$CD)
+  - { code: 0xCC, name: CLEAR_NAMETABLES_SET_SPRITES_OFFSCREEN_BG, params: [], description: "Clear nametables and sprites" }
+  - { code: 0xCD, name: CLEAR_NAMETABLE, params: [mode], description: "Clear nametable (mode 0=$2000, 1=offscreen)" }
+  
+  # CHR Bank Commands ($D0-$D2)
+  - { code: 0xD0, name: SET_BG_CHR_BANKS, params: [bank0, bank1], description: "Set background CHR banks" }
+  - { code: 0xD2, name: SWAP_SCROLL_NAMETABLE_ONCE_SPR_DRAW_IS_DONE, params: [], description: "Swap nametable after sprites" }
+  
+  # Team Display Commands ($D4-$D5)
+  - { code: 0xD4, name: DRAW_P1_TEAM_ABBREV, params: [], description: "Draw player 1 team abbreviation" }
+  - { code: 0xD5, name: DRAW_P2_TEAM_ABBREV, params: [], description: "Draw player 2 team abbreviation" }
+  
+  # Palette Commands ($D7-$EE)
+  - { code: 0xD7, name: GET_OFFENSE_PLAYER_SPR_PALLETE_AND_FADE_IN, params: [bg_pal], description: "Set offense sprite palette" }
+  - { code: 0xD8, name: GET_DEFENSE_PLAYER_SPR_PALLETE_AND_FADE_IN, params: [bg_pal], description: "Set defense sprite palette" }
+  - { code: 0xE3, name: SET_AND_FADE_IN_BG_PALLETE, params: [bgpal], description: "Set and fade in BG palette" }
+  - { code: 0xE4, name: SET_AND_FADE_IN_SPR_PALLETE, params: [sprpal], description: "Set and fade in sprite palette" }
+  - { code: 0xE5, name: SET_AND_FADE_IN_BG_AND_SPR_PALLETE, params: [bgpal, sprpal], description: "Set and fade in both palettes" }
+  - { code: 0xE6, name: END_PAL_TASK_AND_FADE_OUT_BG_PAL, params: [], description: "Fade out BG palette" }
+  - { code: 0xE8, name: END_PAL_UPDATE_AND_FADE_OUT_BG_SPR_PAL, params: [], description: "Fade out both palettes" }
+  - { code: 0xED, name: FADE_OUT_BG_AND_SPR_PALLETE, params: [], description: "Fade out all" }
+  
+  # Screen Setup ($EF-$F2)
+  - { code: 0xEF, name: RESET_X_Y_SCROLL_AND_NAMETABLE_TO_ZERO, params: [], description: "Full reset to 0" }
+  - { code: 0xF0, name: SET_SCENE_SIDE_BASED_ON_POSSESSION, params: [], description: "Set scene side by possession" }
+  - { code: 0xF1, name: SET_MIRRORING_TO_HORIZONTAL, params: [], description: "Set horizontal mirroring" }
+  - { code: 0xF2, name: SET_MIRRORING_TO_VERTICAL, params: [], description: "Set vertical mirroring" }
+  
+  # Audio ($F3)
+  - { code: 0xF3, name: PLAY_SOUND_BG, params: [sound_id], description: "Play background sound" }
+  
+  # Sprite Size ($F5-$F6)
+  - { code: 0xF5, name: SET_SPRITE_SIZE_8_by_8, params: [], description: "8x8 sprites" }
+  - { code: 0xF6, name: SET_SPRITE_SIZE_8_by_16, params: [], description: "8x16 sprites" }
+  
+  # Background Drawing ($F7-$F8)
+  - { code: 0xF7, name: DRAW_BACKGROUND, params: [bg_id], description: "Draw background" }
+  - { code: 0xF8, name: DRAW_BACKGROUND_OFFSCREEN, params: [bg_id], description: "Draw background offscreen" }
+  
+  # Metasprite Drawing ($F9)
+  - { code: 0xF9, name: DRAW_METASPRITES, params: [count, sprite_ids...], description: "Draw metasprite(s)" }
+  
+  # Team Info Drawing ($FA)
+  - { code: 0xFA, name: DRAW_TEAM_INFO, params: [subcmd], description: "Draw team info" }
+  
+  # Timing ($FB)
+  - { code: 0xFB, name: WAIT_NUMBER_OF_FRAMES_BG, params: [frames], description: "Wait N frames" }
+  
+  # Control Flow ($FC-$FF)
+  - { code: 0xFC, name: JUMP_TO_SCENE, params: [addr_lo, addr_hi], description: "Jump to scene" }
+  - { code: 0xFD, name: DO_SCENE_SUBROUTINE, params: [addr_lo, addr_hi], description: "Call subroutine" }
+  - { code: 0xFE, name: RETURN_FROM_BG_SUBSCRIPT, params: [], description: "Return from subroutine" }
+  - { code: 0xFF, name: END_OF_SCRIPT_OR_DATA, params: [], description: "End of script" }
+
+# Scene types
+scene_types:
+  - INTRO              # Title screen, logos
+  - COIN_TOSS          # Pre-game coin toss
+  - KICKOFF            # Kickoff presentation
+  - PLAYCALL           # Play selection screen
+  - ON_FIELD           # Main gameplay view
+  - TOUCHDOWN          # TD celebration
+  - FIELD_GOAL         # FG attempt
+  - PUNT               # Punt presentation
+  - TURNOVER           # Fumble/INT
+  - END_OF_GAME        # Final stats
+  - MENU               # Various menus
+
+# Sample scene scripts (subset)
+scene_scripts:
+  - id: SCENE_COIN_TOSS
+    description: "Pre-game coin toss scene"
+    commands:
+      - opcode: SET_MIRRORING_TO_VERTICAL
+      - opcode: CLEAR_NAMETABLES_SET_SPRITES_OFFSCREEN_BG
+      - opcode: DRAW_P1_TEAM_ABBREV
+      - opcode: DRAW_P2_TEAM_ABBREV
+      - opcode: WAIT_NUMBER_OF_FRAMES_BG
+        params: [60]
+      - opcode: END_OF_SCRIPT_OR_DATA
+
+  - id: SCENE_KICKOFF
+    description: "Kickoff presentation"
+    commands:
+      - opcode: SET_SCENE_SIDE_BASED_ON_POSSESSION
+      - opcode: RESET_X_Y_SCROLL_AND_NAMETABLE_TO_ZERO
+      - opcode: DRAW_BACKGROUND
+        params: [0x01]
+      - opcode: FADE_IN_BG_AND_SPR_PALLETE
+      - opcode: PLAY_SOUND_BG
+        params: [0x10]
+      - opcode: END_OF_SCRIPT_OR_DATA
+
+  - id: SCENE_TOUCHDOWN
+    description: "Touchdown celebration"
+    commands:
+      - opcode: PLAY_SOUND_BG
+        params: [0x20]
+      - opcode: SET_AND_FADE_IN_SPR_PALLETE
+        params: [0x05]
+      - opcode: WAIT_NUMBER_OF_FRAMES_BG
+        params: [120]
+      - opcode: END_OF_SCRIPT_OR_DATA
+
+# ROM info
+rom_info:
+  base_address: 0xA000
+  macro_section: 0xA000
+  script_data_start: 0xB000
+
+notes:
+  - "Scene scripts are bytecode interpreted at runtime"
+  - "IRQ commands control scanline splits for status bars"
+  - "Palette commands handle fade in/out effects"
+  - "FA subcommands handle various team info displays"
+  - "F9 metasprite command draws player/coach sprites"
