@@ -1,0 +1,122 @@
+# Defensive Play List Pointer Codes
+#
+# Source: DOCS/defplaylistpointercode.xlsx
+# Maps defensive formations/play IDs to player reaction assignments
+# Each defensive play has 11 player slots (one per defender)
+
+defensive_play_pointers:
+  # Format: play_id -> [player1_reaction, player2_reaction, ..., player11_reaction]
+  # Player positions: RE, NT, LE, ROLB, RILB, LILB, LOLB, RCB, LCB, FS, SS
+  
+  - play_id: 11
+    description: "Defensive play 11"
+    player_reactions: [209, 272, 267, 281, 213, 273, 274, 282, 283, 284, 285]
+    reference_id: 678
+    
+  - play_id: 10
+    description: "Defensive play 10"
+    player_reactions: [209, 272, 267, 235, 213, 273, 274, 275, 279, 277, 280]
+    reference_ids: [666, 7]
+    
+  - play_id: 9
+    description: "Defensive play 9"
+    player_reactions: [209, 272, 267, 268, 213, 273, 274, 275, 276, 277, 278]
+    reference_ids: [667, 12]
+    
+  - play_id: 8
+    description: "Defensive play 8"
+    player_reactions: [209, 266, 267, 268, 269, 270, 271, 205, 206, 207, 208]
+    reference_ids: [669, 16]
+    
+  - play_id: 2
+    description: "Defensive play 2"
+    player_reactions: [209, 210, 211, 219, 213, 220, 221, 222, 223, 224, 225]
+    reference_ids: [672, 41]
+    
+  - play_id: 3
+    description: "Defensive play 3"
+    player_reactions: [209, 210, 211, 235, 236, 220, 237, 215, 223, 224, 225]
+    reference_ids: [673, 45]
+    
+  - play_id: 1
+    description: "Defensive play 1"
+    player_reactions: [209, 210, 211, 212, 213, 214, 204, 215, 216, 217, 218]
+    reference_ids: [674, 64]
+    
+  - play_id: 23
+    description: "Defensive play 23"
+    player_reactions: [209, 320, 321, 261, 334, 335, 325, 282, 283, 284, 285]
+    reference_ids: [676, 68]
+    
+  - play_id: 22
+    description: "Defensive play 22"
+    player_reactions: [209, 320, 321, 330, 331, 332, 325, 333, 327, 328, 329]
+    reference_ids: [677, 68]
+    
+  - play_id: 21
+    description: "Defensive play 21"
+    player_reactions: [209, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329]
+    
+  - play_id: 29
+    description: "Defensive play 29"
+    player_reactions: [209, 320, 305, 261, 347, 335, 345, 264, 259, 265, 260]
+    
+  - play_id: 28
+    description: "Defensive play 28"
+    player_reactions: [209, 320, 305, 235, 256, 257, 345, 258, 259, 253, 260]
+    
+  - play_id: 27
+    description: "Defensive play 27"
+    player_reactions: [209, 320, 305, 235, 248, 249, 345, 251, 252, 346, 254]
+    
+  - play_id: 32
+    description: "Defensive play 32"
+    player_reactions: [209, 210, 211, 219, 213, 220, 356, 264, 357, 358, 278]
+    
+  - play_id: 31
+    description: "Defensive play 31"
+    player_reactions: [209, 210, 211, 219, 213, 220, 351, 352, 353, 354, 355]
+    
+  - play_id: 30
+    description: "Defensive play 30"
+    player_reactions: [209, 210, 211, 219, 213, 220, 221, 348, 223, 349, 350]
+
+# Reference ID mappings
+# These IDs reference data in other banks (Bank4, Bank5/6)
+reference_mappings:
+  666: "Pointer set 666"
+  667: "Pointer set 667"
+  668: "Pointer set 668"
+  669: "Pointer set 669"
+  670: "Pointer set 670"
+  671: "Pointer set 671"
+  672: "Pointer set 672"
+  673: "Pointer set 673"
+  674: "Pointer set 674"
+  675: "Pointer set 675"
+  676: "Pointer set 676"
+  677: "Pointer set 677"
+  678: "Pointer set 678"
+
+# Player position mapping
+player_positions:
+  index_0: RE      # Right End
+  index_1: NT      # Nose Tackle
+  index_2: LE      # Left End
+  index_3: ROLB    # Right Outside LB
+  index_4: RILB    # Right Inside LB
+  index_5: LILB    # Left Inside LB
+  index_6: LOLB    # Left Outside LB
+  index_7: RCB     # Right Cornerback
+  index_8: LCB     # Left Cornerback
+  index_9: FS      # Free Safety
+  index_10: SS     # Strong Safety
+
+# Notes
+notes:
+  - "1719 rows in original spreadsheet"
+  - "Each play maps 11 defenders to reaction IDs"
+  - "Reaction IDs reference Bank4/Bank5/Bank6 data"
+  - "Player order: RE, NT, LE, ROLB, RILB, LILB, LOLB, RCB, LCB, FS, SS"
+  - "Reference IDs link to additional play data"
+  - "For MonoGame: This maps to DefensiveExecution in bank4 data"
