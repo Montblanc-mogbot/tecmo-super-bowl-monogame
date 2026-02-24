@@ -1,0 +1,192 @@
+# bank3: formation and metatile data scaffold
+#
+# This bank contains offensive formation pointers and metatile tile data.
+# Formations define player positions and initial reactions for various
+# offensive sets (Pro-T, Shotgun, Kickoff, etc.).
+
+id: bank3_formation_metatile_data
+
+# Formation type enumeration
+formation_types:
+  - KICKOFF           # $00
+  - PUNT              # $01
+  - FIELD_GOAL        # $02
+  - EXTRA_POINT       # $03
+  - PRO_T_1           # $04
+  - SLOT              # $05
+  - ONSETBACK_1       # $06
+  - TWO_TE            # $07
+  - MOTION_DOWN       # $08
+  - SHIFTING_ONEBACK   # $09
+  - ONEBACK_1         # $0A
+  - OFFSET_I          # $0B
+  - RUN_AND_SHOOT     # $0C
+  - ONEBACK_2         # $0D
+  - RED_ZONE          # $0E
+  - GOAL_LINE         # $0F
+  - SHOTGUN           # $10
+  - PRO_T_2           # $11
+  - TWOBACK           # $12
+  - ONEBACK_3         # $13
+  - TWOBACK_OFFSET    # $14
+
+# Formation pointer table structure
+# Each formation has 11 pointers (one per offensive player):
+# Index 0:  Player 1 (typically QB)
+# Index 1:  Player 2
+# ...
+# Index 10: Player 11
+
+formation_pointers:
+  - formation: KICKOFF
+    type_id: 0
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_003 }
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_002 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_001 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_004 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_005 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_006 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_007 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_008 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_009 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_010 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_011 }
+
+  - formation: PUNT
+    type_id: 1
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_012 }
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_013 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_014 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_015 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_016 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_017 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_018 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_019 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_020 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_021 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_022 }
+
+  - formation: FIELD_GOAL
+    type_id: 2
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_025 }
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_026 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_027 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_028 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_029 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_030 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_031 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_032 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_033 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_034 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_035 }
+
+  - formation: EXTRA_POINT
+    type_id: 3
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_025 }  # Shares FG reactions
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_036 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_027 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_028 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_029 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_030 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_031 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_032 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_033 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_034 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_035 }
+
+  - formation: PRO_T_1
+    type_id: 4
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_038 }
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_048 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_061 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_067 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_075 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_084 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_086 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_087 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_088 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_089 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_090 }
+
+  - formation: SLOT
+    type_id: 5
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_038 }
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_047 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_061 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_066 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_074 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_083 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_086 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_087 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_088 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_089 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_090 }
+
+  - formation: SHOTGUN
+    type_id: 16
+    player_reactions:
+      - { index: 0, reaction_id: OFFENSE_PLAYER_REACTION_037 }
+      - { index: 1, reaction_id: OFFENSE_PLAYER_REACTION_051 }
+      - { index: 2, reaction_id: OFFENSE_PLAYER_REACTION_061 }
+      - { index: 3, reaction_id: OFFENSE_PLAYER_REACTION_066 }
+      - { index: 4, reaction_id: OFFENSE_PLAYER_REACTION_073 }
+      - { index: 5, reaction_id: OFFENSE_PLAYER_REACTION_083 }
+      - { index: 6, reaction_id: OFFENSE_PLAYER_REACTION_086 }
+      - { index: 7, reaction_id: OFFENSE_PLAYER_REACTION_087 }
+      - { index: 8, reaction_id: OFFENSE_PLAYER_REACTION_088 }
+      - { index: 9, reaction_id: OFFENSE_PLAYER_REACTION_089 }
+      - { index: 10, reaction_id: OFFENSE_PLAYER_REACTION_090 }
+
+# Player reaction data structure (placeholder - full data in extended YAML)
+# Each reaction defines initial position, movement, and role
+player_reactions:
+  - id: OFFENSE_PLAYER_REACTION_001
+    description: "Kickoff - front line player"
+  - id: OFFENSE_PLAYER_REACTION_002
+    description: "Kickoff - front line player"
+  - id: OFFENSE_PLAYER_REACTION_003
+    description: "Kickoff - kicker"
+  - id: OFFENSE_PLAYER_REACTION_012
+    description: "Punt - punter"
+  - id: OFFENSE_PLAYER_REACTION_025
+    description: "FG/XP - holder"
+  - id: OFFENSE_PLAYER_REACTION_036
+    description: "XP - placeholder variant"
+  - id: OFFENSE_PLAYER_REACTION_037
+    description: "Shotgun - QB deep"
+  - id: OFFENSE_PLAYER_REACTION_038
+    description: "Standard - QB under center"
+
+# Metatile data (background tile compositions)
+# Metatiles are 2x2 tile groups used for field/background graphics
+metatile_config:
+  tile_size: 8        # 8x8 pixels per tile
+  metatile_size: 16   # 16x16 pixels (2x2 tiles)
+  
+  # Metatile categories
+  categories:
+    - FIELD_GRASS
+    - FIELD_LINES
+    - ENDZONE
+    - SIDELINE
+    - STADIUM
+
+# ROM addressing info for reference
+rom_info:
+  base_address: 0xA000
+  formation_pointers_start: 0xA010
+  formation_data_start: 0xA043
+  
+# Notes on original structure
+notes:
+  - "Each formation has exactly 11 player reaction pointers"
+  - "Player index 0 is typically the QB/punter/kicker"
+  - "Reactions reference data later in the bank"
+  - "FG and XP formations share many reaction pointers"
+  - "Total formations: ~21 (various offensive sets + special teams)"
