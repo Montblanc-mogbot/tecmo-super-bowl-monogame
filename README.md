@@ -10,3 +10,4 @@ This repo is a clean-room reimplementation inspired by the structure of the NES 
 
 ## Current focus
 - Port/reauthor sprite scripts (Bank9/10 in the disassembly) into YAML and build a runtime interpreter.
+- Scaffold other disassembly “banks” as YAML-first subsystems (e.g., sound engine/data, game loops, playcall).

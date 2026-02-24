@@ -1,0 +1,51 @@
+# bank30: sound data scaffold
+#
+# This bank is a placeholder representation of additional song/SFX data tables.
+# The goal is to mirror the original ROM structure (Bank29/30 hold a lot of
+# audio tables) while sourcing all content from YAML.
+#
+# Notes:
+# - pitch values are symbolic for now (e.g., C4, D#4, N1 for noise)
+# - duration is in ticks (relative; tempo applies for songs)
+
+id: bank30_sound_data
+
+songs:
+  - id: in_game_theme
+    tempo: 140
+    patterns:
+      - channel: pulse1
+        notes:
+          - { pitch: A3, duration: 2 }
+          - { pitch: C4, duration: 2 }
+          - { pitch: E4, duration: 4 }
+      - channel: pulse2
+        notes:
+          - { pitch: A2, duration: 4 }
+          - { pitch: E3, duration: 4 }
+
+  - id: touchdown_fanfare
+    tempo: 160
+    patterns:
+      - channel: triangle
+        notes:
+          - { pitch: C3, duration: 2 }
+          - { pitch: G3, duration: 2 }
+          - { pitch: C4, duration: 4 }
+
+sfx:
+  - id: hit
+    patterns:
+      - channel: noise
+        notes:
+          - { pitch: N4, duration: 1 }
+          - { pitch: N2, duration: 1 }
+          - { pitch: N3, duration: 1 }
+
+  - id: crowd_cheer
+    patterns:
+      - channel: noise
+        notes:
+          - { pitch: N1, duration: 2 }
+          - { pitch: N2, duration: 2 }
+          - { pitch: N1, duration: 2 }
