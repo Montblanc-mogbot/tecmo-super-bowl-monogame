@@ -1,0 +1,11 @@
+id: example_nfl_shield
+frames:
+  - duration: 8
+    sprites:
+      - { tile: shield_tl, x: 0, y: 0, pal: 0 }
+      - { tile: shield_tr, x: 8, y: 0, pal: 0 }
+      - { tile: shield_bl, x: 0, y: 8, pal: 0 }
+      - { tile: shield_br, x: 8, y: 8, pal: 0 }
+loop:
+  kind: loopTo
+  frame: 0
