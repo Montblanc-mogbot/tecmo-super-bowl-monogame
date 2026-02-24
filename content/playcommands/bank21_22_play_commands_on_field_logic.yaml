@@ -1,0 +1,57 @@
+# bank21/22: play commands / on-field logic scaffold
+#
+# This defines a small, data-driven command set and a few example "programs".
+# The runtime interpreter can be implemented later.
+
+id: bank21_22_play_commands_on_field_logic
+
+commands:
+  - id: set_pos
+    kind: transform
+    defaults:
+      entity: "player"
+      x: "0"
+      y: "0"
+
+  - id: set_vel
+    kind: physics
+    defaults:
+      entity: "player"
+      vx: "0"
+      vy: "0"
+
+  - id: spawn_ball
+    kind: ball
+    defaults:
+      x: "0"
+      y: "0"
+
+  - id: whistle
+    kind: refs
+    defaults:
+      reason: "tackle"
+
+  - id: emit_event
+    kind: event
+    defaults:
+      name: ""
+
+programs:
+  - id: kickoff_start
+    steps:
+      - command: spawn_ball
+        args:
+          x: "0"
+          y: "0"
+      - command: emit_event
+        args:
+          name: "kickoff_started"
+
+  - id: tackle_resolve
+    steps:
+      - command: whistle
+        args:
+          reason: "tackle"
+      - command: emit_event
+        args:
+          name: "play_dead"
