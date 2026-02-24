@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Entities;
 using TecmoSBGame.Systems;
+using TecmoSBGame.Rendering;
 
 namespace TecmoSBGame;
 
@@ -10,6 +11,8 @@ public sealed class MainGame : Game
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
     private World? _world;
+    private RenderViewport? _viewport;
+    private FieldRenderer? _fieldRenderer;
     
     /// <summary>
     /// Provides access to all loaded game content.
@@ -32,6 +35,10 @@ public sealed class MainGame : Game
     {
         base.Initialize();
         
+        // Initialize rendering viewport
+        _viewport = new RenderViewport(GraphicsDevice);
+        _fieldRenderer = new FieldRenderer(GraphicsDevice);
+        
         // Load all YAML content at startup
         GameContent = new GameContent(Services);
         GameContent.LoadAll();
@@ -48,6 +55,7 @@ public sealed class MainGame : Game
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _fieldRenderer?.LoadContent(Content);
     }
 
     protected override void Update(GameTime gameTime)
@@ -59,8 +67,23 @@ public sealed class MainGame : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(new Color(18, 22, 30));
-
+        
+        // Begin rendering with viewport scale
+        _spriteBatch!.Begin(
+            SpriteSortMode.Deferred,
+            BlendState.AlphaBlend,
+            SamplerState.PointClamp,
+            DepthStencilState.None,
+            RasterizerState.CullNone,
+            effect: null,
+            transformMatrix: _viewport?.ScaleMatrix);
+        
+        // Draw field
+        _fieldRenderer?.Draw(_spriteBatch);
+        
         // ECS systems draw automatically via _world
+        _spriteBatch.End();
+        
         base.Draw(gameTime);
     }
 }
