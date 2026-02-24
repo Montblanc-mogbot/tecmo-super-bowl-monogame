@@ -1,0 +1,181 @@
+# bank9: sprite scripts scaffold
+#
+# This bank contains sprite script bytecode for animating sprites
+# - player animations, ball physics, effects, team logos, etc.
+
+id: bank9_sprite_scripts
+
+# Sprite script opcodes
+opcodes:
+  # CHR Banks ($F6)
+  - { code: 0xF6, name: SET_SPRITE_CHR_BANKS, params: [bank0, bank1, bank2, bank3], description: "Set sprite CHR banks at $1000-$1C00" }
+  
+  # Palette ($FC)
+  - { code: 0xFC, name: SET_SPRITE_PALETTE_INDEX, params: [index], description: "Set sprite palette index" }
+  
+  # Position ($F8)
+  - { code: 0xF8, name: SET_SPRITE_STARTING_LOCATION, params: [y, x], description: "Set initial sprite position" }
+  
+  # Threshold ($F1)
+  - { code: 0xF1, name: SET_SPRITE_TOP_OFFSCREEN_THRESHOLD, params: [threshold], description: "Set offscreen threshold" }
+  
+  # Tile Data Reference
+  - { code: 0x20, name: DO_TILE_DATA_LO, params: [addr_lo], description: "Low byte of tile data address" }
+  - { code: 0x40, name: DO_SUBROUTINE_LO, params: [addr_lo], description: "Low byte of subroutine address" }
+  
+  # Scrolling ($FB)
+  - { code: 0xFB, name: SET_SCROLL_SPEED, params: [y_speed, x_speed, y_inc, x_inc], description: "Set scroll speed and acceleration" }
+  
+  # Wait/Scroll ($00-$7F)
+  - { code: 0x01, name: SCROLL_OR_WAIT_FRAMES, params: [frames], description: "Wait N frames or scroll" }
+  
+  # Control Flow ($FE-$FF)
+  - { code: 0xFE, name: RETURN_FROM_SCRIPT_SUBROUTINE, params: [], description: "Return from subroutine" }
+  - { code: 0xFF, name: END_OF_SCRIPT, params: [], description: "End of sprite script" }
+
+# Sprite script pointer table (0x00-0x7F)
+sprite_scripts:
+  - id: 0x00
+    name: PLAYER_JUMP_MISS
+    description: "Player jump and whiff (missed tackle)"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x01
+    name: SMALL_BALL_ACROSS_SCREEN
+    description: "Ball flying across screen"
+    category: BALL_PHYSICS
+    
+  - id: 0x02
+    name: DIVING_CATCH
+    description: "Player diving catch"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x06
+    name: PLAYER_NORMAL_CATCH
+    description: "Standard player catch"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x0B
+    name: QB_ABOUT_THROW_BALL
+    description: "QB throwing motion"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x0D
+    name: CHEERLEADER_PANTY
+    description: "Cheerleader animation"
+    category: EFFECTS
+    
+  - id: 0x12
+    name: NFL_LOGO
+    description: "NFL logo display"
+    category: LOGOS
+    
+  - id: 0x1E
+    name: PARACHUTER_HALFTIME
+    description: "Parachuter halftime show"
+    category: EFFECTS
+    
+  - id: 0x30
+    name: PLAYER_JUMPING_TD
+    description: "Player jumping TD celebration"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x31
+    name: NY_JETS_LH_LOGO
+    description: "NY Jets logo (lighting)"
+    category: TEAM_LOGOS
+    
+  - id: 0x38
+    name: CARRY_INJURED_PLAYER
+    description: "Injured player being carried off"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x4F
+    name: LH_FACEMASK
+    description: "Helmet facemask closeup"
+    category: EFFECTS
+    
+  - id: 0x50
+    name: LINEMAN_INTRO_ONE
+    description: "3-point stance lineman intro"
+    category: INTRO
+    
+  - id: 0x53
+    name: BIG_BALL_FOR_FG
+    description: "Big ball for field goal"
+    category: BALL_PHYSICS
+    
+  - id: 0x59
+    name: SPIKE_BALL_TD
+    description: "TD ball spike celebration"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x69
+    name: QB_THROWING_PASS_LEADERS
+    description: "QB throwing for stat leaders"
+    category: STATS_SCREEN
+    
+  - id: 0x75
+    name: KICKOFF_ARM_P1
+    description: "Kickoff arm in air P1"
+    category: PLAYER_ANIMATION
+    
+  - id: 0x7F
+    name: END_OF_SCRIPT_CLEAR_SPRITES
+    description: "Clear all sprites"
+    category: SYSTEM
+
+# Team logo sprite scripts (0x31-0x4E)
+team_logos:
+  - { id: 0x31, team: NY_JETS }
+  - { id: 0x32, team: CINCINNATI }
+  - { id: 0x33, team: CLEVELAND }
+  - { id: 0x34, team: HOUSTON }
+  - { id: 0x35, team: PITTSBURGH }
+  - { id: 0x36, team: DENVER }
+  - { id: 0x37, team: KANSAS_CITY }
+  - { id: 0x3A, team: SEATTLE }
+  - { id: 0x3B, team: DALLAS }
+  - { id: 0x3C, team: NY_GIANTS }
+  - { id: 0x3D, team: INDIANAPOLIS }
+  - { id: 0x3E, team: BUFFALO }
+  - { id: 0x3F, team: MIAMI }
+  - { id: 0x40, team: NEW_ENGLAND }
+  - { id: 0x41, team: RAIDERS }
+  - { id: 0x42, team: SAN_DIEGO }
+  - { id: 0x43, team: PHILADELPHIA }
+  - { id: 0x44, team: PHOENIX }
+  - { id: 0x45, team: WASHINGTON }
+  - { id: 0x46, team: CHICAGO }
+  - { id: 0x47, team: DETROIT }
+  - { id: 0x48, team: GREEN_BAY }
+  - { id: 0x49, team: MINNESOTA }
+  - { id: 0x4A, team: TAMPA_BAY }
+  - { id: 0x4B, team: ATLANTA }
+  - { id: 0x4C, team: RAMS }
+  - { id: 0x4D, team: NEW_ORLEANS }
+  - { id: 0x4E, team: SAN_FRANCISCO }
+
+# Script categories
+categories:
+  - PLAYER_ANIMATION
+  - BALL_PHYSICS
+  - EFFECTS
+  - LOGOS
+  - TEAM_LOGOS
+  - INTRO
+  - STATS_SCREEN
+  - SYSTEM
+
+# ROM info
+rom_info:
+  base_address: 0xA000
+  pointer_table_start: 0xA000
+  script_data_start: 0xA100
+  num_scripts: 128
+
+notes:
+  - "Bank9 contains first half of sprite scripts (0x00-0x7F)"
+  - "Bank10 contains second half of sprite scripts (0x80-0xFF)"
+  - "Scripts control sprite animation, position, and CHR banks"
+  - "Team logos use lighting effects for visual polish"
