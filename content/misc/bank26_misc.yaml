@@ -1,0 +1,16 @@
+# bank26: misc scaffold
+#
+# Placeholder values until we identify the specific tables/rules this bank provides.
+
+id: bank26_misc
+
+int_constants:
+  max_players_on_field: 22
+  fps_target: 60
+
+string_constants:
+  build_flavor: "yaml-first"
+
+flags:
+  enable_debug_overlay: true
+  enable_modern_pause_menu: true
