@@ -1,0 +1,117 @@
+# Tecmo Yardline Reference
+#
+# Source: DOCS/tecmo_yardline_reference.txt
+# Yardline positions and their internal game values
+
+yardline_reference:
+  description: "Yardline to game coordinate mapping"
+  
+  yardlines:
+    - yard: -10
+      hb: 6
+      lb: 20
+      two_byte: "0620"
+    - yard: -5
+      hb: 6
+      lb: 48
+      two_byte: "0648"
+    - yard: 0
+      hb: 6
+      lb: 112
+      two_byte: "0670"
+    - yard: 5
+      hb: 6
+      lb: 152
+      two_byte: "0698"
+    - yard: 10
+      hb: 6
+      lb: 192
+      two_byte: "06C0"
+    - yard: 15
+      hb: 6
+      lb: 232
+      two_byte: "06E8"
+    - yard: 20
+      hb: 7
+      lb: 16
+      two_byte: "0710"
+    - yard: 25
+      hb: 7
+      lb: 56
+      two_byte: "0738"
+    - yard: 30
+      hb: 7
+      lb: 96
+      two_byte: "0760"
+    - yard: 35
+      hb: 7
+      lb: 136
+      two_byte: "0788"
+    - yard: 40
+      hb: 7
+      lb: 176
+      two_byte: "07B0"
+    - yard: 45
+      hb: 7
+      lb: 216
+      two_byte: "07D8"
+    - yard: 50
+      hb: 8
+      lb: 0
+      two_byte: "0800"
+    - yard: 55
+      hb: 8
+      lb: 40
+      two_byte: "0828"
+    - yard: 60
+      hb: 8
+      lb: 80
+      two_byte: "0850"
+    - yard: 65
+      hb: 8
+      lb: 120
+      two_byte: "0878"
+    - yard: 70
+      hb: 8
+      lb: 160
+      two_byte: "08A0"
+    - yard: 75
+      hb: 8
+      lb: 200
+      two_byte: "08C8"
+    - yard: 80
+      hb: 8
+      lb: 240
+      two_byte: "08F0"
+    - yard: 85
+      hb: 9
+      lb: 24
+      two_byte: "0918"
+    - yard: 90
+      hb: 9
+      lb: 64
+      two_byte: "0940"
+    - yard: 95
+      hb: 9
+      lb: 104
+      two_byte: "0968"
+    - yard: 100
+      hb: 9
+      lb: 144
+      two_byte: "0990"
+    - yard: 105
+      hb: 9
+      lb: 184
+      two_byte: "09B8"
+    - yard: 110
+      hb: 9
+      lb: 224
+      two_byte: "09E0"
+
+  # Notes
+  notes:
+    - "HB = High byte, LB = Low byte (6502 16-bit values)"
+    - "Two-byte values are hex representations"
+    - "Values increase by 0x28 (40 decimal) per 5 yards"
+    - "Used for player positioning on the field"
+    - "For MonoGame: Use pixel coordinates or normalized 0-1 values"
