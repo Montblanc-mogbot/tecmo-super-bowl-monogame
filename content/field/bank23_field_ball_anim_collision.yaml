@@ -1,0 +1,43 @@
+# bank23: field draw + ball animation + collision scaffold
+
+id: bank23_draw_field_ball_ani_coll_check
+field_layout_id: default_field
+
+ball_animations:
+  - id: spiral
+    loop: true
+    frames:
+      - sprite_id: ball_spiral_1
+        duration: 3
+      - sprite_id: ball_spiral_2
+        duration: 3
+
+  - id: bounce
+    loop: true
+    frames:
+      - sprite_id: ball_bounce_1
+        duration: 4
+      - sprite_id: ball_bounce_2
+        duration: 4
+
+boundaries:
+  - id: field_rect
+    kind: bounds
+    x: 0
+    y: 0
+    width: 256
+    height: 192
+
+  - id: endzone_left
+    kind: endzone
+    x: 0
+    y: 0
+    width: 16
+    height: 192
+
+  - id: endzone_right
+    kind: endzone
+    x: 240
+    y: 0
+    width: 16
+    height: 192
