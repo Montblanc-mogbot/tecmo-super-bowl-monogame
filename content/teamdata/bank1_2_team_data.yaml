@@ -1,0 +1,33 @@
+# bank1/2: team data scaffold
+#
+# Colors are hex strings for now; we can later map to palette indices / uniforms.
+
+id: bank1_2_team_data
+
+teams:
+  - id: buf
+    city: Buffalo
+    name: Bills
+    abbrev: BUF
+    colors:
+      primary: "#00338D"
+      secondary: "#C60C30"
+      accent: "#FFFFFF"
+
+  - id: mia
+    city: Miami
+    name: Dolphins
+    abbrev: MIA
+    colors:
+      primary: "#008E97"
+      secondary: "#FC4C02"
+      accent: "#FFFFFF"
+
+  - id: nyg
+    city: New York
+    name: Giants
+    abbrev: NYG
+    colors:
+      primary: "#0B2265"
+      secondary: "#A71930"
+      accent: "#FFFFFF"
