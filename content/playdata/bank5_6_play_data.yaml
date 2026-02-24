@@ -1,0 +1,187 @@
+# bank5_6: offensive/defensive play data scaffold
+#
+# This bank contains the actual play command scripts that define player
+# behavior - routes, blocking assignments, positioning, etc.
+# Each player reaction is a sequence of PlayerCommandData opcodes.
+
+id: bank5_6_play_data
+
+# Play command types (opcodes)
+command_types:
+  - name: setPositionFromKickoffB0
+    opcode: 0x00
+    params: [x, y]
+    description: "Set initial position from kickoff formation"
+  - name: setPositionFromKickoffB1
+    opcode: 0x01
+    params: [x, y]
+    description: "Set initial position from kickoff formation B1"
+  - name: setPositionBallPlacement
+    opcode: 0x02
+    params: [x, y]
+    description: "Set position relative to ball"
+  - name: setPositionMiddleOfField
+    opcode: 0x03
+    params: [x, y]
+    description: "Set position relative to field center"
+  - name: waitForSnap2PointStance
+    opcode: 0x10
+    params: []
+    description: "Wait for snap in 2-point stance"
+  - name: waitForSnap3PointStance
+    opcode: 0x11
+    params: []
+    description: "Wait for snap in 3-point stance"
+  - name: wait
+    opcode: 0x20
+    params: [start_time, end_time]
+    description: "Wait for time range"
+  - name: setToGrapple
+    opcode: 0x30
+    params: [mask1, mask2]
+    description: "Set players to grapple"
+  - name: setToBlock
+    opcode: 0x31
+    params: [mask1, mask2]
+    description: "Set blocking assignment"
+  - name: block
+    opcode: 0x32
+    params: []
+    description: "Execute block"
+  - name: moveDuringKickoff
+    opcode: 0x40
+    params: [x, y]
+    description: "Move during kickoff"
+  - name: pullRelative
+    opcode: 0x50
+    params: [x, y]
+    description: "Pull to relative position"
+  - name: pullMiddleOfField
+    opcode: 0x51
+    params: [x, y]
+    description: "Pull to field-relative position"
+  - name: moveRelative
+    opcode: 0x52
+    params: [x, y]
+    description: "Move to relative position"
+  - name: loopTo
+    opcode: 0x80
+    params: [offset]
+    description: "Loop to address"
+  - name: jumpTo
+    opcode: 0x81
+    params: [target]
+    description: "Jump to subroutine"
+  - name: punt
+    opcode: 0x90
+    params: []
+    description: "Execute punt"
+  - name: boostRS
+    opcode: 0xA0
+    params: [value]
+    description: "Boost running speed"
+  - name: setMS
+    opcode: 0xA1
+    params: [value]
+    description: "Set movement speed"
+  - name: changePlayerIconToReturner
+    opcode: 0xB0
+    params: []
+    description: "Mark player as ball carrier"
+  - name: playerTakesControl
+    opcode: 0xC0
+    params: []
+    description: "Switch to player control"
+  - name: computerTakesControl
+    opcode: 0xC1
+    params: []
+    description: "Switch to AI control"
+  - name: turn
+    opcode: 0xD0
+    params: [time]
+    description: "Turn/rotate"
+
+# Player reaction scripts (sample subset)
+# Full set contains 500+ reactions for offense and defense
+player_reactions:
+  - id: OFFENSE_PLAYER_REACTION_001
+    description: "Kickoff - front line rusher"
+    role: OFFENSE
+    commands:
+      - { cmd: setPositionFromKickoffB0, params: [0xCC, 0x98] }
+      - { cmd: waitForSnap2PointStance }
+      - { cmd: setToGrapple, params: [0xFF, 0xE0], target: "RE,NT,LE,ROLB,RILB,LILB,LOLB,RCB,LCB,FS,SS" }
+      - { cmd: moveDuringKickoff, params: [0x48, 0x88] }
+      - { cmd: setToBlock, params: [0xFF, 0xE0], target: "RE,NT,LE,ROLB,RILB,LILB,LOLB,RCB,LCB,FS,SS" }
+      - { cmd: wait, params: [0x01, 0x19] }
+      - { cmd: pullRelative, params: [0x60, 0x28] }
+      - { cmd: pullRelative, params: [0x0C, 0x7F] }
+      - { cmd: pullMiddleOfField, params: [0x10, 0x00], label: loop_start }
+      - { cmd: loopTo, params: [loop_start] }
+
+  - id: OFFENSE_PLAYER_REACTION_011
+    description: "Kick returner"
+    role: OFFENSE
+    commands:
+      - { cmd: setPositionFromKickoffB1, params: [0x00, 0x48] }
+      - { cmd: waitForSnap2PointStance }
+      - { cmd: boostRS, params: [0x30] }
+      - { cmd: changePlayerIconToReturner }
+      - { cmd: setMS, params: [0x00] }
+      - { cmd: playerTakesControl }
+      - { cmd: computerTakesControl, label: loop_start }
+      - { cmd: loopTo, params: [loop_start] }
+
+  - id: OFFENSE_PLAYER_REACTION_012
+    description: "Punter"
+    role: OFFENSE
+    commands:
+      - { cmd: setPositionBallPlacement, params: [0xF0, 0x48] }
+      - { cmd: waitForSnap2PointStance }
+      - { cmd: punt }
+      - { cmd: turn, params: [0x00], label: loop_start }
+      - { cmd: loopTo, params: [loop_start] }
+
+  - id: DEFENSE_PLAYER_REACTION_001
+    description: "Standard pass rush"
+    role: DEFENSE
+    commands:
+      - { cmd: setPositionMiddleOfField, params: [0xB4, 0x3C] }
+      - { cmd: waitForSnap3PointStance }
+      - { cmd: pullRelative, params: [0xF8, 0x7F] }
+      - { cmd: pullRelative, params: [0xF8, 0x7F] }
+      - { cmd: block, label: loop_start }
+      - { cmd: loopTo, params: [loop_start] }
+
+# Play data categories
+categories:
+  - id: KICKOFF
+    description: "Kickoff plays"
+    reactions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  - id: PUNT
+    description: "Punt plays"
+    reactions: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+  - id: FIELD_GOAL
+    description: "Field goal/extra point"
+    reactions: [25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
+  - id: PASS_ROUTES
+    description: "Pass route running"
+    reactions: [37, 38, 43, 44, 45, 46, 47, 48, 57, 58, 59, 60]
+  - id: RUN_BLOCKING
+    description: "Run blocking assignments"
+    reactions: [56, 61, 64, 65, 66, 67, 70, 71, 72, 73, 74, 75]
+
+# ROM info
+rom_info:
+  base_address: 0xA000
+  offense_data_start: 0xA010
+  defense_data_start: 0xB800
+  total_reactions: 500
+
+notes:
+  - "Bank5 contains offense player reactions"
+  - "Bank6 contains defense player reactions"
+  - "Commands are bytecode-style opcodes with parameters"
+  - "Loop and jump commands create branching behavior"
+  - "Position values are often relative (signed bytes)"
+  - "Grapple/block masks use bitflags for player targeting"
