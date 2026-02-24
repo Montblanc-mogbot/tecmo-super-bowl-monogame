@@ -1,0 +1,29 @@
+# bank25: leaders + player data display + pro-bowl abbreviations scaffold
+
+id: bank25_leaders_player_data_pro_bowl_abbrev
+
+categories:
+  - id: passing_yards
+    title: "Passing Yards"
+    stat_key: passing_yards
+    top_n: 10
+
+  - id: rushing_yards
+    title: "Rushing Yards"
+    stat_key: rushing_yards
+    top_n: 10
+
+  - id: receiving_yards
+    title: "Receiving Yards"
+    stat_key: receiving_yards
+    top_n: 10
+
+  - id: sacks
+    title: "Sacks"
+    stat_key: sacks
+    top_n: 10
+
+# Placeholder mapping (team/player abbrev slots vary by ruleset/season)
+pro_bowl_abbrevs:
+  afc: AFC
+  nfc: NFC
