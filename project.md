@@ -1,52 +1,28 @@
-# Tecmo Super Bowl MonoGame - Project
+# Tecmo Super Bowl MonoGame - Project Reference
 
-**Location:** `repos/tecmo-super-bowl-monogame/project.md`  
+**GTD Brain:** `Projects/tectonic-super-bowl-clone/project.md`  
 **Repository:** https://github.com/Montblanc-mogbot/tecmo-super-bowl-monogame  
 **Design Doc:** `docs/DESIGN.md`
 
 ---
 
-## Phase 1: Core Framework #nextaction
+## Overview
+MonoGame reimplementation of Tecmo Super Bowl NES, preserving original gameplay mechanics while using modern C# patterns.
 
-- [ ] **Review scope and ask Matt clarifying questions** #nextaction
-  - Confirm project structure approach
-  - Discuss target platform(s)
-  - Clarify content loading strategy (load all at startup vs on-demand)
-  - Confirm MonoGame version target
-  - Any specific tooling preferences?
+---
 
-- [ ] **Project setup** #nextaction
-  - Create MonoGame project structure
-  - Set up solution and project files
-  - Configure YAML content pipeline
-  - Add YamlDotNet dependency
+## Status
 
-- [ ] **Content pipeline (YAML loading)** #nextaction
-  - Implement YamlContentLoader
-  - Create ContentManager wrapper
-  - Test loading existing YAML files (teams, plays, formations)
-  - Error handling for missing/invalid YAML
-
-- [ ] **Basic entity system** #nextaction
-  - Create Entity base class
-  - Implement Component system
-  - Create Player and Ball entities
-  - Set up BehaviorComponent for AI
-
-- [ ] **Rendering pipeline** #nextaction
-  - Set up SpriteBatch configuration
-  - Create FieldRenderer
-  - Create PlayerRenderer
-  - Camera/viewport management
-  - 256x224 base resolution with scaling
+**Phase:** 1 - Core Framework  
+**Active work tracked in:** `Projects/tectonic-super-bowl-clone/project.md`
 
 ---
 
 ## Completed
 
-- [x] Scaffolded all 32 NES banks as YAML with C# models/loaders
-- [x] Processed all DOCS files
-- [x] Created DESIGN.md with gameplay mechanics specification
+- Scaffolded all 32 NES banks as YAML with C# models/loaders
+- Processed all DOCS files
+- Created DESIGN.md with gameplay mechanics specification
 
 ---
 
