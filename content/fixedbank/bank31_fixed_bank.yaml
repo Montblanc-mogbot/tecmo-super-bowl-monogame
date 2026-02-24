@@ -1,0 +1,142 @@
+# bank31: fixed bank scaffold
+#
+# This bank contains the "fixed" code that resides at $C000-$FFFF in the NES.
+# It includes the reset vector, NMI/IRQ handlers, and core system routines.
+# We model the configurable constants and jump table as YAML data.
+
+id: bank31_fixed_bank
+
+# Core timing and sizing constants (from original)
+constants:
+  vblanks_to_wait_after_reset: 2
+  prime_number_for_random_1: 131   # $83
+  prime_number_for_random_2: 13    # $0D
+  prime_number_for_random_3: 17    # $11
+  ppu_busy_bitflag: 128            # $80
+  
+# SRAM integrity check values
+sram_check:
+  check_value: "AKIHIKO"           # Magic bytes to verify SRAM not corrupted
+  checksum_offset: 7               # Where checksum starts after magic bytes
+
+# Reset/init configuration
+reset_config:
+  default_stack_index: 255         # $FF - top of stack
+  ppu_warmup_vblanks: 2            # VBLANKs to wait for PPU warmup
+  sram_clear_start: 24576          # $6000 - SRAM start
+  sram_clear_size: 1691            # $069B - bytes to clear on soft reset
+  
+# CHR bank defaults (MMC3)
+chr_bank_defaults:
+  bg_0000_bank: 24                 # Default BG CHR at $0000
+  spr_1000_bank: 26                # Default sprite CHR at $1000
+  spr_1400_bank: 27                # Sprite CHR at $1400
+  spr_1800_bank: 28                # Sprite CHR at $1800
+  spr_1c00_bank: 29                # Sprite CHR at $1C00
+
+# NMI/PPU configuration
+nmi_config:
+  ppu_ctrl_default: 168            # %10101000 - NMI on, 8x16 sprites, etc.
+  ppu_mask_default: 30             # %00011110 - BG+sprites enabled
+  
+# IRQ split screen configuration
+irq_config:
+  max_splits: 4                    # Maximum IRQ split points
+  default_scanlines: 32            # Default lines per split
+
+# Sound engine routing
+sound_config:
+  engine_bank: 28                  # Bank containing sound engine
+  data_bank_1: 29                  # Bank 29 - song data
+  data_bank_2: 30                  # Bank 30 - additional data
+
+# System service jump table (maps routine names to conceptual addresses)
+# These represent the entry points for core system services
+service_table:
+  - name: RESET
+    description: "System reset entry point"
+  - name: NMI
+    description: "VBLANK non-maskable interrupt"
+  - name: IRQ
+    description: "MMC3 scanline IRQ handler"
+  - name: sound_engine_start
+    description: "Entry point to update sound engine"
+  - name: read_joypad
+    description: "Read both controllers"
+  - name: wait_num_frames
+    description: "Wait for N frames"
+  - name: create_task
+    description: "Create a new task"
+  - name: check_tasks
+    description: "Run task scheduler"
+  - name: swap_8000_bank
+    description: "Swap PRG bank at $8000"
+  - name: swap_a000_bank
+    description: "Swap PRG bank at $A000"
+  - name: update_irq_chr_banks_scroll
+    description: "Update CHR banks and scroll for IRQ split"
+  - name: set_all_sprites_offscreen
+    description: "Hide all sprites"
+  - name: clear_ram
+    description: "Clear RAM region"
+  - name: calculate_checksum
+    description: "Calculate SRAM checksum"
+
+# Random number generator state
+rng_config:
+  num_generators: 3                # RANDOM_1, RANDOM_2, RANDOM_3
+  update_frequency: "every_frame"  # How often RNG advances
+
+# Task system configuration
+task_system:
+  max_tasks: 8                     # Maximum concurrent tasks
+  task_slots:
+    - id: 0
+      name: GAME_MENU_TASK
+      default_bank: 17
+    - id: 1
+      name: TASK_1
+      default_bank: 0
+    - id: 2
+      name: TASK_2
+      default_bank: 0
+    - id: 3
+      name: TASK_3
+      default_bank: 0
+    - id: 4
+      name: TASK_4
+      default_bank: 0
+    - id: 5
+      name: DRAW_TASK
+      default_bank: 23
+    - id: 6
+      name: TASK_6
+      default_bank: 0
+    - id: 7
+      name: TASK_7
+      default_bank: 0
+  task_states:
+    - NONE
+    - CREATED
+    - RUNNING
+    - WAITING
+    - BUSY
+
+# Buffer system configuration
+buffer_system:
+  bg_buffer_max_length: 255        # Max bytes in BG buffer
+  segment_overhead: 3              # Bytes per segment (addr lo, addr hi, length)
+
+# Joypad configuration
+joypad_config:
+  num_players: 2
+  buttons:
+    - A
+    - B
+    - SELECT
+    - START
+    - UP
+    - DOWN
+    - LEFT
+    - RIGHT
+  read_method: "strobe_latch"      # NES strobe+latch method
