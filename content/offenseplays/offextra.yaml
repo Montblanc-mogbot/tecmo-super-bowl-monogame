@@ -1,0 +1,168 @@
+# Offensive Extra Play Data
+#
+# Source: DOCS/offextra.txt
+# Special offensive formations and player command scripts
+
+offensive_extra_plays:
+  - id: "00"
+    name: "OFFENSIVE_EXTRA_00"
+    description: "Celebration animation"
+    players:
+      - position: QB
+        commands: "Celebrate(14)"
+      - position: HB
+        commands: "Celebrate(28)"
+      - position: FB
+        commands: "Celebrate(3C)"
+      - position: WR1
+        commands: "Celebrate(50)"
+      - position: WR2
+        commands: "Celebrate(64)"
+      - position: TE
+        commands: "Celebrate(14)"
+      - position: OC
+        commands: "Celebrate(28)"
+      - position: LG
+        commands: "Celebrate(3C)"
+      - position: RG
+        commands: "Celebrate(50)"
+      - position: LT
+        commands: "Celebrate(64)"
+      - position: RT
+        commands: "Celebrate(14)"
+      - position: MAN
+        commands: "Celebrate(28)"
+
+  - id: "01"
+    name: "OFFENSIVE_EXTRA_01"
+    description: "All-out pass rush/block"
+    players:
+      - position: QB
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: HB
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: FB
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: WR1
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: WR2
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: TE
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: OC
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: LG
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: RG
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: LT
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: RT
+        commands: "Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: MAN
+        commands: "Boost-MS(11); TakeControl; FC(FF E0); DD-PassRush; LoopBack FC"
+
+  - id: "04"
+    name: "OFFENSIVE_EXTRA_04"
+    description: "Punt Return"
+    players:
+      - position: QB
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); TakeControl; MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: HB
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: FB
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: WR1
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: WR2
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: TE
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: OC
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: LG
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: RG
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: LT
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: RT
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+      - position: MAN
+        commands: "Boost-HP(07); Boost-RP(06); Boost-MS(04); TakeControl; MoveRelative(00 30); JumpTo BF38:Boost-MS(11); FC(FF E0); DD-PassRush; LoopBack FC"
+
+  - id: "05"
+    name: "OFFENSIVE_EXTRA_05"
+    description: "Blocking assignments"
+    players:
+      - position: QB
+        commands: "FC(FF E0); Block-SS; LoopBack FC"
+      - position: HB
+        commands: "FC(FF E0); Block-FS; LoopBack FC"
+      - position: FB
+        commands: "FC(FF E0); Block-LOLB; LoopBack FC"
+      - position: WR1
+        commands: "FC(FF E0); Block-RCB; LoopBack FC"
+      - position: WR2
+        commands: "FC(FF E0); Block-LCB; LoopBack FC"
+      - position: TE
+        commands: "FC(FF E0); Block-ROLB; LoopBack FC"
+      - position: OC
+        commands: "FC(FF E0); Block-NT; LoopBack FC"
+      - position: LG
+        commands: "FC(FF E0); Block-RILB; LoopBack FC"
+      - position: RG
+        commands: "FC(FF E0); Block-LILB; LoopBack FC"
+      - position: LT
+        commands: "FC(FF E0); Block-RE; LoopBack FC"
+      - position: RT
+        commands: "FC(FF E0); Block-LE; LoopBack FC"
+      - position: MAN
+        commands: "Boost-MS(00); TakeControl; ComputerTakeControl; LoopBack FF"
+
+# Command reference
+command_reference:
+  Celebrate:
+    description: "Victory celebration animation"
+    param: "animation_id"
+  Boost-HP:
+    description: "Boost hitting power"
+    param: "value"
+  Boost-RP:
+    description: "Boost running power"
+    param: "value"
+  Boost-MS:
+    description: "Boost maximum speed"
+    param: "value"
+  FC:
+    description: "Move relative with flags"
+    param: "x y coordinates"
+  TakeControl:
+    description: "Switch to player control"
+  ComputerTakeControl:
+    description: "Switch to AI control"
+  MoveRelative:
+    description: "Move to relative position"
+    param: "x y"
+  JumpTo:
+    description: "Jump to subroutine"
+    param: "address"
+  LoopBack:
+    description: "Loop back to address"
+    param: "offset"
+  Block:
+    description: "Block specific defender"
+    param: "defender_position"
+  PassRush:
+    description: "Rush the passer"
+  Pause:
+    description: "Wait for frames"
+    param: "frames"
+
+# Notes
+notes:
+  - "Offensive extra plays are special formations/situations"
+  - "Includes celebrations, punt returns, blocking"
+  - "Similar structure to defensive extra plays"
+  - "Commands use bytecode similar to offensive plays"
+  - "Positions: QB, HB, FB, WR1, WR2, TE, OC, LG, RG, LT, RT, MAN"
