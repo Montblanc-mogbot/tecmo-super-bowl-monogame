@@ -1,0 +1,13 @@
+# bank27: misc scaffold
+
+id: bank27_misc
+
+int_constants:
+  max_roster_size: 30
+  max_playbook_plays: 8
+
+string_constants:
+  notes: "placeholder until bank27 contents are identified"
+
+flags:
+  enable_modern_replay: false
