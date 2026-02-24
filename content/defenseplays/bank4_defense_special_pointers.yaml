@@ -1,0 +1,150 @@
+# bank4: defense play and special teams play pointers scaffold
+#
+# This bank contains defensive execution play pointers and special teams
+# play data. Each defensive execution defines 11 player reactions (one per
+# defensive player) that map to specific behaviors/routes.
+
+id: bank4_defense_special_pointers
+
+# Defense execution sets (100+ defensive formations/schemes)
+# Each execution has 11 player slots (index 0-10)
+defensive_executions:
+  - id: DEFENSIVE_EXECUTION_1
+    description: "Base 4-3 defense"
+    player_reactions:
+      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_002 }
+      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_003 }
+      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_004 }
+      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_005 }
+      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_006 }
+      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_007 }
+      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_008 }
+      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_009 }
+      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_010 }
+      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_011 }
+
+  - id: DEFENSIVE_EXECUTION_2
+    description: "Nickel package"
+    player_reactions:
+      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_029 }
+      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_049 }
+      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_066 }
+      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_058 }
+      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_033 }
+      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_050 }
+      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_069 }
+      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_012 }
+      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_013 }
+      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_014 }
+      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_015 }
+
+  - id: DEFENSIVE_EXECUTION_3
+    description: "Dime package"
+    player_reactions:
+      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_018 }
+      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_019 }
+      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_020 }
+      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_021 }
+      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_022 }
+      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_023 }
+      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_024 }
+      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_025 }
+      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_026 }
+      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_027 }
+      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_028 }
+
+  - id: DEFENSIVE_EXECUTION_84
+    description: "Goal line stand"
+    player_reactions:
+      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_128 }
+      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_129 }
+      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_130 }
+      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_131 }
+      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_132 }
+      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_133 }
+      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_134 }
+      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_135 }
+      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_136 }
+      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_137 }
+      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_138 }
+
+  - id: DEFENSIVE_EXECUTION_14
+    description: "Kick return / default"
+    player_reactions:
+      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_001 }
+
+  - id: DEFENSIVE_EXECUTION_15
+    description: "Punt return / special teams"
+    player_reactions:
+      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_491 }
+      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_492 }
+      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_493 }
+      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_494 }
+      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_243 }
+      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_244 }
+      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_497 }
+      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_246 }
+      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_247 }
+      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_248 }
+      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_249 }
+
+# Player reaction definitions (placeholder subset)
+# Full set includes 500+ unique reactions
+defense_player_reactions:
+  - id: DEFENSE_PLAYER_REACTION_001
+    description: "Standard DL rush"
+    role: "DEFENSIVE_LINE"
+  - id: DEFENSE_PLAYER_REACTION_002
+    description: "DL stunt inside"
+    role: "DEFENSIVE_LINE"
+  - id: DEFENSE_PLAYER_REACTION_003
+    description: "DL contain rush"
+    role: "DEFENSIVE_LINE"
+  - id: DEFENSE_PLAYER_REACTION_012
+    description: "Linebacker zone middle"
+    role: "LINEBACKER"
+  - id: DEFENSE_PLAYER_REACTION_029
+    description: "Cornerback man coverage"
+    role: "DEFENSIVE_BACK"
+  - id: DEFENSE_PLAYER_REACTION_128
+    description: "Goal line DL"
+    role: "DEFENSIVE_LINE"
+  - id: DEFENSE_PLAYER_REACTION_491
+    description: "Punt return blocker"
+    role: "SPECIAL_TEAMS"
+
+# Special teams execution sets
+special_teams_executions:
+  - id: SPECIAL_KICKOFF
+    description: "Kickoff coverage"
+  - id: SPECIAL_PUNT
+    description: "Punt coverage"
+  - id: SPECIAL_FIELD_GOAL
+    description: "Field goal block/defense"
+  - id: SPECIAL_EXTRA_POINT
+    description: "Extra point block/defense"
+
+# ROM addressing info
+rom_info:
+  base_address: 0xA000
+  defense_pointers_start: 0xA010
+  num_defensive_executions: 100
+  
+# Notes on structure
+notes:
+  - "Each defensive execution has exactly 11 player reactions (11 defenders)"
+  - "Reaction IDs reference actual behavior data in Bank5/6"
+  - "Execution 14 is all REACTION_001 (default/kick return)"
+  - "Executions 15+ handle special teams scenarios"
+  - "500+ unique defense player reactions exist across all executions"
