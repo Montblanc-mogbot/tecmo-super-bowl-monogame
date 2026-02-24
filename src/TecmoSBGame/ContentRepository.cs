@@ -101,12 +101,6 @@ public sealed class ContentRepository
     }
 
     // Sprite Scripts
-    public SpriteScriptBankConfig LoadSpriteScriptBank()
-    {
-        var path = System.IO.Path.Combine(_yamlRoot, "spritescripts_bank10/bank10_sprite_scripts.yaml");
-        return SpriteScriptBankRepository.LoadFromFile(path);
-    }
-
     public Bank9SpriteScriptConfig LoadBank9SpriteScripts()
     {
         var path = System.IO.Path.Combine(_yamlRoot, "spritescripts_bank9/bank9_sprite_scripts.yaml");
@@ -124,13 +118,6 @@ public sealed class ContentRepository
     {
         var path = System.IO.Path.Combine(_yamlRoot, "sounddata/bank29_sound_data.yaml");
         return SoundDataYamlLoader.LoadFromFile(path);
-    }
-
-    // Constants
-    public TecmoConstants LoadConstants()
-    {
-        var path = System.IO.Path.Combine(_yamlRoot, "constants/tecmo_constants.yaml");
-        return TecmoConstantsYamlLoader.LoadFromFile(path);
     }
 
     /// <summary>

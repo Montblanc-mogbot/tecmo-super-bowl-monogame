@@ -7,6 +7,11 @@ public sealed class MainGame : Game
 {
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
+    
+    /// <summary>
+    /// Provides access to all loaded game content.
+    /// </summary>
+    public GameContent GameContent { get; private set; } = null!;
 
     public MainGame()
     {
@@ -14,9 +19,19 @@ public sealed class MainGame : Game
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
 
-        _graphics.PreferredBackBufferWidth = 960;
-        _graphics.PreferredBackBufferHeight = 540;
+        // NES aspect ratio: 256x224 = 8:7, scaled up
+        _graphics.PreferredBackBufferWidth = 1280;
+        _graphics.PreferredBackBufferHeight = 1120; // 224 * 5
         _graphics.SynchronizeWithVerticalRetrace = true;
+    }
+
+    protected override void Initialize()
+    {
+        base.Initialize();
+        
+        // Load all YAML content at startup
+        GameContent = new GameContent(Services);
+        GameContent.LoadAll();
     }
 
     protected override void LoadContent()
@@ -28,8 +43,7 @@ public sealed class MainGame : Game
     {
         GraphicsDevice.Clear(new Color(18, 22, 30));
 
-        // "Render something" scaffold.
-        // Next: draw a sprite/font driven by YAML content.
+        // Content pipeline loaded - ready for entity system and rendering
         base.Draw(gameTime);
     }
 }
