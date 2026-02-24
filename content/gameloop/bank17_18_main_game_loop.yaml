@@ -1,0 +1,39 @@
+# bank17/18: "main game loop" scaffold
+#
+# This is not a literal port of 6502 labels/branches.
+# It's a high-level state machine we can grow as more subsystems come online.
+
+id: bank17_18_main_game_loop
+initial_state: boot
+
+states:
+  - id: boot
+    kind: init
+    next: title
+
+  - id: title
+    kind: menu
+    on_event:
+      start_game: preseason_menu
+      view_credits: credits
+
+  - id: preseason_menu
+    kind: menu
+    on_event:
+      begin_preseason: sim
+      back: title
+
+  - id: sim
+    kind: sim
+    on_event:
+      sim_done: postgame
+
+  - id: postgame
+    kind: stats
+    on_event:
+      continue: title
+
+  - id: credits
+    kind: cutscene
+    on_event:
+      back: title
