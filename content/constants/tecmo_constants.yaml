@@ -1,0 +1,159 @@
+# Tecmo Super Bowl Constants
+#
+# Consolidated constants from constants_variables/*.asm files
+# These replace NES assembly constants with YAML configuration
+
+id: tecmo_constants
+version: "1.0"
+description: "Core game constants for MonoGame reimplementation"
+
+# Team Constants
+teams:
+  count: 28
+  conferences:
+    - id: AFC
+      name: "American Football Conference"
+      divisions:
+        - id: AFC_EAST
+          name: "AFC East"
+          teams: [BUFFALO, INDIANAPOLIS, MIAMI, NEW_ENGLAND, NY_JETS]
+        - id: AFC_CENTRAL
+          name: "AFC Central"
+          teams: [CINCINNATI, CLEVELAND, HOUSTON, PITTSBURGH]
+        - id: AFC_WEST
+          name: "AFC West"
+          teams: [DENVER, KANSAS_CITY, LA_RAIDERS, SAN_DIEGO, SEATTLE]
+    - id: NFC
+      name: "National Football Conference"
+      divisions:
+        - id: NFC_EAST
+          name: "NFC East"
+          teams: [WASHINGTON, NY_GIANTS, PHILADELPHIA, PHOENIX, DALLAS]
+        - id: NFC_CENTRAL
+          name: "NFC Central"
+          teams: [CHICAGO, DETROIT, GREEN_BAY, MINNESOTA, TAMPA_BAY]
+        - id: NFC_WEST
+          name: "NFC West"
+          teams: [SAN_FRANCISCO, LA_RAMS, NEW_ORLEANS, ATLANTA]
+
+# Formation Constants
+formations:
+  kickoff: 0x00
+  punt: 0x01
+  field_goal: 0x02
+  extra_point: 0x03
+  pro_t_1: 0x04
+  slot: 0x05
+  onsetback_1: 0x06
+  two_te: 0x07
+  motion_down: 0x08
+  shifting_oneback: 0x09
+  oneback_1: 0x0A
+  offset_i: 0x0B
+  run_and_shoot: 0x0C
+  oneback_2: 0x0D
+  red_zone: 0x0E
+  goal_line: 0x0F
+  shotgun: 0x10
+  pro_t_2: 0x11
+  twoback: 0x12
+  oneback_3: 0x13
+  twoback_offset: 0x14
+
+# Play Slots
+play_slots:
+  run_1: "Run 1"
+  run_2: "Run 2"
+  run_3: "Run 3"
+  run_4: "Run 4"
+  pass_1: "Pass 1"
+  pass_2: "Pass 2"
+  pass_3: "Pass 3"
+  pass_4: "Pass 4"
+
+# Player Positions (Offense)
+offense_positions:
+  - QB
+  - HB
+  - FB
+  - WR1
+  - WR2
+  - TE
+  - OC
+  - LG
+  - RG
+  - LT
+  - RT
+
+# Player Positions (Defense)
+defense_positions:
+  - RE    # Right End
+  - NT    # Nose Tackle
+  - LE    # Left End
+  - ROLB  # Right Outside Linebacker
+  - RILB  # Right Inside Linebacker
+  - LILB  # Left Inside Linebacker
+  - LOLB  # Left Outside Linebacker
+  - RCB   # Right Cornerback
+  - LCB   # Left Cornerback
+  - FS    # Free Safety
+  - SS    # Strong Safety
+
+# Special Teams Positions
+special_teams_positions:
+  - K     # Kicker
+  - P     # Punter
+  - KR    # Kick Returner
+  - PR    # Punt Returner
+
+# Game States
+game_states:
+  coin_toss: 0
+  kickoff: 1
+  on_field: 2
+  play_call: 3
+  pause: 4
+  end_of_quarter: 5
+  end_of_game: 6
+
+# Quarter
+quarters:
+  first: 1
+  second: 2
+  third: 3
+  fourth: 4
+  overtime: 5
+
+# Down
+downs:
+  first: 1
+  second: 2
+  third: 3
+  fourth: 4
+
+# Content IDs
+content_ids:
+  banks:
+    team_data: [1, 2]
+    formation_data: 3
+    defense_pointers: 4
+    play_commands: [5, 6]
+    scene_scripts: [7, 8]
+    sprite_scripts: [9, 10]
+    bg_tiles: [11, 12]
+    animation: [13, 14]
+    faces: 15
+    menus: 16
+    game_loop: [17, 18]
+    on_field: [19, 20]
+    field_draw: [23, 24]
+    sound: [28, 29, 30]
+    fixed: 31
+    dmc_samples: 32
+
+# Notes
+notes:
+  - "These constants replace NES assembly #define statements"
+  - "No RAM addresses - pure game logic values"
+  - "Use C# enums generated from this YAML"
+  - "Team data references content/teamtext/ files"
