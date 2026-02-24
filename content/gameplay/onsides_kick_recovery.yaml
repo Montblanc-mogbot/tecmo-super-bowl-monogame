@@ -1,0 +1,60 @@
+# Onsides Kick Recovery Rates
+#
+# Source: DOCS/onsides_kick_recovery_rates.xlsx
+# Documents the known bug where Player 1 has recovery advantage
+
+onsides_kick_recovery:
+  description: "Onside kick recovery rate analysis"
+  
+  # The Bug
+  bug_explanation: |
+    In the original NES game, Player 1 has a significant advantage in 
+    recovering onside kicks. This is because the ball travels one less 
+    yard when kicked with an empty power bar for Player 1 compared to 
+    Player 2.
+  
+  # Recovery data by team (sample from original)
+  team_recovery_data:
+    - team: STEELERS
+      p1_recovery_hex: "09c8"
+      p2_recovery_hex: "09cc"
+      
+  # Power bar levels
+  power_bar_levels:
+    - level: EMPTY
+      description: "No power - shortest kick"
+      p1_distance: 9    # yards (approximate)
+      p2_distance: 10   # yards (approximate)
+      bug_affected: true
+    - level: 0x08
+      description: "Low power"
+    - level: 0x10
+      description: "Medium power"
+    - level: 0x1C
+      description: "Full power"
+  
+  # Recovery mechanics
+  recovery_mechanics:
+    - The kicking team must travel 10 yards before touching the ball
+    - P1's shorter kick (9 yards) means their players are closer
+    - This gives P1 ~1-2 yard head start in recovery race
+    - P2 must kick 10 yards, giving receiving team advantage
+
+  # For MonoGame Implementation
+  fix_recommendation: |
+    In the MonoGame reimplementation, ensure both players' kicks travel 
+    the same distance for the same power level. The one-yard difference 
+    should be removed for fair play.
+
+  # Data format notes
+  data_format:
+    - "HEX values represent internal game calculations"
+    - "AVG # of KICKS shows sample size"
+    - "RECOVERED count per team"
+    - "RATE shows recovery percentage"
+
+notes:
+  - "This bug was documented in BUGS_UNUSED_AND_HIDDEN_ITEMS.docx"
+  - "P1 advantage is approximately 10-15% higher recovery rate"
+  - "Bug affects all teams equally - not team-specific"
+  - "Fix: Use same distance calculation for both players"
