@@ -1,0 +1,56 @@
+# bank20: playcall scaffold
+#
+# This is a simplified, modern menu model. Later we can expand with
+# formation grouping, play metadata, and AI constraints.
+
+id: bank20_playcall
+
+screens:
+  - id: offense_root
+    title: "Select Offense"
+    options:
+      - id: run
+        label: "Run"
+        next_screen: offense_run
+      - id: pass
+        label: "Pass"
+        next_screen: offense_pass
+      - id: punt
+        label: "Punt"
+        emit_event: offense_punt
+
+  - id: offense_run
+    title: "Run Plays"
+    options:
+      - id: run_1
+        label: "Run 1"
+        emit_event: play_selected_run_1
+      - id: run_2
+        label: "Run 2"
+        emit_event: play_selected_run_2
+      - id: back
+        label: "Back"
+        next_screen: offense_root
+
+  - id: offense_pass
+    title: "Pass Plays"
+    options:
+      - id: pass_1
+        label: "Pass 1"
+        emit_event: play_selected_pass_1
+      - id: pass_2
+        label: "Pass 2"
+        emit_event: play_selected_pass_2
+      - id: back
+        label: "Back"
+        next_screen: offense_root
+
+  - id: defense_root
+    title: "Select Defense"
+    options:
+      - id: def_1
+        label: "Defense 1"
+        emit_event: defense_selected_1
+      - id: def_2
+        label: "Defense 2"
+        emit_event: defense_selected_2
