@@ -9,7 +9,7 @@ namespace TecmoSB;
 public sealed record Bank9SpriteScriptConfig(
     string Id,
     IReadOnlyList<SpriteOpcode> Opcodes,
-    IReadOnlyList<SpriteScript> SpriteScripts,
+    IReadOnlyList<Bank9SpriteScriptDef> SpriteScripts,
     IReadOnlyList<TeamLogoSprite> TeamLogos,
     IReadOnlyList<string> Categories,
     SpriteScriptRomInfo RomInfo,
@@ -21,7 +21,7 @@ public sealed record SpriteOpcode(
     IReadOnlyList<string> Params,
     string Description);
 
-public sealed record SpriteScript(
+public sealed record Bank9SpriteScriptDef(
     int Id,
     string Name,
     string Description,

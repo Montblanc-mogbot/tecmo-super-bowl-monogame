@@ -65,7 +65,7 @@ public static class Bank9SpriteScriptYamlLoader
         public string Description { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
 
-        public SpriteScript ToModel() => new(Id, Name ?? string.Empty, Description ?? string.Empty, Category ?? string.Empty);
+        public Bank9SpriteScriptDef ToModel() => new(Id, Name ?? string.Empty, Description ?? string.Empty, Category ?? string.Empty);
     }
 
     private sealed class TeamLogoSpriteYamlDto

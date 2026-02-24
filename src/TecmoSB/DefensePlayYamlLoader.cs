@@ -85,6 +85,20 @@ public static class DefensePlayYamlLoader
         }
     }
 
+    private sealed class PlayerReactionRefYamlDto
+    {
+        public int Index { get; set; }
+        public string ReactionId { get; set; } = string.Empty;
+
+        public PlayerReactionRef ToModel()
+        {
+            if (string.IsNullOrWhiteSpace(ReactionId))
+                throw new InvalidDataException("PlayerReactionRef.reaction_id is required");
+
+            return new PlayerReactionRef(Index, ReactionId);
+        }
+    }
+
     private sealed class DefenseRomInfoYamlDto
     {
         public int BaseAddress { get; set; } = 0xA000;

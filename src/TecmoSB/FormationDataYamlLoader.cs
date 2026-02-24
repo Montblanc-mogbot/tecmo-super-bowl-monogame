@@ -59,6 +59,21 @@ public static class FormationDataYamlLoader
         public FormationPlayer ToModel() => new(Position ?? string.Empty, Address ?? string.Empty, Commands ?? string.Empty);
     }
 
+    private sealed class CommandReferenceYamlDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string? Param { get; set; }
+
+        public CommandReference ToModel()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+                throw new InvalidDataException("CommandReference.name is required");
+
+            return new CommandReference(Name, Description ?? string.Empty, Param);
+        }
+    }
+
     private sealed class FormationTypeYamlDto
     {
         public string Id { get; set; } = string.Empty;

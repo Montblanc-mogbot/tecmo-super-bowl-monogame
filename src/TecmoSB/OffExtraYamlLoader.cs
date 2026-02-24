@@ -48,6 +48,21 @@ public static class OffExtraYamlLoader
         }
     }
 
+    private sealed class CommandReferenceYamlDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string? Param { get; set; }
+
+        public CommandReference ToModel()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+                throw new InvalidDataException("CommandReference.name is required");
+
+            return new CommandReference(Name, Description ?? string.Empty, Param);
+        }
+    }
+
     private sealed class OffensivePlayerCommandYamlDto
     {
         public string Position { get; set; } = string.Empty;
