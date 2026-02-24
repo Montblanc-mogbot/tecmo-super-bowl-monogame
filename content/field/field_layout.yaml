@@ -1,0 +1,147 @@
+# Field Layout Data
+#
+# Source: DOCS/FIELDLAYOUT.xlsx
+# This data describes how the football field is constructed from tiles,
+# including zoom-out points and subsection lookup tables.
+
+id: field_layout
+
+# Field is composed of tile sections that map to PPU nametable entries
+# The original uses a complex system of pointers and lookup tables
+# to render different zoom levels and field sections
+
+# Field zoom out pointers
+# Used when camera zooms out to show more of the field
+field_zoom_out_pointers:
+  description: "Pointers for zoomed-out field view rendering"
+  # Format: Each entry points to a tile section
+  sections:
+    - id: SECTION_A
+      name: "Section A"
+      description: "Field section A tiles"
+    - id: SECTION_B
+      name: "Section B"
+      description: "Field section B tiles"
+    - id: SECTION_C
+      name: "Section C"
+      description: "Field section C tiles"
+    - id: SECTION_D
+      name: "Section D"
+      description: "Field section D tiles"
+    - id: SECTION_E
+      name: "Section E"
+      description: "Field section E tiles"
+    - id: SECTION_F
+      name: "Section F"
+      description: "Field section F tiles"
+
+# Full field tile mapping
+# Maps field coordinates to tile IDs
+full_field_tiles:
+  description: "Complete field tile mappings"
+  # The field is approximately 30-40 tiles wide by 16-20 tiles tall
+  # depending on zoom level
+  tile_size_pixels: 8
+  field_width_tiles: 32
+  field_height_tiles: 16
+  
+  # Tile categories
+  tile_types:
+    - TURF_GREEN       # Standard grass/turf
+    - YARD_LINE        # White yard lines
+    - ENDZONE          # End zone areas
+    - SIDELINE         # Sideline boundaries
+    - HASH_MARK        # Hash marks
+    - GOAL_LINE        # Goal lines
+    - FIFTY_YARD       # 50-yard line (thicker)
+    - NUMBERS          # Yard numbers
+    - ARROW            # Direction arrows
+
+# Field subsections
+# The field is divided into subsections for efficient rendering
+field_subsections:
+  description: "Field divided into subsections for rendering"
+  rows:
+    - id: ROW_0
+      description: "Top sideline area"
+    - id: ROW_1
+      description: "Upper field area"
+    - id: ROW_2
+      description: "Mid-upper field"
+    - id: ROW_3
+      description: "Middle field (yard lines/numbers)"
+    - id: ROW_4
+      description: "Mid-lower field"
+    - id: ROW_5
+      description: "Lower field area"
+    - id: ROW_6
+      description: "Bottom sideline area"
+
+# Lookup table for field subsection addressing
+# Maps game coordinates to field tiles
+field_subsection_lookup:
+  description: "Maps game coordinates to tile subsections"
+  # Format: [Y_zone][X_zone] -> tile_section_id
+  # Used for quick lookup during scroll
+
+# Zoom levels
+zoom_levels:
+  - id: ZOOM_CLOSE
+    description: "Close-up view (players large)"
+    visible_field_width: 16   # tiles
+    visible_field_height: 12  # tiles
+    tile_scale: 1.0
+    
+  - id: ZOOM_MEDIUM
+    description: "Medium zoom (standard gameplay)"
+    visible_field_width: 24
+    visible_field_height: 14
+    tile_scale: 0.75
+    
+  - id: ZOOM_FAR
+    description: "Far zoom (kickoffs, punts)"
+    visible_field_width: 32
+    visible_field_height: 16
+    tile_scale: 0.5
+
+# Field dimensions (game units)
+field_dimensions:
+  yards_long: 100
+  yards_wide: 53
+  pixels_per_yard_x: 8
+  pixels_per_yard_y: 4
+  total_width_pixels: 424   # 53 * 8
+  total_height_pixels: 400  # 100 * 4
+
+# Yard line positions (in field tiles)
+yard_line_positions:
+  - yard: 0
+    tile_x: 0
+    label: "GOAL"
+  - yard: 10
+    tile_x: 16
+    label: "10"
+  - yard: 20
+    tile_x: 32
+    label: "20"
+  - yard: 30
+    tile_x: 48
+    label: "30"
+  - yard: 40
+    tile_x: 64
+    label: "40"
+  - yard: 50
+    tile_x: 80
+    label: "50"
+  # Mirror for other side...
+
+# Notes for MonoGame Implementation
+notes:
+  - "Original uses complex pointer tables for tile lookup"
+  - "Field is rendered using NES PPU nametable entries"
+  - "For MonoGame: Consider using tilemap or pre-rendered field texture"
+  - "Zoom levels can be implemented with camera scale transforms"
+  - "Original has ~282KB of field layout data - very detailed"
+  - "May want to simplify: use single high-res field texture with scrolling"
+  - "Yard lines and numbers can be drawn procedurally"
+  - "Field layout affects gameplay: boundaries, hash marks, etc."
