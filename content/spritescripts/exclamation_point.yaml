@@ -1,0 +1,10 @@
+id: exclamation_point
+frames:
+  # Bank10 0x80 (EXLIMATION_POINT_SPRITE_SCRIPT)
+  # NOTE: This is an intentionally simplified first pass.
+  - duration: 60
+    sprites:
+      - { tile: exclamation_0, x: 0, y: 0, pal: 0 }
+loop:
+  kind: loopTo
+  frame: 0
