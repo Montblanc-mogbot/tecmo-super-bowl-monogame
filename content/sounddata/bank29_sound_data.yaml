@@ -1,0 +1,29 @@
+# bank29: sound data scaffold
+#
+# Placeholder "note" patterns. Pitch is symbolic for now (e.g., C4, D#4).
+# Duration is in ticks (relative; tempo applies for songs).
+
+id: bank29_sound_data
+
+songs:
+  - id: title_theme
+    tempo: 132
+    patterns:
+      - channel: pulse1
+        notes:
+          - { pitch: C4, duration: 2 }
+          - { pitch: E4, duration: 2 }
+          - { pitch: G4, duration: 4 }
+      - channel: pulse2
+        notes:
+          - { pitch: C3, duration: 4 }
+          - { pitch: G3, duration: 4 }
+
+sfx:
+  - id: whistle
+    patterns:
+      - channel: noise
+        notes:
+          - { pitch: N1, duration: 2 }
+          - { pitch: N2, duration: 2 }
+          - { pitch: N3, duration: 2 }
