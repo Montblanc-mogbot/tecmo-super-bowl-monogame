@@ -1,0 +1,29 @@
+# bank28: sound engine scaffold
+#
+# 'asset' is a content-path placeholder for future MonoGame content pipeline integration.
+
+id: bank28_sound_engine
+
+sounds:
+  - id: sfx_whistle
+    kind: sfx
+    asset: sound/sfx/whistle
+    volume: 0.8
+    loop: false
+
+  - id: sfx_snap
+    kind: sfx
+    asset: sound/sfx/snap
+    volume: 0.8
+    loop: false
+
+  - id: music_title
+    kind: music
+    asset: sound/music/title_theme
+    volume: 0.6
+    loop: true
+
+event_map:
+  play_started: sfx_snap
+  play_dead: sfx_whistle
+  title_enter: music_title
