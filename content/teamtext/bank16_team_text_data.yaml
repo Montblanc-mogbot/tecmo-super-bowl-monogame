@@ -1,0 +1,270 @@
+# bank16: team text data scaffold
+#
+# This bank contains team abbreviations, city names, mascots,
+# and various UI text strings (downs, divisions, conferences, etc.)
+
+id: bank16_team_text_data
+
+# Team data (28 NFL teams from 1991 season)
+teams:
+  - id: BUFFALO
+    abbreviation: "BUF."
+    city: "BUFFALO"
+    mascot: "BILLS"
+    conference: AFC
+    division: EAST
+
+  - id: INDIANAPOLIS
+    abbreviation: "IND."
+    city: "INDIANAPOLIS"
+    mascot: "COLTS"
+    conference: AFC
+    division: EAST
+
+  - id: MIAMI
+    abbreviation: "MIA."
+    city: "MIAMI"
+    mascot: "DOLPHINS"
+    conference: AFC
+    division: EAST
+
+  - id: NEW_ENGLAND
+    abbreviation: "N.E."
+    city: "NEW ENGLAND"
+    mascot: "PATRIOTS"
+    conference: AFC
+    division: EAST
+
+  - id: NY_JETS
+    abbreviation: "JETS"
+    city: "NEW YORK"
+    mascot: "JETS"
+    conference: AFC
+    division: EAST
+
+  - id: CINCINNATI
+    abbreviation: "CIN."
+    city: "CINCINNATI"
+    mascot: "BENGALS"
+    conference: AFC
+    division: CENTRAL
+
+  - id: CLEVELAND
+    abbreviation: "CLE."
+    city: "CLEVELAND"
+    mascot: "BROWNS"
+    conference: AFC
+    division: CENTRAL
+
+  - id: HOUSTON
+    abbreviation: "HOU."
+    city: "HOUSTON"
+    mascot: "OILERS"
+    conference: AFC
+    division: CENTRAL
+
+  - id: PITTSBURGH
+    abbreviation: "PIT."
+    city: "PITTSBURGH"
+    mascot: "STEELERS"
+    conference: AFC
+    division: CENTRAL
+
+  - id: DENVER
+    abbreviation: "DEN."
+    city: "DENVER"
+    mascot: "BRONCOS"
+    conference: AFC
+    division: WEST
+
+  - id: KANSAS_CITY
+    abbreviation: "K.C."
+    city: "KANSAS CITY"
+    mascot: "CHIEFS"
+    conference: AFC
+    division: WEST
+
+  - id: LA_RAIDERS
+    abbreviation: "RAI."
+    city: "LOS ANGELES"
+    mascot: "RAIDERS"
+    conference: AFC
+    division: WEST
+
+  - id: SAN_DIEGO
+    abbreviation: "S.D."
+    city: "SAN DIEGO"
+    mascot: "CHARGERS"
+    conference: AFC
+    division: WEST
+
+  - id: SEATTLE
+    abbreviation: "SEA."
+    city: "SEATTLE"
+    mascot: "SEAHAWKS"
+    conference: AFC
+    division: WEST
+
+  # NFC Teams
+  - id: WASHINGTON
+    abbreviation: "WAS."
+    city: "WASHINGTON"
+    mascot: "REDSKINS"
+    conference: NFC
+    division: EAST
+
+  - id: NY_GIANTS
+    abbreviation: "GIA."
+    city: "NEW YORK"
+    mascot: "GIANTS"
+    conference: NFC
+    division: EAST
+
+  - id: PHILADELPHIA
+    abbreviation: "PHI."
+    city: "PHILADELPHIA"
+    mascot: "EAGLES"
+    conference: NFC
+    division: EAST
+
+  - id: PHOENIX
+    abbreviation: "PHX."
+    city: "PHOENIX"
+    mascot: "CARDINALS"
+    conference: NFC
+    division: EAST
+
+  - id: DALLAS
+    abbreviation: "DAL."
+    city: "DALLAS"
+    mascot: "COWBOYS"
+    conference: NFC
+    division: EAST
+
+  - id: CHICAGO
+    abbreviation: "CHI."
+    city: "CHICAGO"
+    mascot: "BEARS"
+    conference: NFC
+    division: CENTRAL
+
+  - id: DETROIT
+    abbreviation: "DET."
+    city: "DETROIT"
+    mascot: "LIONS"
+    conference: NFC
+    division: CENTRAL
+
+  - id: GREEN_BAY
+    abbreviation: "G.B."
+    city: "GREEN BAY"
+    mascot: "PACKERS"
+    conference: NFC
+    division: CENTRAL
+
+  - id: MINNESOTA
+    abbreviation: "MIN."
+    city: "MINNESOTA"
+    mascot: "VIKINGS"
+    conference: NFC
+    division: CENTRAL
+
+  - id: TAMPA_BAY
+    abbreviation: "T.B."
+    city: "TAMPA BAY"
+    mascot: "BUCCANEERS"
+    conference: NFC
+    division: CENTRAL
+
+  - id: SAN_FRANCISCO
+    abbreviation: "S.F."
+    city: "SAN FRANCISCO"
+    mascot: "49ERS"
+    conference: NFC
+    division: WEST
+
+  - id: LA_RAMS
+    abbreviation: "RAMS"
+    city: "LOS ANGELES"
+    mascot: "RAMS"
+    conference: NFC
+    division: WEST
+
+  - id: NEW_ORLEANS
+    abbreviation: "N.O."
+    city: "NEW ORLEANS"
+    mascot: "SAINTS"
+    conference: NFC
+    division: WEST
+
+  - id: ATLANTA
+    abbreviation: "ATL."
+    city: "ATLANTA"
+    mascot: "FALCONS"
+    conference: NFC
+    division: WEST
+
+# Conference identifiers
+conferences:
+  - id: AFC
+    abbreviation: "AFC "
+    full_name: "AMERICAN FOOTBALL CONFERENCE"
+  - id: NFC
+    abbreviation: "NFC "
+    full_name: "NATIONAL FOOTBALL CONFERENCE"
+  - id: NFL
+    abbreviation: "NFL"
+    full_name: "NATIONAL FOOTBALL LEAGUE"
+
+# Division identifiers
+divisions:
+  - id: EAST
+    name: "EAST"
+  - id: CENTRAL
+    name: "CENTRAL"
+  - id: WEST
+    name: "WEST"
+
+# Down names (for UI)
+down_names:
+  - { number: 1, name: "1ST" }
+  - { number: 2, name: "2ND" }
+  - { number: 3, name: "3RD" }
+  - { number: 4, name: "4TH" }
+
+# Control type text (for coin toss/setup screens)
+control_types:
+  - id: MAN
+    short: "MAN"
+    description: "Manual control"
+  - id: COACH
+    short: "COA"
+    description: "Coach mode"
+  - id: COMPUTER
+    short: "COM"
+    description: "Computer control"
+  - id: SKIP
+    short: "SKP"
+    description: "Skip/Watch"
+
+# Offense/Defense labels
+offense_defense_labels:
+  offense: "OFFENSE"
+  defense: "DEFENSE"
+
+# ROM addressing info
+rom_info:
+  base_address: 0xA000
+  data_start: 0xBC00
+  abbreviation_pointers: 0xBC00
+  city_pointers: 0xBC40
+  mascot_pointers: 0xBC80
+  down_text_pointers: 0xBCA0
+  control_type_pointers: 0xBCA8
+
+notes:
+  - "28 NFL teams from 1991 season (original Tecmo Super Bowl)"
+  - "Team abbreviations are 3-4 characters with period padding"
+  - "Text uses special tile IDs for control type display"
+  - "Pointers are WORD addresses for indirect lookup"
+  - "Conference champions display uses special palettes"
