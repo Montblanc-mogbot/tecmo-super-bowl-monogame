@@ -1,0 +1,86 @@
+# Ball Roll Animation Data
+#
+# Source: DOCS/rollanimation.xlsx
+# Animation frames and movement data for the rolling ball
+
+roll_animation:
+  description: "Ball rolling animation frames and positions"
+  
+  # ROM locations for animation data
+  rom_locations:
+    - id: "B000"
+      description: "Animation frame data start"
+    - id: "B002"
+      description: "Frame 2"
+    - id: "B004"
+      description: "Frame 3"
+    - id: "B006"
+      description: "Frame 4"
+    - id: "B008"
+      description: "Frame 5"
+    - id: "B00A"
+      description: "Frame 6"
+    - id: "B00C"
+      description: "Frame 7"
+    - id: "B00E"
+      description: "Frame 8"
+    - id: "B010"
+      description: "Frame 9"
+    - id: "B012"
+      description: "Frame 10"
+    - id: "B014"
+      description: "Frame 11"
+    - id: "B016"
+      description: "Frame 12"
+    - id: "B018"
+      description: "Frame 13"
+    - id: "B01A"
+      description: "Frame 14"
+    - id: "B080"
+      description: "Animation data segment"
+    - id: "B0B1"
+      description: "Sprite change point"
+    - id: "B0DA"
+      description: "Distance calculation"
+    - id: "B109"
+      description: "Position data"
+    - id: "B132"
+      description: "Velocity data"
+    - id: "B163"
+      description: "Frame timing"
+    - id: "B18A"
+      description: "Animation end"
+    - id: "B1B8"
+      description: "Total distance"
+    - id: "B1DF"
+      description: "Final position"
+
+  # Animation properties
+  animation_properties:
+    - property: "PTS TO"
+      description: "Points to animation frame"
+    - property: "FRAMES"
+      description: "Number of animation frames"
+    - property: "# SPR CHNG"
+      description: "Number of sprite changes"
+    - property: "Y YDS"
+      description: "Y-axis yards moved"
+    - property: "X YDS"
+      description: "X-axis yards moved"
+    - property: "TOT DIST"
+      description: "Total distance traveled"
+
+  # For MonoGame Implementation
+  monogame_notes: |
+    The original NES uses pre-calculated animation tables for ball rolling.
+    For MonoGame, consider:
+    1. Using actual physics for ball movement
+    2. Sprite animation based on velocity
+    3. Rotation animation tied to distance traveled
+    4. No need for pre-calculated tables - calculate in real-time
+
+notes:
+  - "Original uses lookup tables for performance on NES"
+  - "Ball has multiple animation frames (spinning)"
+  - "Animation tied to X/Y movement"
+  - "For MonoGame: Can use physics + procedural animation"
