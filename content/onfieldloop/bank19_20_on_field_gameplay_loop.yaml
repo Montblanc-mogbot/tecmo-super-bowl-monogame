@@ -1,0 +1,45 @@
+# bank19/20: on-field gameplay loop scaffold
+#
+# High-level phases we can expand as we port gameplay systems.
+
+id: bank19_20_on_field_gameplay_loop
+initial_state: pre_snap
+
+states:
+  - id: pre_snap
+    kind: presnap
+    on_event:
+      snap: snap
+      timeout: dead_ball
+
+  - id: snap
+    kind: snap
+    next: live_play
+
+  - id: live_play
+    kind: live
+    on_event:
+      tackle: whistle
+      out_of_bounds: whistle
+      touchdown: score
+      safety: score
+      turnover: whistle
+      incomplete: whistle
+
+  - id: whistle
+    kind: whistle
+    next: dead_ball
+
+  - id: score
+    kind: score
+    next: dead_ball
+
+  - id: dead_ball
+    kind: deadball
+    on_event:
+      next_play: pre_snap
+      end_of_quarter: pre_snap
+      end_of_game: end
+
+  - id: end
+    kind: end
