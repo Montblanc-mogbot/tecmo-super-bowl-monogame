@@ -1,0 +1,122 @@
+# bank32: DMC samples and reset vector scaffold
+#
+# This bank contains DMC (Delta Modulation Channel) audio samples used by the
+# NES APU for voice playback and percussion. In the original ROM, these are
+# raw DMC-encoded bytes. For MonoGame, these map to audio assets.
+
+id: bank32_dmc_samples
+
+# DMC sample definitions (original ROM offsets and lengths)
+# Note: In a full implementation, these would be extracted as WAV/OGG files
+samples:
+  - id: bass_drum
+    name: "Bass Drum"
+    rom_offset: 0x3E010
+    length: 0xC0
+    description: "Low drum thump"
+    
+  - id: snare_drum
+    name: "Snare Drum"
+    rom_offset: 0x3E0D0
+    length: 0x200
+    description: "Standard snare drum"
+    
+  - id: kick_drum
+    name: "Kick Drum"
+    rom_offset: 0x3E2D0
+    length: 0x1F0
+    description: "Kick drum sample (played at variable pitch)"
+    
+  - id: safe_voice
+    name: "SAFE Voice"
+    rom_offset: 0x3E550
+    length: 0x3F0
+    description: "Voice sample: 'Safe!'"
+    
+  - id: touchdown_voice
+    name: "TOUCHDOWN Voice"
+    rom_offset: 0x3E940
+    length: 0xCC0
+    description: "Voice sample: 'Touchdown!'"
+    note: "Original code has a bug - uses last 0x30 bytes of SAFE as start"
+    
+  - id: down_voice
+    name: "DOWN Voice"
+    rom_offset: 0x3F610
+    length: 0x500
+    description: "Voice sample: 'Down!'"
+    
+  - id: hut_voice
+    name: "HUT Voice"
+    rom_offset: 0x3FB10
+    length: 0x300
+    description: "Voice sample: 'Hut!'"
+    
+  - id: high_snare
+    name: "High Snare"
+    rom_offset: 0x3FE10
+    length: 0x170
+    description: "Higher pitched snare"
+    note: "Uses last 0x80 bytes of HUT as start (original bug)"
+
+# DMC playback configuration
+dmc_config:
+  # DMC playback rates (Hz) - indexed by register value $4000 bits 0-3
+  playback_rates:
+    - 4181   # $0
+    - 4709   # $1
+    - 5264   # $2
+    - 5593   # $3
+    - 6258   # $4
+    - 7046   # $5
+    - 7919   # $6
+    - 8363   # $7
+    - 9419   # $8
+    - 11186  # $9
+    - 12604  # $A
+    - 13982  # $B
+    - 16884  # $C
+    - 21306  # $D
+    - 24858  # $E
+    - 33144  # $F
+  
+  # Pitch variations used for kick drum
+  kick_pitch_variants:
+    - rate_index: 10  # High pitch
+      name: "high"
+    - rate_index: 8   # Medium pitch
+      name: "medium"
+    - rate_index: 6   # Low pitch
+      name: "low"
+
+# Reset vector configuration (at $FFF0-$FFFF)
+reset_vector:
+  base_address: 0xE000
+  pad_address: 0xFFF0
+  vectors:
+    nmi: NMI_START
+    reset: RESET_START
+    irq: IRQ_START
+
+# Audio asset mapping (for MonoGame content pipeline)
+# In production, these would point to actual audio files
+asset_mapping:
+  format: "wav"  # or "ogg" for compressed
+  directory: "Audio/DMC"
+  samples:
+    - id: bass_drum
+      file: "dmc_bass_drum.wav"
+    - id: snare_drum
+      file: "dmc_snare_drum.wav"
+    - id: kick_drum
+      file: "dmc_kick_drum.wav"
+    - id: safe_voice
+      file: "voice_safe.wav"
+    - id: touchdown_voice
+      file: "voice_touchdown.wav"
+    - id: down_voice
+      file: "voice_down.wav"
+    - id: hut_voice
+      file: "voice_hut.wav"
+    - id: high_snare
+      file: "dmc_high_snare.wav"
