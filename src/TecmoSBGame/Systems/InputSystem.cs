@@ -1,0 +1,120 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+using MonoGame.Extended.Entities;
+using MonoGame.Extended.Entities.Systems;
+using TecmoSBGame.Components;
+
+namespace TecmoSBGame.Systems;
+
+/// <summary>
+/// Handles player input for human-controlled entities.
+/// Supports keyboard (arrow keys + space) and gamepad.
+/// </summary>
+public class InputSystem : EntityUpdateSystem
+{
+    private ComponentMapper<TeamComponent> _teamMapper;
+    private ComponentMapper<BehaviorComponent> _behaviorMapper;
+    private ComponentMapper<PositionComponent> _positionMapper;
+    private ComponentMapper<BallCarrierComponent> _ballMapper;
+
+    public InputSystem() : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent)))
+    {
+    }
+
+    public override void Initialize(IComponentMapperService mapperService)
+    {
+        _teamMapper = mapperService.GetMapper<TeamComponent>();
+        _behaviorMapper = mapperService.GetMapper<BehaviorComponent>();
+        _positionMapper = mapperService.GetMapper<PositionComponent>();
+        _ballMapper = mapperService.GetMapper<BallCarrierComponent>();
+    }
+
+    public override void Update(GameTime gameTime)
+    {
+        var keyboard = Keyboard.GetState();
+        var gamepad = GamePad.GetState(PlayerIndex.One);
+
+        foreach (var entityId in ActiveEntities)
+        {
+            var team = _teamMapper.Get(entityId);
+            
+            // Only process input for player-controlled entities
+            if (!team.IsPlayerControlled)
+                continue;
+
+            var behavior = _behaviorMapper.Get(entityId);
+            var hasBall = _ballMapper.Has(entityId) && _ballMapper.Get(entityId).HasBall;
+
+            // Get input direction
+            Vector2 inputDirection = GetInputDirection(keyboard, gamepad);
+
+            if (inputDirection != Vector2.Zero)
+            {
+                // Move in input direction
+                behavior.State = BehaviorState.MovingToPosition;
+                behavior.TargetPosition = _positionMapper.Get(entityId).Position + inputDirection * 100f;
+            }
+            else
+            {
+                behavior.State = BehaviorState.Idle;
+            }
+
+            // Action button (space or A button)
+            if (keyboard.IsKeyDown(Keys.Space) || gamepad.Buttons.A == ButtonState.Pressed)
+            {
+                OnActionPressed(entityId, hasBall);
+            }
+        }
+    }
+
+    private Vector2 GetInputDirection(KeyboardState keyboard, GamePadState gamepad)
+    {
+        Vector2 direction = Vector2.Zero;
+
+        // Keyboard input
+        if (keyboard.IsKeyDown(Keys.Up) || keyboard.IsKeyDown(Keys.W))
+            direction.Y -= 1;
+        if (keyboard.IsKeyDown(Keys.Down) || keyboard.IsKeyDown(Keys.S))
+            direction.Y += 1;
+        if (keyboard.IsKeyDown(Keys.Left) || keyboard.IsKeyDown(Keys.A))
+            direction.X -= 1;
+        if (keyboard.IsKeyDown(Keys.Right) || keyboard.IsKeyDown(Keys.D))
+            direction.X += 1;
+
+        // Gamepad left stick or D-pad
+        if (direction == Vector2.Zero)
+        {
+            direction = gamepad.ThumbSticks.Left;
+            direction.Y *= -1; // Invert Y for gamepad (up is negative in MonoGame)
+
+            if (gamepad.DPad.Up == ButtonState.Pressed)
+                direction.Y -= 1;
+            if (gamepad.DPad.Down == ButtonState.Pressed)
+                direction.Y += 1;
+            if (gamepad.DPad.Left == ButtonState.Pressed)
+                direction.X -= 1;
+            if (gamepad.DPad.Right == ButtonState.Pressed)
+                direction.X += 1;
+        }
+
+        // Normalize
+        if (direction.LengthSquared() > 1f)
+            direction.Normalize();
+
+        return direction;
+    }
+
+    private void OnActionPressed(int entityId, bool hasBall)
+    {
+        if (hasBall)
+        {
+            // Dive/tackle break
+            // TODO: Implement dive mechanic
+        }
+        else
+        {
+            // Speed burst or tackle attempt
+            // TODO: Implement speed burst or tackle
+        }
+    }
+}

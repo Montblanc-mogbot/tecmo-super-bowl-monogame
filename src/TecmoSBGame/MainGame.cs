@@ -13,6 +13,7 @@ public sealed class MainGame : Game
     private World? _world;
     private RenderViewport? _viewport;
     private FieldRenderer? _fieldRenderer;
+    private GameStateSystem? _gameStateSystem;
     
     /// <summary>
     /// Provides access to all loaded game content.
@@ -42,14 +43,22 @@ public sealed class MainGame : Game
         // Load all YAML content at startup
         GameContent = new GameContent(Services);
         GameContent.LoadAll();
+
+        // Create game state system
+        _gameStateSystem = new GameStateSystem();
         
-        // Initialize ECS world
+        // Initialize ECS world with all systems
         _world = new WorldBuilder()
             .AddSystem(new MovementSystem())
+            .AddSystem(new InputSystem())
+            .AddSystem(_gameStateSystem)
             .AddSystem(new RenderingSystem(_spriteBatch!, GraphicsDevice))
             .Build();
         
         Components.Add(_world);
+
+        // Spawn the kickoff scenario
+        _gameStateSystem.SpawnKickoffScenario(_world);
     }
 
     protected override void LoadContent()
