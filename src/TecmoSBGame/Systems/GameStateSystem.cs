@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.Entities;
 using MonoGame.Extended.Entities.Systems;
 using TecmoSBGame.Components;
+using TecmoSBGame.Factories;
 
 namespace TecmoSBGame.Systems;
 
@@ -255,43 +256,20 @@ public class GameStateSystem : EntityUpdateSystem
     public void SpawnKickoffScenario(World world)
     {
         // Spawn kicker (kicking team, player controlled)
-        _kickerId = SpawnPlayer(world, new Vector2(40, 112), KickingTeam, true, true);
+        _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
 
         // Spawn coverage team (kicking team, AI)
-        SpawnPlayer(world, new Vector2(30, 80), KickingTeam, false, false);
-        SpawnPlayer(world, new Vector2(30, 144), KickingTeam, false, false);
-        SpawnPlayer(world, new Vector2(20, 112), KickingTeam, false, false);
+        PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam);
+        PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam);
+        PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam);
 
         // Spawn returner (receiving team, will be player controlled after catch)
-        _ballCarrierId = SpawnPlayer(world, new Vector2(200, 112), ReceivingTeam, false, true);
+        _ballCarrierId = PlayerEntityFactory.CreateReturner(world, new Vector2(200, 112), ReceivingTeam, false);
 
         // Spawn blockers (receiving team, AI)
-        SpawnPlayer(world, new Vector2(210, 80), ReceivingTeam, false, false);
-        SpawnPlayer(world, new Vector2(210, 144), ReceivingTeam, false, false);
-        SpawnPlayer(world, new Vector2(220, 112), ReceivingTeam, false, false);
-    }
-
-    private int SpawnPlayer(World world, Vector2 position, int teamIndex, bool isPlayerControlled, bool isOffense)
-    {
-        var entity = world.CreateEntity();
-
-        entity.Attach(new PositionComponent(position));
-        entity.Attach(new VelocityComponent(2.5f, 0.3f));
-        entity.Attach(new TeamComponent 
-        { 
-            TeamIndex = teamIndex, 
-            IsPlayerControlled = isPlayerControlled,
-            IsOffense = isOffense
-        });
-        entity.Attach(new BehaviorComponent 
-        { 
-            State = BehaviorState.Idle,
-            TargetPosition = position
-        });
-        entity.Attach(new SpriteComponent("player_placeholder"));
-        entity.Attach(new BallCarrierComponent { HasBall = false });
-
-        return entity.Id;
+        PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 80), ReceivingTeam);
+        PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 144), ReceivingTeam);
+        PlayerEntityFactory.CreateBlocker(world, new Vector2(220, 112), ReceivingTeam);
     }
 }
 
