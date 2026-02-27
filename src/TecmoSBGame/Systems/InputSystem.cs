@@ -12,13 +12,17 @@ namespace TecmoSBGame.Systems;
 /// </summary>
 public class InputSystem : EntityUpdateSystem
 {
+    private readonly State.LoopState? _loop;
+
     private ComponentMapper<TeamComponent> _teamMapper;
     private ComponentMapper<BehaviorComponent> _behaviorMapper;
     private ComponentMapper<PositionComponent> _positionMapper;
     private ComponentMapper<BallCarrierComponent> _ballMapper;
 
-    public InputSystem() : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent)))
+    public InputSystem(State.LoopState? loop = null)
+        : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent)))
     {
+        _loop = loop;
     }
 
     public override void Initialize(IComponentMapperService mapperService)
@@ -31,6 +35,11 @@ public class InputSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
+        // Gating example: only accept input during pre-snap or live play.
+        // (Rendering and other systems continue to run regardless.)
+        if (_loop is not null && !_loop.IsOnField("pre_snap", "live_play"))
+            return;
+
         var keyboard = Keyboard.GetState();
         var gamepad = GamePad.GetState(PlayerIndex.One);
 
