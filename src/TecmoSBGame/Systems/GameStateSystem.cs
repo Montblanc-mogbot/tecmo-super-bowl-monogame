@@ -29,6 +29,7 @@ public class GameStateSystem : EntityUpdateSystem
     private ComponentMapper<SpriteComponent> _spriteMapper;
     private ComponentMapper<BallStateComponent> _ballStateMapper;
     private ComponentMapper<BallOwnerComponent> _ballOwnerMapper;
+    private ComponentMapper<BallFlightComponent> _ballFlightMapper;
 
     public GamePhase CurrentPhase { get; private set; } = GamePhase.KickoffSetup;
     public float PhaseTimer { get; private set; } = 0f;
@@ -37,6 +38,8 @@ public class GameStateSystem : EntityUpdateSystem
 
     public MatchState MatchState => _matchState;
     public PlayState PlayState => _playState;
+
+    private World? _world;
 
     private int _ballCarrierId = -1;
     private int _kickerId = -1;
@@ -64,6 +67,7 @@ public class GameStateSystem : EntityUpdateSystem
         _spriteMapper = mapperService.GetMapper<SpriteComponent>();
         _ballStateMapper = mapperService.GetMapper<BallStateComponent>();
         _ballOwnerMapper = mapperService.GetMapper<BallOwnerComponent>();
+        _ballFlightMapper = mapperService.GetMapper<BallFlightComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -133,8 +137,8 @@ public class GameStateSystem : EntityUpdateSystem
         }
 
         // Keep the dedicated ball entity in sync with the PlayState model.
-        // Do this after phase/state transitions so the ECS reflects the latest play model immediately.
-        UpdateBallEntity(dt);
+        // Do this after phase/state transitions so downstream systems (BallPhysicsSystem) see the latest state.
+        SyncBallModelToEntity();
     }
 
     private void UpdateKickoffSetup()
@@ -173,44 +177,46 @@ public class GameStateSystem : EntityUpdateSystem
         if (_ballCarrierId != -1 && _ballMapper.Has(_ballCarrierId))
             _ballMapper.Get(_ballCarrierId).HasBall = false;
 
-        // Give the ball entity some initial flight velocity (placeholder).
-        if (_ballEntityId != -1 && _positionMapper.Has(_ballEntityId) && _velocityMapper.Has(_ballEntityId))
+        // Kick trajectory tuning (keep simple + deterministic for now).
+        const float fieldLeft = 16f;
+        const float fieldRight = 240f;
+        const float kickoffHangtimeSeconds = 1.50f;
+        const float kickoffApexHeight = 18.0f;
+        const float kickoffForwardDistance = 140f;
+
+        if (_ballEntityId != -1 && _positionMapper.Has(_ballEntityId))
         {
-            // Start at the kicker and fly toward the return side.
-            if (_kickerId != -1 && _positionMapper.Has(_kickerId))
-                _positionMapper.Get(_ballEntityId).Position = _positionMapper.Get(_kickerId).Position;
+            var start = _kickerId != -1 && _positionMapper.Has(_kickerId)
+                ? _positionMapper.Get(_kickerId).Position
+                : _positionMapper.Get(_ballEntityId).Position;
 
-            // Velocity is in "units per 60Hz tick" (see MovementSystem conventions).
-            _velocityMapper.Get(_ballEntityId).Velocity = new Vector2(1.2f, 0f);
-        }
+            var end = new Vector2(
+                MathHelper.Clamp(start.X + kickoffForwardDistance, fieldLeft, fieldRight),
+                start.Y);
 
-        // AI: Returners move to catch position
-        foreach (var entityId in ActiveEntities)
-        {
-            if (!_teamMapper.Has(entityId))
-                continue;
+            // Place the ball at the kick origin immediately.
+            _positionMapper.Get(_ballEntityId).Position = start;
 
-            var team = _teamMapper.Get(entityId);
-            if (team.TeamIndex == ReceivingTeam)
+            // Attach/overwrite the flight component for deterministic parametric motion.
+            if (_ballFlightMapper.Has(_ballEntityId))
             {
-                var behavior = _behaviorMapper.Get(entityId);
-                // Move toward predicted landing spot
-                behavior.State = BehaviorState.MovingToPosition;
-                behavior.TargetPosition = new Vector2(180, 112); // Approximate landing
+                var f = _ballFlightMapper.Get(_ballEntityId);
+                f.Kind = BallFlightKind.Kickoff;
+                f.StartPos = start;
+                f.EndPos = end;
+                f.DurationSeconds = kickoffHangtimeSeconds;
+                f.ApexHeight = kickoffApexHeight;
+                f.ElapsedSeconds = 0f;
+                f.Height = 0f;
+                f.IsComplete = false;
             }
-        }
-    }
+            else
+            {
+                _world?.GetEntity(_ballEntityId)
+                    .Attach(new BallFlightComponent(BallFlightKind.Kickoff, start, end, kickoffHangtimeSeconds, kickoffApexHeight));
+            }
 
-    private void UpdateKickoffFlight()
-    {
-        // Simulate ball flight
-        if (PhaseTimer > 1.5f)
-        {
-            // Ball lands - check for catch
-            CurrentPhase = GamePhase.Return;
-            PhaseTimer = 0f;
-
-            // Assign ball to returner
+            // AI: Returners move to catch position.
             foreach (var entityId in ActiveEntities)
             {
                 if (!_teamMapper.Has(entityId))
@@ -219,49 +225,75 @@ public class GameStateSystem : EntityUpdateSystem
                 var team = _teamMapper.Get(entityId);
                 if (team.TeamIndex == ReceivingTeam)
                 {
-                    // Give ball to this returner
-                    if (!_ballMapper.Has(entityId))
-                    {
-                        // This shouldn't happen for returner, but handle it
-                        continue;
-                    }
-
-                    _ballCarrierId = entityId;
-                    _ballMapper.Get(entityId).HasBall = true;
-                    team.IsOffense = true;
-
-                    _playState.BallState = BallState.Held;
-                    _playState.BallOwnerEntityId = entityId;
-
-                    // Stop the ball entity's flight; it will now follow the owner.
-                    if (_ballEntityId != -1 && _velocityMapper.Has(_ballEntityId))
-                        _velocityMapper.Get(_ballEntityId).Velocity = Vector2.Zero;
-
-                    _events?.Publish(new BallCaughtEvent(entityId, _positionMapper.Get(entityId).Position));
-
-                    // Set player control
-                    team.IsPlayerControlled = true;
-
                     var behavior = _behaviorMapper.Get(entityId);
-                    behavior.State = BehaviorState.Idle;
-
-                    break;
+                    behavior.State = BehaviorState.MovingToPosition;
+                    behavior.TargetPosition = end;
                 }
             }
+        }
+    }
 
-            // Coverage team now pursues
-            foreach (var entityId in ActiveEntities)
+    private void UpdateKickoffFlight()
+    {
+        // Kickoff flight completes when the parametric model reaches its end.
+        if (_ballEntityId == -1 || !_ballFlightMapper.Has(_ballEntityId))
+            return;
+
+        var flight = _ballFlightMapper.Get(_ballEntityId);
+        if (!flight.IsComplete)
+            return;
+
+        // Ball lands - check for catch.
+        CurrentPhase = GamePhase.Return;
+        PhaseTimer = 0f;
+
+        // Assign ball to returner.
+        foreach (var entityId in ActiveEntities)
+        {
+            if (!_teamMapper.Has(entityId))
+                continue;
+
+            var team = _teamMapper.Get(entityId);
+            if (team.TeamIndex == ReceivingTeam)
             {
-                if (!_teamMapper.Has(entityId))
+                if (!_ballMapper.Has(entityId))
                     continue;
 
-                var team = _teamMapper.Get(entityId);
-                if (team.TeamIndex == KickingTeam)
-                {
-                    var behavior = _behaviorMapper.Get(entityId);
-                    behavior.State = BehaviorState.TrackingPlayer;
-                    behavior.TargetEntityId = _ballCarrierId;
-                }
+                _ballCarrierId = entityId;
+                _ballMapper.Get(entityId).HasBall = true;
+                team.IsOffense = true;
+
+                _playState.BallState = BallState.Held;
+                _playState.BallOwnerEntityId = entityId;
+
+                _events?.Publish(new BallCaughtEvent(entityId, _positionMapper.Get(entityId).Position));
+
+                // Set player control.
+                team.IsPlayerControlled = true;
+
+                var behavior = _behaviorMapper.Get(entityId);
+                behavior.State = BehaviorState.Idle;
+
+                break;
+            }
+        }
+
+        // Clear flight model now that the ball is held.
+        if (_ballEntityId != -1)
+            _world?.GetEntity(_ballEntityId).Detach<BallFlightComponent>();
+
+        // Coverage team now pursues.
+        foreach (var entityId in ActiveEntities)
+        {
+            if (!_teamMapper.Has(entityId))
+                continue;
+
+            var team = _teamMapper.Get(entityId);
+            if (team.TeamIndex == KickingTeam)
+            {
+                var behavior = _behaviorMapper.Get(entityId);
+                behavior.State = BehaviorState.TrackingPlayer;
+                behavior.TargetEntityId = _ballCarrierId;
             }
         }
     }
@@ -387,33 +419,17 @@ public class GameStateSystem : EntityUpdateSystem
         // For now, just reset phases
     }
 
-    private void UpdateBallEntity(float dt)
+    private void SyncBallModelToEntity()
     {
         if (_ballEntityId == -1)
-            return;
-        if (!_positionMapper.Has(_ballEntityId) || !_velocityMapper.Has(_ballEntityId))
             return;
         if (!_ballStateMapper.Has(_ballEntityId) || !_ballOwnerMapper.Has(_ballEntityId))
             return;
 
-        // Mirror the pure model onto the ECS components for snapshots/debugging.
+        // Mirror the pure PlayState model onto the ECS components.
+        // Motion itself is handled by BallPhysicsSystem.
         _ballStateMapper.Get(_ballEntityId).State = _playState.BallState;
         _ballOwnerMapper.Get(_ballEntityId).OwnerEntityId = _playState.BallOwnerEntityId;
-
-        var pos = _positionMapper.Get(_ballEntityId);
-        var vel = _velocityMapper.Get(_ballEntityId);
-
-        if (_playState.BallState == BallState.Held && _playState.BallOwnerEntityId is int ownerId && _positionMapper.Has(ownerId))
-        {
-            // Held: ball is glued to the owner.
-            pos.Position = _positionMapper.Get(ownerId).Position;
-            vel.Velocity = Vector2.Zero;
-            return;
-        }
-
-        // InAir/Loose: integrate with simple constant velocity (units per 60Hz tick).
-        var tickScale = dt * 60f;
-        pos.Position += vel.Velocity * tickScale;
     }
 
     private static int XToAbsoluteYard(float x)
@@ -453,6 +469,7 @@ public class GameStateSystem : EntityUpdateSystem
     // Called by MainGame/headless to spawn the kickoff scenario
     public KickoffScenarioIds SpawnKickoffScenario(World world)
     {
+        _world = world;
         // Initialize match-level data for this slice.
         _matchState.ResetForKickoff(KickingTeam, ReceivingTeam);
 

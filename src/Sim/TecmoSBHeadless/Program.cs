@@ -36,6 +36,7 @@ internal static class Program
             .AddSystem(new PlayerControlSystem(controlState, loopState, enableInput: false))
             .AddSystem(new ActionResolutionSystem(events, matchState, playState))
             .AddSystem(gameState)
+            .AddSystem(new BallPhysicsSystem())
             .AddSystem(new WhistleOnTackleSystem(events))
             .AddSystem(new LoopMachineSystem(loopState, events))
             .Build();
@@ -153,7 +154,14 @@ internal static class Program
         var owner = e.Get<BallOwnerComponent>().OwnerEntityId;
         var ownerStr = owner is null ? "none" : owner.Value.ToString(CultureInfo.InvariantCulture);
 
-        Console.WriteLine($"  ball id={ballEntityId} state={state} owner={ownerStr} pos=({pos.X:0.0},{pos.Y:0.0})");
+        var flightStr = string.Empty;
+        if (e.Has<BallFlightComponent>())
+        {
+            var f = e.Get<BallFlightComponent>();
+            flightStr = $" flight={f.Kind} {f.ElapsedSeconds:0.000}/{f.DurationSeconds:0.000}s h={f.Height:0.00} apex={f.ApexHeight:0.00} complete={f.IsComplete}";
+        }
+
+        Console.WriteLine($"  ball id={ballEntityId} state={state} owner={ownerStr} pos=({pos.X:0.0},{pos.Y:0.0}){flightStr}");
     }
 
     private static int GetIntArg(string[] args, string name, int defaultValue)
