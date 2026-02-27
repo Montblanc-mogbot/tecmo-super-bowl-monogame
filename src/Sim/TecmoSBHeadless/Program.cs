@@ -86,19 +86,7 @@ internal static class Program
 
         PrintEntity(world, "kicker", scenario.KickerId);
         PrintEntity(world, "returner", scenario.ReturnerId);
-
-        int? ballCarrier = null;
-        foreach (var id in scenario.AllEntityIds)
-        {
-            if (world.GetEntity(id).Get<BallCarrierComponent>().HasBall)
-            {
-                ballCarrier = id;
-                break;
-            }
-        }
-
-        if (ballCarrier is not null)
-            PrintEntity(world, "ball", ballCarrier.Value);
+        PrintBall(world, scenario.BallId);
 
         Console.WriteLine();
     }
@@ -154,6 +142,18 @@ internal static class Program
         var ctrl = e.Get<PlayerControlComponent>().IsControlled;
 
         Console.WriteLine($"  {label} id={entityId} team={team.TeamIndex} offense={team.IsOffense} ball={ball} ctrl={ctrl} pos=({pos.X:0.0},{pos.Y:0.0})");
+    }
+
+    private static void PrintBall(World world, int ballEntityId)
+    {
+        var e = world.GetEntity(ballEntityId);
+        var pos = e.Get<PositionComponent>().Position;
+
+        var state = e.Get<BallStateComponent>().State;
+        var owner = e.Get<BallOwnerComponent>().OwnerEntityId;
+        var ownerStr = owner is null ? "none" : owner.Value.ToString(CultureInfo.InvariantCulture);
+
+        Console.WriteLine($"  ball id={ballEntityId} state={state} owner={ownerStr} pos=({pos.X:0.0},{pos.Y:0.0})");
     }
 
     private static int GetIntArg(string[] args, string name, int defaultValue)

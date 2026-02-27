@@ -180,10 +180,11 @@ public static class PlayerEntityFactory
 
         var entity = world.GetEntity(entityId);
         
-        // Returners get the ball
+        // Returners do not automatically start with the ball.
+        // The kickoff slice assigns possession to the dedicated ball entity (and later to the returner on catch).
         if (entity.Get<BallCarrierComponent>() is { } ballCarrier)
         {
-            ballCarrier.HasBall = true;
+            ballCarrier.HasBall = false;
         }
 
         return entityId;

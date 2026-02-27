@@ -23,6 +23,7 @@ public sealed class MovementSystem : EntityUpdateSystem
 {
     private ComponentMapper<PositionComponent> _positionMapper = null!;
     private ComponentMapper<VelocityComponent> _velocityMapper = null!;
+    private ComponentMapper<BallComponent> _ballTagMapper = null!;
     private ComponentMapper<BehaviorComponent> _behaviorMapper = null!;
     private ComponentMapper<MovementTuningComponent> _tuningMapper = null!;
     private ComponentMapper<PlayerControlComponent> _controlMapper = null!;
@@ -37,6 +38,7 @@ public sealed class MovementSystem : EntityUpdateSystem
     {
         _positionMapper = mapperService.GetMapper<PositionComponent>();
         _velocityMapper = mapperService.GetMapper<VelocityComponent>();
+        _ballTagMapper = mapperService.GetMapper<BallComponent>();
         _behaviorMapper = mapperService.GetMapper<BehaviorComponent>();
         _tuningMapper = mapperService.GetMapper<MovementTuningComponent>();
         _controlMapper = mapperService.GetMapper<PlayerControlComponent>();
@@ -55,6 +57,11 @@ public sealed class MovementSystem : EntityUpdateSystem
 
         foreach (var entityId in ActiveEntities)
         {
+            // The ball is a dedicated entity but is not driven by the player movement model.
+            // (Ball motion is handled by slice-specific sync/physics.)
+            if (_ballTagMapper.Has(entityId))
+                continue;
+
             var position = _positionMapper.Get(entityId);
             var velocity = _velocityMapper.Get(entityId);
 

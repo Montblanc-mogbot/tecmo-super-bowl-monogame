@@ -27,6 +27,8 @@ public class GameStateSystem : EntityUpdateSystem
     private ComponentMapper<BehaviorComponent> _behaviorMapper;
     private ComponentMapper<BallCarrierComponent> _ballMapper;
     private ComponentMapper<SpriteComponent> _spriteMapper;
+    private ComponentMapper<BallStateComponent> _ballStateMapper;
+    private ComponentMapper<BallOwnerComponent> _ballOwnerMapper;
 
     public GamePhase CurrentPhase { get; private set; } = GamePhase.KickoffSetup;
     public float PhaseTimer { get; private set; } = 0f;
@@ -38,6 +40,7 @@ public class GameStateSystem : EntityUpdateSystem
 
     private int _ballCarrierId = -1;
     private int _kickerId = -1;
+    private int _ballEntityId = -1;
     private bool _ballKicked = false;
     private bool _ballCaught = false;
     private bool _tackleMade = false;
@@ -59,6 +62,8 @@ public class GameStateSystem : EntityUpdateSystem
         _behaviorMapper = mapperService.GetMapper<BehaviorComponent>();
         _ballMapper = mapperService.GetMapper<BallCarrierComponent>();
         _spriteMapper = mapperService.GetMapper<SpriteComponent>();
+        _ballStateMapper = mapperService.GetMapper<BallStateComponent>();
+        _ballOwnerMapper = mapperService.GetMapper<BallOwnerComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -126,6 +131,10 @@ public class GameStateSystem : EntityUpdateSystem
                 }
                 break;
         }
+
+        // Keep the dedicated ball entity in sync with the PlayState model.
+        // Do this after phase/state transitions so the ECS reflects the latest play model immediately.
+        UpdateBallEntity(dt);
     }
 
     private void UpdateKickoffSetup()
@@ -157,10 +166,22 @@ public class GameStateSystem : EntityUpdateSystem
         _playState.BallState = BallState.InAir;
         _playState.BallOwnerEntityId = null;
 
-        // Move the ball to kicked state
+        // Move the ball to kicked state.
+        // (We track "has ball" only for players; the ball itself is a dedicated entity.)
+        if (_kickerId != -1 && _ballMapper.Has(_kickerId))
+            _ballMapper.Get(_kickerId).HasBall = false;
         if (_ballCarrierId != -1 && _ballMapper.Has(_ballCarrierId))
-        {
             _ballMapper.Get(_ballCarrierId).HasBall = false;
+
+        // Give the ball entity some initial flight velocity (placeholder).
+        if (_ballEntityId != -1 && _positionMapper.Has(_ballEntityId) && _velocityMapper.Has(_ballEntityId))
+        {
+            // Start at the kicker and fly toward the return side.
+            if (_kickerId != -1 && _positionMapper.Has(_kickerId))
+                _positionMapper.Get(_ballEntityId).Position = _positionMapper.Get(_kickerId).Position;
+
+            // Velocity is in "units per 60Hz tick" (see MovementSystem conventions).
+            _velocityMapper.Get(_ballEntityId).Velocity = new Vector2(1.2f, 0f);
         }
 
         // AI: Returners move to catch position
@@ -211,6 +232,10 @@ public class GameStateSystem : EntityUpdateSystem
 
                     _playState.BallState = BallState.Held;
                     _playState.BallOwnerEntityId = entityId;
+
+                    // Stop the ball entity's flight; it will now follow the owner.
+                    if (_ballEntityId != -1 && _velocityMapper.Has(_ballEntityId))
+                        _velocityMapper.Get(_ballEntityId).Velocity = Vector2.Zero;
 
                     _events?.Publish(new BallCaughtEvent(entityId, _positionMapper.Get(entityId).Position));
 
@@ -345,15 +370,50 @@ public class GameStateSystem : EntityUpdateSystem
         var startAbs = PlayState.ToAbsoluteYard(_matchState.BallSpot, _matchState.OffenseDirection);
         _playState.ResetForNewPlay(_matchState.PlayNumber + 1, startAbs);
 
-        // Best-effort: ball starts with the current returner placeholder in this slice.
-        if (_ballCarrierId != -1)
+        // Best-effort: ball starts held by the kicker in this slice.
+        if (_kickerId != -1)
         {
             _playState.BallState = BallState.Held;
-            _playState.BallOwnerEntityId = _ballCarrierId;
+            _playState.BallOwnerEntityId = _kickerId;
+
+            if (_ballMapper.Has(_kickerId))
+                _ballMapper.Get(_kickerId).HasBall = true;
         }
+
+        if (_ballCarrierId != -1 && _ballMapper.Has(_ballCarrierId))
+            _ballMapper.Get(_ballCarrierId).HasBall = false;
 
         // Reset positions (simplified - would respawn entities)
         // For now, just reset phases
+    }
+
+    private void UpdateBallEntity(float dt)
+    {
+        if (_ballEntityId == -1)
+            return;
+        if (!_positionMapper.Has(_ballEntityId) || !_velocityMapper.Has(_ballEntityId))
+            return;
+        if (!_ballStateMapper.Has(_ballEntityId) || !_ballOwnerMapper.Has(_ballEntityId))
+            return;
+
+        // Mirror the pure model onto the ECS components for snapshots/debugging.
+        _ballStateMapper.Get(_ballEntityId).State = _playState.BallState;
+        _ballOwnerMapper.Get(_ballEntityId).OwnerEntityId = _playState.BallOwnerEntityId;
+
+        var pos = _positionMapper.Get(_ballEntityId);
+        var vel = _velocityMapper.Get(_ballEntityId);
+
+        if (_playState.BallState == BallState.Held && _playState.BallOwnerEntityId is int ownerId && _positionMapper.Has(ownerId))
+        {
+            // Held: ball is glued to the owner.
+            pos.Position = _positionMapper.Get(ownerId).Position;
+            vel.Velocity = Vector2.Zero;
+            return;
+        }
+
+        // InAir/Loose: integrate with simple constant velocity (units per 60Hz tick).
+        var tickScale = dt * 60f;
+        pos.Position += vel.Velocity * tickScale;
     }
 
     private static int XToAbsoluteYard(float x)
@@ -387,6 +447,7 @@ public class GameStateSystem : EntityUpdateSystem
     public readonly record struct KickoffScenarioIds(
         int KickerId,
         int ReturnerId,
+        int BallId,
         IReadOnlyList<int> AllEntityIds);
 
     // Called by MainGame/headless to spawn the kickoff scenario
@@ -399,7 +460,11 @@ public class GameStateSystem : EntityUpdateSystem
         var startAbs = PlayState.ToAbsoluteYard(_matchState.BallSpot, _matchState.OffenseDirection);
         _playState.ResetForNewPlay(_matchState.PlayNumber + 1, startAbs);
 
-        var all = new List<int>(capacity: 8);
+        var all = new List<int>(capacity: 9);
+
+        // Spawn the dedicated ball entity.
+        _ballEntityId = BallEntityFactory.CreateBall(world, new Vector2(40, 112));
+        all.Add(_ballEntityId);
 
         // Spawn kicker (kicking team, player controlled)
         _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
@@ -414,15 +479,21 @@ public class GameStateSystem : EntityUpdateSystem
         _ballCarrierId = PlayerEntityFactory.CreateReturner(world, new Vector2(200, 112), ReceivingTeam, false);
         all.Add(_ballCarrierId);
 
+        // Kickoff starts with the kicker holding the ball (placeholder for tee/hand). Returner has no ball until caught.
         _playState.BallState = BallState.Held;
-        _playState.BallOwnerEntityId = _ballCarrierId;
+        _playState.BallOwnerEntityId = _kickerId;
+
+        if (_ballMapper.Has(_kickerId))
+            _ballMapper.Get(_kickerId).HasBall = true;
+        if (_ballMapper.Has(_ballCarrierId))
+            _ballMapper.Get(_ballCarrierId).HasBall = false;
 
         // Spawn blockers (receiving team, AI)
         all.Add(PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 80), ReceivingTeam));
         all.Add(PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 144), ReceivingTeam));
         all.Add(PlayerEntityFactory.CreateBlocker(world, new Vector2(220, 112), ReceivingTeam));
 
-        return new KickoffScenarioIds(_kickerId, _ballCarrierId, all);
+        return new KickoffScenarioIds(_kickerId, _ballCarrierId, _ballEntityId, all);
     }
 }
 
