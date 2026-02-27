@@ -46,4 +46,11 @@ public static class FieldBounds
         var yard = (int)System.MathF.Round(t * 100f);
         return System.Math.Clamp(yard, 0, 100);
     }
+
+    public static float AbsoluteYardToX(int absoluteYard0To100)
+    {
+        absoluteYard0To100 = System.Math.Clamp(absoluteYard0To100, 0, 100);
+        var t = absoluteYard0To100 / 100f;
+        return FieldLeftX + t * (FieldRightX - FieldLeftX);
+    }
 }

@@ -23,6 +23,8 @@ public sealed class LoopMachineSystem : EntityUpdateSystem
     private readonly GameEvents? _events;
     private readonly LoopState _loop;
 
+    private bool _pendingNextPlay;
+
     public LoopMachineSystem(LoopState loop, GameEvents? events = null)
         : base(Aspect.All(typeof(PositionComponent)))
     {
@@ -55,11 +57,26 @@ public sealed class LoopMachineSystem : EntityUpdateSystem
                 if (!string.IsNullOrWhiteSpace(reason))
                     _loop.OnFieldLoop.RaiseEvent(reason);
             }
+
+            // Reset-to-pre-snap is a higher-level transition that should occur once we're in dead_ball.
+            // Because state machines tick after events are raised, we may not be in dead_ball until the tick advances.
+            var resets = _events.Read<ResetToPreSnapEvent>();
+            if (resets.Count > 0)
+                _pendingNextPlay = true;
         }
 
         // Tick machines (one tick == one fixed simulation tick).
         _loop.GameLoop.Tick();
         _loop.OnFieldLoop.Tick();
+
+        // If a reset was requested this tick, ensure we raise next_play once we've reached dead_ball.
+        // This keeps the PostPlay -> PreSnap loop deterministic and avoids losing the event while in whistle/score.
+        if (_pendingNextPlay && _loop.IsOnField("dead_ball"))
+        {
+            _loop.OnFieldLoop.RaiseEvent("next_play");
+            _loop.OnFieldLoop.Tick();
+            _pendingNextPlay = false;
+        }
 
         var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         _loop.Advance(dt);

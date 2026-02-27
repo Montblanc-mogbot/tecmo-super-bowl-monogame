@@ -145,6 +145,8 @@ public sealed class MainGame : Game
                 .AddSystem(new DownDistanceSystem(_events, _matchState, log: true))
                 // Deterministic score->kickoff transition.
                 .AddSystem(new KickoffAfterScoreSystem(_events, _matchState, _playState, log: true))
+                // Deterministic PostPlay -> PreSnap reset for normal (non-scoring) plays.
+                .AddSystem(new NextPlayResetSystem(_events, _matchState, _playState, _loopState, log: true))
                 // Loop driver runs late so it can observe events published earlier in the tick.
                 .AddSystem(new LoopMachineSystem(_loopState, _events))
                 // Deterministic game clock (runs off loop state).

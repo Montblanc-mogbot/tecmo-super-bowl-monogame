@@ -54,6 +54,7 @@ public static class HeadlessRunner
             .AddSystem(new BehaviorStackSystem())
             .AddSystem(new PlayEndSystem(events, match, play, log: true))
             .AddSystem(new DownDistanceSystem(events, match, log: true))
+            .AddSystem(new NextPlayResetSystem(events, match, play, loopState, log: true))
             .AddSystem(new LoopMachineSystem(loopState, events))
             .AddSystem(new GameClockSystem(events, match, play, loopState, log: true))
             .AddSystem(new ContactDebugLogSystem(events))
@@ -117,21 +118,30 @@ public static class HeadlessRunner
             Console.WriteLine($"  id={a.EntityId,4} team={a.TeamIndex} {(a.IsOffense ? "OFF" : "DEF")} role={a.Role,-3} slot={a.Slot,-5} :: {a.Summary}");
         }
 
-        // Start in live play so the clock system can run during the headless slice.
-        // (In the full game, this is driven by input + SnapResolutionSystem.)
-        events.Publish(new SnapEvent(OffenseTeam: match.PossessionTeam, DefenseTeam: 1 - match.PossessionTeam));
-
         var elapsed = TimeSpan.FromSeconds(1.0 / 60.0);
         var total = TimeSpan.Zero;
 
+        var lastPlayId = play.PlayId;
         for (var i = 0; i < ticks; i++)
         {
             total += elapsed;
             events.BeginTick();
+
+            // Start in live play so the contact/clock systems can run during the headless slice.
+            // (In the full game, this is driven by input + SnapResolutionSystem.)
+            if (i == 0)
+                events.Publish(new SnapEvent(OffenseTeam: match.PossessionTeam, DefenseTeam: 1 - match.PossessionTeam));
+
             world.Update(new GameTime(total, elapsed));
+
+            if (play.PlayId != lastPlayId)
+            {
+                Console.WriteLine($"[headless] advanced to next play: {play.ToSummaryString()} | onField={loopState.OnFieldStateId}");
+                lastPlayId = play.PlayId;
+            }
         }
 
-        Console.WriteLine($"[headless] completed ticks={ticks}");
+        Console.WriteLine($"[headless] completed ticks={ticks} final: {play.ToSummaryString()} | onField={loopState.OnFieldStateId}");
         return 0;
     }
 

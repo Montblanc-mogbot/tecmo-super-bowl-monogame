@@ -61,6 +61,12 @@ public readonly record struct PlayEndedEvent(
     bool Touchdown,
     bool Safety);
 
+/// <summary>
+/// Published when gameplay has deterministically reset internal models/entities for the next play
+/// and the on-field loop should return to pre-snap (dead_ball -&gt; pre_snap).
+/// </summary>
+public readonly record struct ResetToPreSnapEvent(int FromPlayId);
+
 public enum KickoffSetupReason
 {
     AfterTouchdown = 0,
