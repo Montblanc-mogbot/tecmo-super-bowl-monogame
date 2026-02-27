@@ -304,30 +304,10 @@ public class GameStateSystem : EntityUpdateSystem
         if (_ballCarrierId == -1)
             return;
 
-        var ballPos = _positionMapper.Get(_ballCarrierId).Position;
-
-        // Check for tackle (simple distance check)
-        foreach (var entityId in ActiveEntities)
-        {
-            if (entityId == _ballCarrierId)
-                continue;
-
-            if (!_teamMapper.Has(entityId))
-                continue;
-
-            var team = _teamMapper.Get(entityId);
-            if (team.TeamIndex == KickingTeam) // Defensive team
-            {
-                var defenderPos = _positionMapper.Get(entityId).Position;
-                float dist = Vector2.Distance(ballPos, defenderPos);
-
-                if (dist < 10f) // Tackle range
-                {
-                    ExecuteTackle(entityId);
-                    return;
-                }
-            }
-        }
+        // Tackle detection/resolution now flows through:
+        //   CollisionContactSystem -> TackleContactEvent -> TackleResolutionSystem -> WhistleEvent("tackle")
+        //
+        // Keep GameStateSystem focused on phase orchestration and ball model sync.
     }
 
     private void ExecuteTackle(int tacklerId)

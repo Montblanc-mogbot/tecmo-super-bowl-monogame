@@ -34,20 +34,22 @@ public sealed class TackleInterruptSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
-        _events.Drain<TackleContactEvent>(evt =>
+        var contacts = _events.Read<TackleContactEvent>();
+        for (var i = 0; i < contacts.Count; i++)
         {
+            var evt = contacts[i];
             var tacklerId = evt.DefenderId;
             var carrierId = evt.BallCarrierId;
 
             if (!_behavior.Has(tacklerId) || !_behavior.Has(carrierId) || !_stack.Has(tacklerId) || !_stack.Has(carrierId))
-                return;
+                continue;
 
             // Gate: don't re-interrupt if already in an active tackle interrupt.
             if (_stack.Get(tacklerId).HasActive(BehaviorInterruptKind.Tackle) || _stack.Get(carrierId).HasActive(BehaviorInterruptKind.Tackle))
-                return;
+                continue;
 
             BeginTackleInterrupt(tacklerId, carrierId);
-        });
+        }
     }
 
     private void BeginTackleInterrupt(int tacklerId, int carrierId)

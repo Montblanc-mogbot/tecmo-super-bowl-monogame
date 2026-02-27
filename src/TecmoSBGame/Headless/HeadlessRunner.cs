@@ -27,12 +27,14 @@ public static class HeadlessRunner
 
         var world = new WorldBuilder()
             .AddSystem(new MovementSystem())
+            .AddSystem(new SpeedModifierSystem())
             .AddSystem(gameState)
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new HeadlessContactSeederSystem())
             .AddSystem(new CollisionContactSystem(events))
             .AddSystem(new EngagementSystem(events))
             .AddSystem(new TackleInterruptSystem(events))
+            .AddSystem(new TackleResolutionSystem(events, match, play))
             .AddSystem(new BehaviorStackSystem())
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();

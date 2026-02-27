@@ -29,6 +29,7 @@ public sealed class MovementSystem : EntityUpdateSystem
     private ComponentMapper<PlayerControlComponent> _controlMapper = null!;
     private ComponentMapper<MovementInputComponent> _inputMapper = null!;
     private ComponentMapper<MovementActionComponent> _actionMapper = null!;
+    private ComponentMapper<SpeedModifierComponent> _speedModMapper = null!;
 
     public MovementSystem() : base(Aspect.All(typeof(PositionComponent), typeof(VelocityComponent)))
     {
@@ -44,6 +45,7 @@ public sealed class MovementSystem : EntityUpdateSystem
         _controlMapper = mapperService.GetMapper<PlayerControlComponent>();
         _inputMapper = mapperService.GetMapper<MovementInputComponent>();
         _actionMapper = mapperService.GetMapper<MovementActionComponent>();
+        _speedModMapper = mapperService.GetMapper<SpeedModifierComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -129,19 +131,48 @@ public sealed class MovementSystem : EntityUpdateSystem
 
     private MovementTuningComponent GetTuning(int entityId, VelocityComponent velocity)
     {
-        if (_tuningMapper.Has(entityId))
-            return _tuningMapper.Get(entityId);
+        var baseTuning = _tuningMapper.Has(entityId)
+            ? _tuningMapper.Get(entityId)
+            : null;
 
-        // Back-compat: derive minimal tuning from VelocityComponent.
-        // (VelocityComponent.Acceleration historically acted like a per-tick lerp factor, not a real accel.)
-        var maxSpeed = velocity.MaxSpeed;
-        var accel = MathHelper.Clamp(velocity.Acceleration, 0.01f, 1f) * maxSpeed;
-        return new MovementTuningComponent(
-            maxSpeedPerTick: maxSpeed,
-            accelPerTick: accel,
-            decelPerTick: maxSpeed * 4f,
-            cutPenalty: 0.25f,
-            burstMultiplier: 1.20f);
+        MovementTuningComponent effective;
+        if (baseTuning is not null)
+        {
+            effective = baseTuning;
+        }
+        else
+        {
+            // Back-compat: derive minimal tuning from VelocityComponent.
+            // (VelocityComponent.Acceleration historically acted like a per-tick lerp factor, not a real accel.)
+            var maxSpeed = velocity.MaxSpeed;
+            var accel = MathHelper.Clamp(velocity.Acceleration, 0.01f, 1f) * maxSpeed;
+            effective = new MovementTuningComponent(
+                maxSpeedPerTick: maxSpeed,
+                accelPerTick: accel,
+                decelPerTick: maxSpeed * 4f,
+                cutPenalty: 0.25f,
+                burstMultiplier: 1.20f);
+        }
+
+        // Apply temporary speed modifiers (e.g., stumble) without mutating the attached tuning component.
+        if (_speedModMapper.Has(entityId))
+        {
+            var m = _speedModMapper.Get(entityId);
+            if (m.TimerSeconds > 0f && m.MaxSpeedMultiplier > 0f && m.MaxSpeedMultiplier < 1.0f)
+            {
+                return new MovementTuningComponent(
+                    maxSpeedPerTick: effective.MaxSpeedPerTick * m.MaxSpeedMultiplier,
+                    accelPerTick: effective.AccelPerTick,
+                    decelPerTick: effective.DecelPerTick,
+                    cutPenalty: effective.CutPenalty,
+                    burstMultiplier: effective.BurstMultiplier)
+                {
+                    UseAccelCurve = effective.UseAccelCurve,
+                };
+            }
+        }
+
+        return effective;
     }
 
     private void UpdateActionTimers(int entityId, float dt)

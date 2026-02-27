@@ -33,19 +33,26 @@ internal static class Program
 
         var world = new WorldBuilder()
             .AddSystem(new MovementSystem())
+            .AddSystem(new SpeedModifierSystem())
             .AddSystem(new PlayerControlSystem(controlState, loopState, enableInput: false))
             .AddSystem(new ActionResolutionSystem(events, matchState, playState))
+            .AddSystem(new CollisionContactSystem(events))
+            .AddSystem(new EngagementSystem(events))
+            .AddSystem(new TackleInterruptSystem(events))
+            .AddSystem(new TackleResolutionSystem(events, matchState, playState))
+            .AddSystem(new BehaviorStackSystem())
             .AddSystem(new PassFlightStartSystem(events, playState))
             .AddSystem(gameState)
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new PassFlightCompleteSystem(events, playState))
             .AddSystem(new BallBoundsSystem(events, matchState, playState))
-            .AddSystem(new WhistleOnTackleSystem(events))
             // TEMP: fumbles triggered off tackle whistle until tackle rules resolve.
             .AddSystem(new FumbleOnTackleWhistleSystem(events, playState))
             .AddSystem(new FumbleResolutionSystem(events, playState))
             .AddSystem(new LooseBallPickupSystem(events, playState))
             .AddSystem(new LoopMachineSystem(loopState, events))
+            .AddSystem(new ContactDebugLogSystem(events))
+            .AddSystem(new TecmoSBGame.Headless.HeadlessContactSeederSystem())
             .Build();
 
         var scenario = gameState.SpawnKickoffScenario(world);
