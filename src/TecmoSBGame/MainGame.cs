@@ -114,6 +114,10 @@ public sealed class MainGame : Game
                 .AddSystem(new BallPhysicsSystem())
                 .AddSystem(new PassFlightCompleteSystem(_events, _playState))
                 .AddSystem(new WhistleOnTackleSystem(_events))
+                // TEMP: fumbles triggered off tackle whistle until tackle rules resolve.
+                .AddSystem(new FumbleOnTackleWhistleSystem(_events, _playState))
+                .AddSystem(new FumbleResolutionSystem(_events, _playState))
+                .AddSystem(new LooseBallPickupSystem(_events, _playState))
                 // Loop driver runs late so it can observe events published earlier in the tick.
                 .AddSystem(new LoopMachineSystem(_loopState, _events))
                 .AddSystem(new RenderingSystem(_spriteBatch, GraphicsDevice))

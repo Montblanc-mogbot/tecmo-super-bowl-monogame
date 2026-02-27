@@ -35,3 +35,14 @@ public readonly record struct PassRequestedEvent(int PasserId, int? TargetId = n
 public readonly record struct PitchRequestedEvent(int BallCarrierId);
 
 public readonly record struct WhistleEvent(string Reason);
+
+/// <summary>
+/// High-level fumble event: the ball carrier lost possession due to a hit/tackle/etc.
+/// The actual ball state transition is handled by gameplay systems consuming this event.
+/// </summary>
+public readonly record struct FumbleEvent(int CarrierId, string Cause);
+
+/// <summary>
+/// Emitted when a loose ball is recovered by a player.
+/// </summary>
+public readonly record struct LooseBallPickupEvent(int PickerId, Vector2 BallPosition);

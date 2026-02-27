@@ -40,6 +40,10 @@ internal static class Program
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new PassFlightCompleteSystem(events, playState))
             .AddSystem(new WhistleOnTackleSystem(events))
+            // TEMP: fumbles triggered off tackle whistle until tackle rules resolve.
+            .AddSystem(new FumbleOnTackleWhistleSystem(events, playState))
+            .AddSystem(new FumbleResolutionSystem(events, playState))
+            .AddSystem(new LooseBallPickupSystem(events, playState))
             .AddSystem(new LoopMachineSystem(loopState, events))
             .Build();
 
@@ -57,6 +61,16 @@ internal static class Program
                 var target = e.TargetId is null ? "none" : e.TargetId.Value.ToString(CultureInfo.InvariantCulture);
                 var winner = e.WinnerId is null ? "none" : e.WinnerId.Value.ToString(CultureInfo.InvariantCulture);
                 Console.WriteLine($"  [pass] outcome={e.Outcome} passer={e.PasserId} target={target} winner={winner} ball=({e.BallPosition.X:0.0},{e.BallPosition.Y:0.0})");
+            });
+
+            // Print fumbles and loose-ball pickups.
+            events.Drain<FumbleEvent>(e =>
+            {
+                Console.WriteLine($"  [fumble] carrier={e.CarrierId} cause={e.Cause}");
+            });
+            events.Drain<LooseBallPickupEvent>(e =>
+            {
+                Console.WriteLine($"  [pickup] picker={e.PickerId} ball=({e.BallPosition.X:0.0},{e.BallPosition.Y:0.0})");
             });
 
             // Snapshot at start, once per second, and at end.
