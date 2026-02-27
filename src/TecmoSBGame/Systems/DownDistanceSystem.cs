@@ -36,8 +36,11 @@ public sealed class DownDistanceSystem : UpdateSystem
         if (_events is null)
             return;
 
-        // Single authoritative consumer of PlayEndedEvent.
-        _events.Drain<PlayEndedEvent>(Apply);
+        // Use Read() so other systems (eg, KickoffAfterScoreSystem) can also observe PlayEndedEvent.
+        // BeginTick() clears events at the start of each simulation tick.
+        var ended = _events.Read<PlayEndedEvent>();
+        for (var i = 0; i < ended.Count; i++)
+            Apply(ended[i]);
     }
 
     private void Apply(PlayEndedEvent e)
@@ -58,20 +61,14 @@ public sealed class DownDistanceSystem : UpdateSystem
         // NOTE: PlayEndedEvent currently only has a Turnover flag (not the new team),
         // so we assume a turnover flips possession.
         // TODO(Tecmo parity): include the end possession team in PlayEndedEvent.
+        //
+        // IMPORTANT: Do NOT mutate possession on scoring plays here; KickoffAfterScoreSystem
+        // performs the deterministic scoring->kickoff transition and needs to observe
+        // the original offense team.
         var newPossTeam = offenseTeam;
 
-        if (e.Touchdown)
-        {
-            newPossTeam = 1 - offenseTeam; // kickoff to other team (placeholder)
-        }
-        else if (e.Safety)
-        {
-            newPossTeam = 1 - offenseTeam; // placeholder; see TODO above.
-        }
-        else if (e.Turnover)
-        {
+        if (!e.Touchdown && !e.Safety && e.Turnover)
             newPossTeam = 1 - offenseTeam;
-        }
 
         if (newPossTeam != offenseTeam)
         {
@@ -91,11 +88,9 @@ public sealed class DownDistanceSystem : UpdateSystem
         }
 
         // Spot ball for next snap.
-        if (e.Touchdown)
+        if (e.Touchdown || e.Safety)
         {
-            // After TD, assume a kickoff touchback (placeholder).
-            // ResetForKickoff also sets possession + direction deterministically.
-            _match.ResetForKickoff(kickingTeam: offenseTeam, receivingTeam: 1 - offenseTeam, touchbackYardLine: 25);
+            // KickoffAfterScoreSystem will set the kickoff spot deterministically.
         }
         else if (e.Reason == WhistleReason.Touchback)
         {

@@ -141,8 +141,10 @@ public sealed class MainGame : Game
                 .AddSystem(new LooseBallPickupSystem(_events, _playState))
                 // Authoritative play-end aggregation (reads whistles, finalizes play state, emits PlayEndedEvent).
                 .AddSystem(new PlayEndSystem(_events, _matchState, _playState, log: true))
-                // Rules/refereeing: down & distance progression, possession, spotting (consumes PlayEndedEvent).
+                // Rules/refereeing: down & distance progression, possession, spotting (observes PlayEndedEvent).
                 .AddSystem(new DownDistanceSystem(_events, _matchState, log: true))
+                // Deterministic score->kickoff transition.
+                .AddSystem(new KickoffAfterScoreSystem(_events, _matchState, _playState, log: true))
                 // Loop driver runs late so it can observe events published earlier in the tick.
                 .AddSystem(new LoopMachineSystem(_loopState, _events))
                 // Deterministic game clock (runs off loop state).

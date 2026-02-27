@@ -45,6 +45,10 @@ public class GameStateSystem : EntityUpdateSystem
 
     private World? _world;
 
+    // Kickoff slice bookkeeping so we can retag teams when a kickoff is set up after score.
+    private readonly List<int> _kickingEntityIds = new();
+    private readonly List<int> _receivingEntityIds = new();
+
     private int _ballCarrierId = -1;
     private int _kickerId = -1;
     private int _ballEntityId = -1;
@@ -84,6 +88,18 @@ public class GameStateSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
+        // React to score->kickoff transitions.
+        // (Use Read() so multiple systems can observe this setup event.)
+        if (_events is not null)
+        {
+            var setups = _events.Read<KickoffSetupEvent>();
+            if (setups.Count > 0)
+            {
+                var k = setups[^1];
+                ApplyKickoffSetup(k.KickingTeam, k.ReceivingTeam);
+            }
+        }
+
         // Do not Drain whistles here: LoopMachineSystem + PlayEndSystem rely on observing them.
         // Instead, let PlayEndSystem finalize PlayState/MatchState.
         if (_playState.IsOver)
@@ -223,19 +239,16 @@ public class GameStateSystem : EntityUpdateSystem
                     .Attach(new BallFlightComponent(BallFlightKind.Kickoff, start, end, kickoffHangtimeSeconds, kickoffApexHeight));
             }
 
-            // AI: Returners move to catch position.
-            foreach (var entityId in ActiveEntities)
+            // AI: Return team moves to catch position.
+            for (var i = 0; i < _receivingEntityIds.Count; i++)
             {
-                if (!_teamMapper.Has(entityId))
+                var entityId = _receivingEntityIds[i];
+                if (!_behaviorMapper.Has(entityId))
                     continue;
 
-                var team = _teamMapper.Get(entityId);
-                if (team.TeamIndex == ReceivingTeam)
-                {
-                    var behavior = _behaviorMapper.Get(entityId);
-                    behavior.State = BehaviorState.MovingToPosition;
-                    behavior.TargetPosition = end;
-                }
+                var behavior = _behaviorMapper.Get(entityId);
+                behavior.State = BehaviorState.MovingToPosition;
+                behavior.TargetPosition = end;
             }
         }
     }
@@ -255,51 +268,47 @@ public class GameStateSystem : EntityUpdateSystem
         PhaseTimer = 0f;
 
         // Assign ball to returner.
-        foreach (var entityId in ActiveEntities)
+        for (var i = 0; i < _receivingEntityIds.Count; i++)
         {
-            if (!_teamMapper.Has(entityId))
+            var entityId = _receivingEntityIds[i];
+            if (!_teamMapper.Has(entityId) || !_ballMapper.Has(entityId))
                 continue;
 
             var team = _teamMapper.Get(entityId);
-            if (team.TeamIndex == ReceivingTeam)
+
+            _ballCarrierId = entityId;
+            _ballMapper.Get(entityId).HasBall = true;
+            team.IsOffense = true;
+
+            _playState.BallState = BallState.Held;
+            _playState.BallOwnerEntityId = entityId;
+
+            _events?.Publish(new BallCaughtEvent(entityId, _positionMapper.Get(entityId).Position));
+
+            // Set player control.
+            team.IsPlayerControlled = true;
+
+            if (_behaviorMapper.Has(entityId))
             {
-                if (!_ballMapper.Has(entityId))
-                    continue;
-
-                _ballCarrierId = entityId;
-                _ballMapper.Get(entityId).HasBall = true;
-                team.IsOffense = true;
-
-                _playState.BallState = BallState.Held;
-                _playState.BallOwnerEntityId = entityId;
-
-                _events?.Publish(new BallCaughtEvent(entityId, _positionMapper.Get(entityId).Position));
-
-                // Set player control.
-                team.IsPlayerControlled = true;
-
                 var behavior = _behaviorMapper.Get(entityId);
                 behavior.State = BehaviorState.Idle;
-
-                break;
             }
+
+            break;
         }
 
         // Keep the flight component attached for determinism; BallPhysicsSystem will ignore it while held.
 
         // Coverage team now pursues.
-        foreach (var entityId in ActiveEntities)
+        for (var i = 0; i < _kickingEntityIds.Count; i++)
         {
-            if (!_teamMapper.Has(entityId))
+            var entityId = _kickingEntityIds[i];
+            if (!_behaviorMapper.Has(entityId))
                 continue;
 
-            var team = _teamMapper.Get(entityId);
-            if (team.TeamIndex == KickingTeam)
-            {
-                var behavior = _behaviorMapper.Get(entityId);
-                behavior.State = BehaviorState.TrackingPlayer;
-                behavior.TargetEntityId = _ballCarrierId;
-            }
+            var behavior = _behaviorMapper.Get(entityId);
+            behavior.State = BehaviorState.TrackingPlayer;
+            behavior.TargetEntityId = _ballCarrierId;
         }
     }
 
@@ -375,6 +384,39 @@ public class GameStateSystem : EntityUpdateSystem
 
     private void ResetKickoff()
     {
+        ApplyKickoffSetup(KickingTeam, ReceivingTeam);
+    }
+
+    private void ApplyKickoffSetup(int kickingTeam, int receivingTeam)
+    {
+        KickingTeam = kickingTeam;
+        ReceivingTeam = receivingTeam;
+
+        // Retag existing kickoff slice entities to the new teams so the slice can be reused.
+        for (var i = 0; i < _kickingEntityIds.Count; i++)
+        {
+            var id = _kickingEntityIds[i];
+            if (_teamMapper.Has(id))
+            {
+                var t = _teamMapper.Get(id);
+                t.TeamIndex = KickingTeam;
+                t.IsOffense = true;
+                t.IsPlayerControlled = true;
+            }
+        }
+
+        for (var i = 0; i < _receivingEntityIds.Count; i++)
+        {
+            var id = _receivingEntityIds[i];
+            if (_teamMapper.Has(id))
+            {
+                var t = _teamMapper.Get(id);
+                t.TeamIndex = ReceivingTeam;
+                t.IsOffense = false;
+                t.IsPlayerControlled = false;
+            }
+        }
+
         CurrentPhase = GamePhase.KickoffSetup;
         PhaseTimer = 0f;
         _ballKicked = false;
@@ -399,9 +441,6 @@ public class GameStateSystem : EntityUpdateSystem
 
         if (_ballCarrierId != -1 && _ballMapper.Has(_ballCarrierId))
             _ballMapper.Get(_ballCarrierId).HasBall = false;
-
-        // Reset positions (simplified - would respawn entities)
-        // For now, just reset phases
     }
 
     private void SyncBallModelToEntity()
@@ -465,6 +504,8 @@ public class GameStateSystem : EntityUpdateSystem
         _playState.ResetForNewPlay(_matchState.PlayNumber + 1, startAbs);
 
         var all = new List<int>(capacity: 9);
+        _kickingEntityIds.Clear();
+        _receivingEntityIds.Clear();
 
         // Spawn the dedicated ball entity.
         _ballEntityId = BallEntityFactory.CreateBall(world, new Vector2(40, 112));
@@ -483,7 +524,10 @@ public class GameStateSystem : EntityUpdateSystem
                 playerControlled: true);
 
             foreach (var p in formation.Players)
+            {
                 all.Add(p.EntityId);
+                _kickingEntityIds.Add(p.EntityId);
+            }
 
             var kicker = formation.Players.FirstOrDefault(p => p.Role is PlayerRole.K or PlayerRole.P);
             _kickerId = kicker?.EntityId ?? -1;
@@ -496,16 +540,24 @@ public class GameStateSystem : EntityUpdateSystem
             // Spawn kicker (kicking team, player controlled)
             _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
             all.Add(_kickerId);
+            _kickingEntityIds.Add(_kickerId);
 
             // Spawn coverage team (kicking team, AI)
-            all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam));
-            all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam));
-            all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam));
+            var c1 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam);
+            var c2 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam);
+            var c3 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam);
+            all.Add(c1);
+            all.Add(c2);
+            all.Add(c3);
+            _kickingEntityIds.Add(c1);
+            _kickingEntityIds.Add(c2);
+            _kickingEntityIds.Add(c3);
         }
 
         // Spawn returner (receiving team, will be player controlled after catch)
         _ballCarrierId = PlayerEntityFactory.CreateReturner(world, new Vector2(200, 112), ReceivingTeam, false);
         all.Add(_ballCarrierId);
+        _receivingEntityIds.Add(_ballCarrierId);
 
         // Kickoff starts with the kicker holding the ball (placeholder for tee/hand). Returner has no ball until caught.
         _playState.BallState = BallState.Held;
@@ -517,9 +569,15 @@ public class GameStateSystem : EntityUpdateSystem
             _ballMapper.Get(_ballCarrierId).HasBall = false;
 
         // Spawn blockers (receiving team, AI)
-        all.Add(PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 80), ReceivingTeam));
-        all.Add(PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 144), ReceivingTeam));
-        all.Add(PlayerEntityFactory.CreateBlocker(world, new Vector2(220, 112), ReceivingTeam));
+        var b1 = PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 80), ReceivingTeam);
+        var b2 = PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 144), ReceivingTeam);
+        var b3 = PlayerEntityFactory.CreateBlocker(world, new Vector2(220, 112), ReceivingTeam);
+        all.Add(b1);
+        all.Add(b2);
+        all.Add(b3);
+        _receivingEntityIds.Add(b1);
+        _receivingEntityIds.Add(b2);
+        _receivingEntityIds.Add(b3);
 
         return new KickoffScenarioIds(_kickerId, _ballCarrierId, _ballEntityId, all);
     }

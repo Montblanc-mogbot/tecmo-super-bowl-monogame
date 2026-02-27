@@ -22,6 +22,8 @@ internal static class Program
         var ticks = GetIntArg(args, "--ticks", 600);
         var hz = GetIntArg(args, "--hz", 60);
         var scenarioName = (GetStringArg(args, "--scenario", null) ?? "kickoff").Trim().ToLowerInvariant();
+        var forceTdAtTick = GetIntArg(args, "--force-td", -1);
+        var forceSafetyAtTick = GetIntArg(args, "--force-safety", -1);
         var yamlRoot = GetStringArg(args, "--content", null) ?? FindYamlRoot();
 
         Console.WriteLine($"[Headless] YAML root: {yamlRoot}");
@@ -50,9 +52,10 @@ internal static class Program
             .AddSystem(new BehaviorStackSystem())
             .AddSystem(new PassFlightStartSystem(events, playState));
 
-        // Kickoff slice is driven by GameStateSystem. For non-kickoff scenarios, keep it out of the stack.
-        if (scenarioName == "kickoff")
-            builder.AddSystem(gameState);
+        // GameStateSystem is used for the kickoff slice.
+        // We keep it in the stack even for non-kickoff scenarios so a forced TD/safety can deterministically
+        // transition into a kickoff via KickoffSetupEvent.
+        builder.AddSystem(gameState);
 
         var world = builder
             .AddSystem(new BallPhysicsSystem())
@@ -62,6 +65,10 @@ internal static class Program
             .AddSystem(new FumbleOnTackleWhistleSystem(events, playState))
             .AddSystem(new FumbleResolutionSystem(events, playState))
             .AddSystem(new LooseBallPickupSystem(events, playState))
+            // Authoritative play-end aggregation + minimal rules.
+            .AddSystem(new PlayEndSystem(events, matchState, playState, log: true))
+            .AddSystem(new DownDistanceSystem(events, matchState, log: true))
+            .AddSystem(new KickoffAfterScoreSystem(events, matchState, playState, log: true))
             .AddSystem(new LoopMachineSystem(loopState, events))
             .AddSystem(new ContactDebugLogSystem(events))
             .AddSystem(new TecmoSBGame.Headless.HeadlessContactSeederSystem())
@@ -88,6 +95,8 @@ internal static class Program
         }
 
         var fixedStep = new FixedTimestepRunner(hz, maxTicksPerFrame: int.MaxValue, maxAccumulated: TimeSpan.FromDays(1));
+        var spawnedKickoffAfterScore = false;
+
         for (var i = 0; i < ticks; i++)
         {
             var prevWhistle = playState.WhistleReason;
@@ -101,7 +110,41 @@ internal static class Program
             }
 
             events.BeginTick();
+
+            // Deterministic forced-score hooks (exercise score->kickoff transition in headless).
+            // Must publish after BeginTick() so the whistle isn't cleared.
+            if (scenarioName == "presnap" && scrimmageScenario is not null)
+            {
+                if (forceTdAtTick >= 0 && i == forceTdAtTick)
+                {
+                    var oppGoalAbs = matchState.OffenseDirection == OffenseDirection.LeftToRight ? 100 : 0;
+                    playState.EndAbsoluteYard = oppGoalAbs;
+                    playState.BallOwnerEntityId = scrimmageScenario.QbId;
+                    events.Publish(new WhistleEvent("touchdown"));
+                }
+                else if (forceSafetyAtTick >= 0 && i == forceSafetyAtTick)
+                {
+                    var ownGoalAbs = matchState.OffenseDirection == OffenseDirection.LeftToRight ? 0 : 100;
+                    playState.EndAbsoluteYard = ownGoalAbs;
+                    playState.BallOwnerEntityId = scrimmageScenario.QbId;
+                    events.Publish(new WhistleEvent("safety"));
+                }
+            }
+
             fixedStep.TickOnce(world.Update);
+
+            // If a scoring play set up a kickoff, spawn the kickoff slice deterministically.
+            // (This is intentionally minimal: we keep existing entities and simply introduce the kickoff slice.)
+            if (!spawnedKickoffAfterScore && scenarioName == "presnap")
+            {
+                var setups = events.Read<KickoffSetupEvent>();
+                if (setups.Count > 0)
+                {
+                    kickoffScenario = gameState.SpawnKickoffScenario(world);
+                    spawnedKickoffAfterScore = true;
+                    scenarioName = "kickoff";
+                }
+            }
 
             // Detect whistle reasons that are typically produced by BallBoundsSystem.
             if (scenarioName == "kickoff" && prevWhistle == WhistleReason.None && playState.WhistleReason is WhistleReason.OutOfBounds or WhistleReason.Touchback or WhistleReason.Safety)

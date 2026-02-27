@@ -61,6 +61,18 @@ public readonly record struct PlayEndedEvent(
     bool Touchdown,
     bool Safety);
 
+public enum KickoffSetupReason
+{
+    AfterTouchdown = 0,
+    AfterSafety = 1,
+}
+
+/// <summary>
+/// Published when the rules pipeline sets up a kickoff (typically after a scoring play).
+/// Systems that spawn kickoff formations/slices should react to this.
+/// </summary>
+public readonly record struct KickoffSetupEvent(int KickingTeam, int ReceivingTeam, KickoffSetupReason Reason);
+
 /// <summary>
 /// High-level fumble event: the ball carrier lost possession due to a hit/tackle/etc.
 /// The actual ball state transition is handled by gameplay systems consuming this event.
