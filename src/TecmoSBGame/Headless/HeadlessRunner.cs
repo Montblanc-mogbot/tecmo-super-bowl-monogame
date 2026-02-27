@@ -42,7 +42,7 @@ public static class HeadlessRunner
             .AddSystem(new SpeedModifierSystem())
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new HeadlessContactSeederSystem())
-            .AddSystem(new CollisionContactSystem(events))
+            .AddSystem(new CollisionContactSystem(events, loop: null))
             .AddSystem(new EngagementSystem(events))
             .AddSystem(new TackleInterruptSystem(events))
             .AddSystem(new TackleResolutionSystem(events, match, play))

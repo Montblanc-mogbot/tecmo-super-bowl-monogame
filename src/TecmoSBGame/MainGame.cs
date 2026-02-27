@@ -116,11 +116,15 @@ public sealed class MainGame : Game
             _world = new WorldBuilder()
                 .AddSystem(new MovementSystem())
                 .AddSystem(new SpeedModifierSystem())
+                // Pre-snap deterministic placement (scrimmage plays).
+                .AddSystem(new PreSnapSystem(_loopState, _matchState, _playState))
+                .AddSystem(new PreSnapBallPlacementSystem(_loopState, _matchState, _playState))
                 // Selection runs before input so the tick's movement is applied to the chosen entity.
                 .AddSystem(new PlayerControlSystem(_controlState, _loopState, enableInput: true))
                 .AddSystem(new InputSystem(_loopState))
                 .AddSystem(new ActionResolutionSystem(_events, _matchState, _playState))
-                .AddSystem(new CollisionContactSystem(_events))
+                .AddSystem(new SnapResolutionSystem(_events, _matchState, _playState))
+                .AddSystem(new CollisionContactSystem(_events, _loopState))
                 .AddSystem(new EngagementSystem(_events))
                 .AddSystem(new TackleInterruptSystem(_events))
                 .AddSystem(new TackleResolutionSystem(_events, _matchState, _playState))

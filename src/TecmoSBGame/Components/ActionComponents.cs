@@ -17,6 +17,7 @@ public enum PlayerActionCommand
     JukeCut,
 
     // Offense
+    Snap,
     Pass,
     Pitch,
     Scramble,

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Entities;
 using TecmoSB;
@@ -7,6 +8,8 @@ using TecmoSBGame.Systems;
 using TecmoSBGame.Events;
 using TecmoSBGame.State;
 using TecmoSBGame.Timing;
+using TecmoSBGame.Spawning;
+using TecmoSBGame.Factories;
 
 namespace TecmoSBHeadless;
 
@@ -18,6 +21,7 @@ internal static class Program
     {
         var ticks = GetIntArg(args, "--ticks", 600);
         var hz = GetIntArg(args, "--hz", 60);
+        var scenarioName = (GetStringArg(args, "--scenario", null) ?? "kickoff").Trim().ToLowerInvariant();
         var yamlRoot = GetStringArg(args, "--content", null) ?? FindYamlRoot();
 
         Console.WriteLine($"[Headless] YAML root: {yamlRoot}");
@@ -31,18 +35,26 @@ internal static class Program
         var loopState = new LoopState(new GameLoopMachine(yaml.GameLoop), new OnFieldLoopMachine(yaml.OnFieldLoop));
         var controlState = new ControlState();
 
-        var world = new WorldBuilder()
+        var builder = new WorldBuilder()
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
+            .AddSystem(new PreSnapSystem(loopState, matchState, playState))
+            .AddSystem(new PreSnapBallPlacementSystem(loopState, matchState, playState))
             .AddSystem(new PlayerControlSystem(controlState, loopState, enableInput: false))
             .AddSystem(new ActionResolutionSystem(events, matchState, playState))
-            .AddSystem(new CollisionContactSystem(events))
+            .AddSystem(new SnapResolutionSystem(events, matchState, playState))
+            .AddSystem(new CollisionContactSystem(events, loopState))
             .AddSystem(new EngagementSystem(events))
             .AddSystem(new TackleInterruptSystem(events))
             .AddSystem(new TackleResolutionSystem(events, matchState, playState))
             .AddSystem(new BehaviorStackSystem())
-            .AddSystem(new PassFlightStartSystem(events, playState))
-            .AddSystem(gameState)
+            .AddSystem(new PassFlightStartSystem(events, playState));
+
+        // Kickoff slice is driven by GameStateSystem. For non-kickoff scenarios, keep it out of the stack.
+        if (scenarioName == "kickoff")
+            builder.AddSystem(gameState);
+
+        var world = builder
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new PassFlightCompleteSystem(events, playState))
             .AddSystem(new BallBoundsSystem(events, matchState, playState))
@@ -55,20 +67,46 @@ internal static class Program
             .AddSystem(new TecmoSBGame.Headless.HeadlessContactSeederSystem())
             .Build();
 
-        var scenario = gameState.SpawnKickoffScenario(world);
+        // Scenario selection.
+        // - kickoff: existing slice driven by GameStateSystem
+        // - presnap: scrimmage pre-snap placement + snap transition
+        var kickoffScenario = default(GameStateSystem.KickoffScenarioIds);
+        ScrimmageScenario? scrimmageScenario = null;
+
+        if (scenarioName == "kickoff")
+        {
+            kickoffScenario = gameState.SpawnKickoffScenario(world);
+        }
+        else if (scenarioName == "presnap")
+        {
+            scrimmageScenario = SpawnScrimmagePreSnapScenario(world, yamlRoot, matchState, playState);
+        }
+        else
+        {
+            Console.WriteLine($"[Headless] Unknown scenario '{scenarioName}'. Use --scenario kickoff|presnap");
+            return 2;
+        }
 
         var fixedStep = new FixedTimestepRunner(hz, maxTicksPerFrame: int.MaxValue, maxAccumulated: TimeSpan.FromDays(1));
         for (var i = 0; i < ticks; i++)
         {
             var prevWhistle = playState.WhistleReason;
 
+            // Scenario hook: trigger a snap deterministically after a few pre-snap ticks.
+            if (scenarioName == "presnap" && scrimmageScenario is not null && i == 10)
+            {
+                var qb = world.GetEntity(scrimmageScenario.QbId);
+                if (qb.Has<PlayerActionStateComponent>())
+                    qb.Get<PlayerActionStateComponent>().PendingCommand = PlayerActionCommand.Snap;
+            }
+
             events.BeginTick();
             fixedStep.TickOnce(world.Update);
 
             // Detect whistle reasons that are typically produced by BallBoundsSystem.
-            if (prevWhistle == WhistleReason.None && playState.WhistleReason is WhistleReason.OutOfBounds or WhistleReason.Touchback or WhistleReason.Safety)
+            if (scenarioName == "kickoff" && prevWhistle == WhistleReason.None && playState.WhistleReason is WhistleReason.OutOfBounds or WhistleReason.Touchback or WhistleReason.Safety)
             {
-                var ball = world.GetEntity(scenario.BallId);
+                var ball = world.GetEntity(kickoffScenario.BallId);
                 var p = ball.Get<PositionComponent>().Position;
                 Console.WriteLine($"  [bounds] whistle={playState.WhistleReason} ball=({p.X:0.0},{p.Y:0.0})");
             }
@@ -94,7 +132,11 @@ internal static class Program
             // Snapshot at start, once per second, and at end.
             if (i == 0 || (i + 1) % hz == 0 || i == ticks - 1)
             {
-                PrintSummary(world, gameState, loopState, controlState, i + 1, hz, scenario);
+                if (scenarioName == "kickoff")
+                    PrintKickoffSummary(world, gameState, loopState, controlState, i + 1, hz, kickoffScenario);
+                else if (scrimmageScenario is not null)
+                    PrintScrimmageSummary(world, loopState, i + 1, hz, matchState, playState, scrimmageScenario);
+
             }
         }
 
@@ -117,7 +159,7 @@ internal static class Program
         return new LoadedYaml(sim, loop, onField);
     }
 
-    private static void PrintSummary(World world, GameStateSystem gameState, LoopState loopState, ControlState controlState, int tick, int hz, GameStateSystem.KickoffScenarioIds scenario)
+    private static void PrintKickoffSummary(World world, GameStateSystem gameState, LoopState loopState, ControlState controlState, int tick, int hz, GameStateSystem.KickoffScenarioIds scenario)
     {
         var t = (tick / (double)hz).ToString("0.000", CultureInfo.InvariantCulture);
         Console.WriteLine($"[t={t}s tick={tick}] phase={gameState.CurrentPhase} phaseTimer={gameState.PhaseTimer:0.000}");
@@ -132,6 +174,123 @@ internal static class Program
         PrintBall(world, scenario.BallId);
 
         Console.WriteLine();
+    }
+
+    private sealed record ScrimmageScenario(int QbId, int CenterId, int BallId);
+
+    private static void PrintScrimmageSummary(World world, LoopState loopState, int tick, int hz, MatchState matchState, PlayState playState, ScrimmageScenario scenario)
+    {
+        var t = (tick / (double)hz).ToString("0.000", CultureInfo.InvariantCulture);
+        Console.WriteLine($"[t={t}s tick={tick}] scenario=presnap");
+        Console.WriteLine($"  loops: game={loopState.GameLoopStateId} onField={loopState.OnFieldStateId} (onFieldTimer={loopState.OnFieldSecondsInState:0.000}s)");
+        Console.WriteLine($"  match: {matchState.ToSummaryString()}");
+        Console.WriteLine($"  play:  {playState.ToSummaryString()}");
+
+        PrintEntity(world, "QB", scenario.QbId);
+        PrintEntity(world, "C", scenario.CenterId);
+        PrintBall(world, scenario.BallId);
+
+        Console.WriteLine();
+    }
+
+    private static ScrimmageScenario SpawnScrimmagePreSnapScenario(World world, string yamlRoot, MatchState match, PlayState play)
+    {
+        // Minimal deterministic scrimmage setup (no kickoff slice).
+        match.PossessionTeam = 0;
+        match.OffenseDirection = OffenseDirection.LeftToRight;
+        match.Down = 1;
+        match.YardsToGo = 10;
+        match.BallSpot = BallSpot.Own(25);
+
+        var startAbs = PlayState.ToAbsoluteYard(match.BallSpot, match.OffenseDirection);
+        play.ResetForNewPlay(match.PlayNumber + 1, startAbs);
+
+        // Spawn a dedicated ball entity; pre-snap systems will pin it to the LOS.
+        var ballId = BallEntityFactory.CreateBall(world, new Vector2(40, 112));
+
+        // Spawn offense from YAML formations.
+        var formationData = FormationDataYamlLoader.LoadFromFile(Path.Combine(yamlRoot, "formations", "formation_data.yaml"));
+        var playList = PlayListYamlLoader.LoadFromFile(Path.Combine(yamlRoot, "playcall", "playlist.yaml"));
+        var defensePlays = DefensePlayYamlLoader.LoadFromFile(Path.Combine(yamlRoot, "defenseplays", "bank4_defense_special_pointers.yaml"));
+
+        var formationSpawner = new FormationSpawner();
+        var playSpawner = new PlaySpawner();
+
+        var chosenOffPlay = playList.PlayList.First(p => (p.Slot ?? string.Empty).StartsWith("Pass", StringComparison.OrdinalIgnoreCase));
+        var formationId = formationData.OffensiveFormations.Any(f => string.Equals(f.Id, chosenOffPlay.Formation, StringComparison.OrdinalIgnoreCase))
+            ? chosenOffPlay.Formation
+            : "00";
+
+        var offense = formationSpawner.Spawn(
+            world,
+            formationData,
+            formationId: formationId,
+            teamIndex: 0,
+            isOffense: true,
+            playerControlled: false);
+
+        // Placeholder defense: inline a minimal 11-man unit (stable coords).
+        var defenseIds = new System.Collections.Generic.List<int>(11)
+        {
+            SpawnDefender(world, teamIndex: 1, new Vector2(170, 76), PlayerRole.DL, slot: "RE"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(170, 100), PlayerRole.DL, slot: "DT"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(170, 124), PlayerRole.DL, slot: "NT"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(170, 148), PlayerRole.DL, slot: "LE"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(190, 92), PlayerRole.LB, slot: "ROLB"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(192, 112), PlayerRole.LB, slot: "MLB"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(190, 132), PlayerRole.LB, slot: "LOLB"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(210, 70), PlayerRole.DB, slot: "RCB"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(210, 154), PlayerRole.DB, slot: "LCB"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(222, 104), PlayerRole.DB, slot: "FS"),
+            SpawnDefender(world, teamIndex: 1, new Vector2(222, 120), PlayerRole.DB, slot: "SS"),
+        };
+
+        // Attach play assignments (routes, etc.) for determinism.
+        playSpawner.Spawn(
+            world,
+            playList,
+            defensePlays,
+            offenseEntityIds: offense.Players.Select(p => p.EntityId).ToList(),
+            defenseEntityIds: defenseIds);
+
+        var qbId = offense.Players.First(p => p.Role == PlayerRole.QB).EntityId;
+
+        // Best-effort center id: any OL slot containing 'OC' (original center) or 'C'.
+        var centerId = offense.Players
+            .Where(p => p.Role == PlayerRole.OL)
+            .Select(p => p.EntityId)
+            .FirstOrDefault(id =>
+            {
+                var e = world.GetEntity(id);
+                if (e.Has<PlayerAttributesComponent>())
+                {
+                    var pos = (e.Get<PlayerAttributesComponent>().Position ?? string.Empty).Trim().ToUpperInvariant();
+                    if (pos.Contains("OC") || pos == "C")
+                        return true;
+                }
+
+                if (e.Has<PlayerRoleComponent>())
+                {
+                    var slot = (e.Get<PlayerRoleComponent>().Slot ?? string.Empty).Trim().ToUpperInvariant();
+                    if (slot.Contains("OC") || slot == "C")
+                        return true;
+                }
+
+                return false;
+            });
+
+        if (centerId == 0)
+            centerId = qbId;
+
+        return new ScrimmageScenario(QbId: qbId, CenterId: centerId, BallId: ballId);
+    }
+
+    private static int SpawnDefender(World world, int teamIndex, Vector2 pos, PlayerRole role, string slot)
+    {
+        var id = PlayerEntityFactory.CreatePlayer(world, pos, teamIndex, isPlayerControlled: false, isOffense: false);
+        var e = world.GetEntity(id);
+        e.Attach(new PlayerRoleComponent(role, slot));
+        return id;
     }
 
     private static void PrintControlled(World world, ControlState controlState)

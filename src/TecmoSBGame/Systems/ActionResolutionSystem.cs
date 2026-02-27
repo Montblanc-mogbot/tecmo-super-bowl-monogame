@@ -78,6 +78,10 @@ public sealed class ActionResolutionSystem : EntityUpdateSystem
                     ResolveTackleAttempt(entityId);
                     break;
 
+                case PlayerActionCommand.Snap:
+                    ResolveSnap(entityId);
+                    break;
+
                 case PlayerActionCommand.Pass:
                     ResolvePassRequested(entityId);
                     break;
@@ -159,6 +163,21 @@ public sealed class ActionResolutionSystem : EntityUpdateSystem
         // Record for headless snapshots.
         var a = _actionMapper.Get(tacklerId);
         a.LastAppliedTargetEntityId = carrier.Value;
+    }
+
+    private void ResolveSnap(int qbEntityId)
+    {
+        if (_events is null)
+            return;
+
+        // Only meaningful when the play is pre-snap.
+        if (_play is not null && _play.Phase != PlayPhase.PreSnap)
+            return;
+
+        var offenseTeam = _match?.PossessionTeam ?? _teamMapper.Get(qbEntityId).TeamIndex;
+        var defenseTeam = offenseTeam == 0 ? 1 : 0;
+
+        _events.Publish(new SnapEvent(OffenseTeam: offenseTeam, DefenseTeam: defenseTeam));
     }
 
     private void ResolvePassRequested(int qbEntityId)

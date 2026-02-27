@@ -193,16 +193,20 @@ public class InputSystem : EntityUpdateSystem
         }
 
         // Offense.
+        var isQb = false;
+        if (_attrMapper.Has(entityId))
+        {
+            var pos = (_attrMapper.Get(entityId).Position ?? string.Empty).Trim();
+            isQb = string.Equals(pos, "QB", System.StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(pos, "Quarterback", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Pre-snap: QB action is "snap".
+        if (!hasBall && isQb && (_loop is null || _loop.IsOnField("pre_snap")))
+            return PlayerActionCommand.Snap;
+
         if (hasBall)
         {
-            var isQb = false;
-            if (_attrMapper.Has(entityId))
-            {
-                var pos = (_attrMapper.Get(entityId).Position ?? string.Empty).Trim();
-                isQb = string.Equals(pos, "QB", System.StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(pos, "Quarterback", System.StringComparison.OrdinalIgnoreCase);
-            }
-
             if (isQb)
             {
                 // Minimal: if the QB is actively steering when Action is pressed, treat as a scramble.

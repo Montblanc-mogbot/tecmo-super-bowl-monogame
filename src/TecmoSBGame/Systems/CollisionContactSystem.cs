@@ -5,6 +5,7 @@ using MonoGame.Extended.Entities;
 using MonoGame.Extended.Entities.Systems;
 using TecmoSBGame.Components;
 using TecmoSBGame.Events;
+using TecmoSBGame.State;
 
 namespace TecmoSBGame.Systems;
 
@@ -22,6 +23,7 @@ namespace TecmoSBGame.Systems;
 public sealed class CollisionContactSystem : EntityUpdateSystem
 {
     private readonly GameEvents _events;
+    private readonly LoopState? _loop;
 
     private ComponentMapper<PositionComponent> _pos;
     private ComponentMapper<TeamComponent> _team;
@@ -51,10 +53,11 @@ public sealed class CollisionContactSystem : EntityUpdateSystem
         }
     }
 
-    public CollisionContactSystem(GameEvents events)
+    public CollisionContactSystem(GameEvents events, LoopState? loop = null)
         : base(Aspect.All(typeof(PositionComponent), typeof(TeamComponent)))
     {
         _events = events;
+        _loop = loop;
     }
 
     public override void Initialize(IComponentMapperService mapperService)
@@ -66,6 +69,10 @@ public sealed class CollisionContactSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
+        // Only evaluate contacts during live play (pre-snap should be static).
+        if (_loop is not null && !_loop.IsOnField("live_play"))
+            return;
+
         // Deterministic iteration order.
         var entities = new List<int>(ActiveEntities);
         entities.Sort();
