@@ -34,6 +34,7 @@ internal static class Program
         var world = new WorldBuilder()
             .AddSystem(new MovementSystem())
             .AddSystem(new PlayerControlSystem(controlState, loopState, enableInput: false))
+            .AddSystem(new ActionResolutionSystem(events, matchState, playState))
             .AddSystem(gameState)
             .AddSystem(new WhistleOnTackleSystem(events))
             .AddSystem(new LoopMachineSystem(loopState, events))
@@ -125,14 +126,23 @@ internal static class Program
         var vel = e.Get<VelocityComponent>().Velocity;
         var speed = vel.Length();
 
-        var action = "none";
+        var moveAction = "none";
         if (e.Has<MovementActionComponent>())
         {
             var a = e.Get<MovementActionComponent>();
-            action = $"{a.State} t={a.StateTimer:0.00}s cd={a.CooldownTimer:0.00}s";
+            moveAction = $"{a.State} t={a.StateTimer:0.00}s cd={a.CooldownTimer:0.00}s";
         }
 
-        Console.WriteLine($"  control: id={id} team={team.TeamIndex} offense={team.IsOffense} role={role} speed={speed:0.000} vel=({vel.X:0.000},{vel.Y:0.000}) action={action}");
+        var lastCmd = "none";
+        if (e.Has<PlayerActionStateComponent>())
+        {
+            var a = e.Get<PlayerActionStateComponent>();
+            lastCmd = a.LastAppliedTargetEntityId is null
+                ? a.LastAppliedCommand.ToString()
+                : $"{a.LastAppliedCommand} -> {a.LastAppliedTargetEntityId.Value}";
+        }
+
+        Console.WriteLine($"  control: id={id} team={team.TeamIndex} offense={team.IsOffense} role={role} speed={speed:0.000} vel=({vel.X:0.000},{vel.Y:0.000}) moveAction={moveAction} lastCmd={lastCmd}");
     }
 
     private static void PrintEntity(World world, string label, int entityId)

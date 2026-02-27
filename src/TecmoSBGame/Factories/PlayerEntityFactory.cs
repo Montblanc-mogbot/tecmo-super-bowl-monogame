@@ -36,6 +36,7 @@ public static class PlayerEntityFactory
             burstMultiplier: 1.20f));
         entity.Attach(new MovementInputComponent());
         entity.Attach(new MovementActionComponent());
+        entity.Attach(new PlayerActionStateComponent());
         entity.Attach(new TeamComponent 
         { 
             TeamIndex = teamIndex, 

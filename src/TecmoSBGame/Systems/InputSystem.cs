@@ -21,6 +21,8 @@ public class InputSystem : EntityUpdateSystem
     private ComponentMapper<PlayerControlComponent> _controlMapper;
     private ComponentMapper<MovementInputComponent> _moveInputMapper;
     private ComponentMapper<MovementActionComponent> _actionMapper;
+    private ComponentMapper<PlayerAttributesComponent> _attrMapper;
+    private ComponentMapper<PlayerActionStateComponent> _playerActionMapper;
 
     public InputSystem(State.LoopState? loop = null)
         : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent), typeof(PlayerControlComponent)))
@@ -37,6 +39,8 @@ public class InputSystem : EntityUpdateSystem
         _controlMapper = mapperService.GetMapper<PlayerControlComponent>();
         _moveInputMapper = mapperService.GetMapper<MovementInputComponent>();
         _actionMapper = mapperService.GetMapper<MovementActionComponent>();
+        _attrMapper = mapperService.GetMapper<PlayerAttributesComponent>();
+        _playerActionMapper = mapperService.GetMapper<PlayerActionStateComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -82,10 +86,41 @@ public class InputSystem : EntityUpdateSystem
                 behavior.State = BehaviorState.Idle;
             }
 
-            // Action button (space or A button)
-            if (keyboard.IsKeyDown(Keys.Space) || gamepad.Buttons.A == ButtonState.Pressed)
+            // ---- Translate raw buttons into high-level action commands (contextual) ----
+            // NOTE: We use edge detection so holding a button doesn't spam requests each tick.
+            if (_playerActionMapper.Has(entityId))
             {
-                OnActionPressed(entityId, hasBall);
+                var pa = _playerActionMapper.Get(entityId);
+
+                var actionDown = keyboard.IsKeyDown(Keys.Space) || gamepad.Buttons.A == ButtonState.Pressed;
+                var pitchDown = keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl) || gamepad.Buttons.X == ButtonState.Pressed;
+                var sprintDown = keyboard.IsKeyDown(Keys.LeftShift) || keyboard.IsKeyDown(Keys.RightShift) || gamepad.Buttons.B == ButtonState.Pressed;
+                var jukeDown = keyboard.IsKeyDown(Keys.C) || gamepad.Buttons.Y == ButtonState.Pressed;
+
+                var actionPressed = actionDown && !pa.PrevActionDown;
+                var pitchPressed = pitchDown && !pa.PrevPitchDown;
+                var sprintPressed = sprintDown && !pa.PrevSprintDown;
+                var jukePressed = jukeDown && !pa.PrevJukeDown;
+
+                pa.PrevActionDown = actionDown;
+                pa.PrevPitchDown = pitchDown;
+                pa.PrevSprintDown = sprintDown;
+                pa.PrevJukeDown = jukeDown;
+
+                if (actionPressed || pitchPressed || sprintPressed || jukePressed)
+                {
+                    var cmd = ResolveCommandForContext(entityId, team, hasBall, inputDirection, actionPressed, pitchPressed, sprintPressed, jukePressed);
+                    if (cmd != PlayerActionCommand.None)
+                        pa.PendingCommand = cmd;
+                }
+            }
+
+            // Back-compat: if the entity does not have the action-command component,
+            // fall back to the old direct MovementAction behavior.
+            if (!_playerActionMapper.Has(entityId))
+            {
+                if (keyboard.IsKeyDown(Keys.Space) || gamepad.Buttons.A == ButtonState.Pressed)
+                    OnActionPressed(entityId, hasBall);
             }
         }
     }
@@ -125,6 +160,62 @@ public class InputSystem : EntityUpdateSystem
             direction.Normalize();
 
         return direction;
+    }
+
+    private PlayerActionCommand ResolveCommandForContext(
+        int entityId,
+        TeamComponent team,
+        bool hasBall,
+        Vector2 inputDirection,
+        bool actionPressed,
+        bool pitchPressed,
+        bool sprintPressed,
+        bool jukePressed)
+    {
+        // Pitch has highest priority when pressed.
+        if (pitchPressed && hasBall && team.IsOffense)
+            return PlayerActionCommand.Pitch;
+
+        if (sprintPressed)
+            return PlayerActionCommand.SprintBurst;
+
+        if (jukePressed)
+            return PlayerActionCommand.JukeCut;
+
+        if (!actionPressed)
+            return PlayerActionCommand.None;
+
+        // Action button is context sensitive.
+        if (!team.IsOffense)
+        {
+            // Defense: tackle attempt.
+            return PlayerActionCommand.Tackle;
+        }
+
+        // Offense.
+        if (hasBall)
+        {
+            var isQb = false;
+            if (_attrMapper.Has(entityId))
+            {
+                var pos = (_attrMapper.Get(entityId).Position ?? string.Empty).Trim();
+                isQb = string.Equals(pos, "QB", System.StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(pos, "Quarterback", System.StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (isQb)
+            {
+                // Minimal: if the QB is actively steering when Action is pressed, treat as a scramble.
+                // Otherwise treat as a pass request.
+                return inputDirection != Vector2.Zero ? PlayerActionCommand.Scramble : PlayerActionCommand.Pass;
+            }
+
+            // Ball carrier (RB/WR/etc): dive.
+            return PlayerActionCommand.Dive;
+        }
+
+        // Offense but not holding ball: no-op for now (catch attempts later).
+        return PlayerActionCommand.None;
     }
 
     private void OnActionPressed(int entityId, bool hasBall)
