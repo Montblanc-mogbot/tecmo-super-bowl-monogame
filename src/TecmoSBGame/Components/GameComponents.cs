@@ -120,6 +120,9 @@ public enum BehaviorState
     RushingQB,
     Blocking,
     RunningRoute,
+
+    // Interrupt-style states (typically restored via BehaviorStackComponent).
+    Engaged,
     Tackling,
-    Grappling
+    Grappling,
 }

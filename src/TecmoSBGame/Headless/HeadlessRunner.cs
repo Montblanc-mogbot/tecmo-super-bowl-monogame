@@ -31,6 +31,9 @@ public static class HeadlessRunner
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new HeadlessContactSeederSystem())
             .AddSystem(new CollisionContactSystem(events))
+            .AddSystem(new EngagementSystem(events))
+            .AddSystem(new TackleInterruptSystem(events))
+            .AddSystem(new BehaviorStackSystem())
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();
 
