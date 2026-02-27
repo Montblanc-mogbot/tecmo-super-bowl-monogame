@@ -84,21 +84,13 @@ public class GameStateSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
-        // Poll events first (explicit determinism; one tick = one clear in the driver).
-        _events?.Drain<WhistleEvent>(e =>
+        // Do not Drain whistles here: LoopMachineSystem + PlayEndSystem rely on observing them.
+        // Instead, let PlayEndSystem finalize PlayState/MatchState.
+        if (_playState.IsOver)
         {
-            // Play is dead.
             CurrentPhase = GamePhase.End;
             PhaseTimer = 0f;
-
-            // Record whistle reason/result in the play model (idempotent).
-            if (_playState.WhistleReason == WhistleReason.None)
-            {
-                _playState.WhistleReason = ParseWhistleReason(e.Reason);
-                _playState.Phase = PlayPhase.PostPlay;
-                _playState.BallState = BallState.Dead;
-            }
-        });
+        }
 
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         PhaseTimer += dt;

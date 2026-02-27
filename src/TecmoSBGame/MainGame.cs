@@ -139,6 +139,8 @@ public sealed class MainGame : Game
                 .AddSystem(new FumbleOnTackleWhistleSystem(_events, _playState))
                 .AddSystem(new FumbleResolutionSystem(_events, _playState))
                 .AddSystem(new LooseBallPickupSystem(_events, _playState))
+                // Authoritative play-end aggregation (reads whistles, updates match/play state).
+                .AddSystem(new PlayEndSystem(_events, _matchState, _playState, log: true))
                 // Loop driver runs late so it can observe events published earlier in the tick.
                 .AddSystem(new LoopMachineSystem(_loopState, _events))
                 .AddSystem(new ContactDebugLogSystem(_events))

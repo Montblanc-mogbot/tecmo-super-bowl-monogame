@@ -47,6 +47,7 @@ public static class HeadlessRunner
             .AddSystem(new TackleInterruptSystem(events))
             .AddSystem(new TackleResolutionSystem(events, match, play))
             .AddSystem(new BehaviorStackSystem())
+            .AddSystem(new PlayEndSystem(events, match, play, log: true))
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();
 
@@ -77,6 +78,28 @@ public static class HeadlessRunner
             defensePlays,
             offenseEntityIds: offense.Players.Select(p => p.EntityId).ToList(),
             defenseEntityIds: defenseEntityIds);
+
+        // Minimal match/play init so tackle resolution + PlayEndSystem can produce an end-of-play snapshot.
+        match.PossessionTeam = 0;
+        match.OffenseDirection = OffenseDirection.LeftToRight;
+        match.Down = 1;
+        match.YardsToGo = 10;
+        match.BallSpot = BallSpot.Own(25);
+
+        var startAbs = PlayState.ToAbsoluteYard(match.BallSpot, match.OffenseDirection);
+        play.ResetForNewPlay(playId: match.PlayNumber + 1, startAbsoluteYard: startAbs);
+
+        // Give the ball to the QB and spawn a dedicated ball entity so BallPhysics/Bounds/End logic can reference it.
+        var qbId = offense.Players.First(p => p.Role == PlayerRole.QB).EntityId;
+        world.GetEntity(qbId).Get<BallCarrierComponent>().HasBall = true;
+
+        var qbPos = world.GetEntity(qbId).Get<PositionComponent>().Position;
+        var ballId = BallEntityFactory.CreateBall(world, qbPos);
+        world.GetEntity(ballId).Get<BallStateComponent>().State = BallState.Held;
+        world.GetEntity(ballId).Get<BallOwnerComponent>().OwnerEntityId = qbId;
+
+        play.BallState = BallState.Held;
+        play.BallOwnerEntityId = qbId;
 
         Console.WriteLine($"[headless] play: offense='{spawnedPlay.OffensivePlayName}' slot='{spawnedPlay.OffensiveSlot}' formation={spawnedPlay.OffensiveFormationId} playNo=0x{spawnedPlay.OffensivePlayNumber:X2}");
         Console.WriteLine($"[headless] play: defense='{spawnedPlay.DefensiveCallId}'");

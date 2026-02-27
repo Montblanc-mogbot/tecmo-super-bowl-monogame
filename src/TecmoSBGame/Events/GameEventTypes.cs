@@ -49,6 +49,19 @@ public readonly record struct PitchRequestedEvent(int BallCarrierId);
 public readonly record struct WhistleEvent(string Reason);
 
 /// <summary>
+/// Derived high-level signal published by <see cref="TecmoSBGame.Systems.PlayEndSystem"/> when it finalizes a play.
+/// Consumers that need a single authoritative end-of-play hook should prefer this over raw whistles.
+/// </summary>
+public readonly record struct PlayEndedEvent(
+    int PlayId,
+    TecmoSBGame.State.WhistleReason Reason,
+    int EndAbsoluteYard,
+    int YardsGained,
+    bool Turnover,
+    bool Touchdown,
+    bool Safety);
+
+/// <summary>
 /// High-level fumble event: the ball carrier lost possession due to a hit/tackle/etc.
 /// The actual ball state transition is handled by gameplay systems consuming this event.
 /// </summary>
