@@ -16,6 +16,7 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
 {
     private readonly GameEvents? _events;
     private readonly PlayState? _play;
+    private readonly PassResolutionRuleset _ruleset;
 
     private ComponentMapper<BallComponent> _ballTag = null!;
     private ComponentMapper<BallStateComponent> _ballState = null!;
@@ -27,14 +28,20 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
     private ComponentMapper<PlayerAttributesComponent> _attrs = null!;
 
     // Placeholder tuning constants (keep small + deterministic).
+    // NOTE: In CleanRoomApprox mode these are tuned by feel. In AssemblyParity mode these
+    // should be replaced by the original game's tables/thresholds.
     private const float ELIGIBLE_RADIUS = 14f; // in field units
     private const int INCOMPLETE_BASE = 120;   // higher => more incompletions
 
-    public PassFlightCompleteSystem(GameEvents? events = null, PlayState? playState = null)
+    public PassFlightCompleteSystem(
+        GameEvents? events = null,
+        PlayState? playState = null,
+        PassResolutionRuleset ruleset = PassResolutionRuleset.CleanRoomApprox)
         : base(Aspect.All(typeof(PositionComponent)))
     {
         _events = events;
         _play = playState;
+        _ruleset = ruleset;
     }
 
     public override void Initialize(IComponentMapperService mapperService)
