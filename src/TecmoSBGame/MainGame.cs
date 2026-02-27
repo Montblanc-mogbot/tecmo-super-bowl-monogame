@@ -103,6 +103,11 @@ public sealed class MainGame : Game
             if (_controlState is null)
                 throw new InvalidOperationException("ControlState was not initialized.");
 
+            if (_matchState is null)
+                throw new InvalidOperationException("MatchState was not initialized.");
+            if (_playState is null)
+                throw new InvalidOperationException("PlayState was not initialized.");
+
             _world = new WorldBuilder()
                 .AddSystem(new MovementSystem())
                 // Selection runs before input so the tick's movement is applied to the chosen entity.
@@ -113,6 +118,7 @@ public sealed class MainGame : Game
                 .AddSystem(_gameStateSystem)
                 .AddSystem(new BallPhysicsSystem())
                 .AddSystem(new PassFlightCompleteSystem(_events, _playState))
+                .AddSystem(new BallBoundsSystem(_events, _matchState, _playState))
                 .AddSystem(new WhistleOnTackleSystem(_events))
                 // TEMP: fumbles triggered off tackle whistle until tackle rules resolve.
                 .AddSystem(new FumbleOnTackleWhistleSystem(_events, _playState))

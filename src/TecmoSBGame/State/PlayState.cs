@@ -134,8 +134,9 @@ public enum WhistleReason
     OutOfBounds = 2,
     Touchdown = 3,
     Safety = 4,
-    Incomplete = 5,
-    Turnover = 6,
+    Touchback = 5,
+    Incomplete = 6,
+    Turnover = 7,
     Other = 99,
 }
 

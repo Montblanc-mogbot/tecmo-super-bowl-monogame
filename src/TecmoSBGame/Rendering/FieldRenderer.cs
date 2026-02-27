@@ -14,11 +14,7 @@ public sealed class FieldRenderer
     private Texture2D? _yardLineTexture;
     private SpriteFont? _font;
     
-    // Field dimensions (in virtual 256x224 coordinates)
-    private const int FieldTop = 40;
-    private const int FieldBottom = 184;
-    private const int FieldLeft = 16;
-    private const int FieldRight = 240;
+    // Field dimensions live in TecmoSBGame.Field.FieldBounds (single source of truth).
     
     public FieldRenderer(GraphicsDevice graphicsDevice)
     {
@@ -51,7 +47,7 @@ public sealed class FieldRenderer
     private void DrawFieldBackground(SpriteBatch spriteBatch)
     {
         // Solid green field
-        var fieldRect = new Rectangle(FieldLeft, FieldTop, FieldRight - FieldLeft, FieldBottom - FieldTop);
+        var fieldRect = new Rectangle(Field.FieldBounds.FieldLeftX, Field.FieldBounds.FieldTopY, Field.FieldBounds.FieldRightX - Field.FieldBounds.FieldLeftX, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
         var grassColor = new Color(0, 120, 0);  // Tecmo green
         
         var texture = GetSolidTexture(grassColor);
@@ -66,7 +62,7 @@ public sealed class FieldRenderer
         for (int yard = 0; yard <= 100; yard += 10)
         {
             int x = YardToX(yard);
-            var lineRect = new Rectangle(x, FieldTop, 1, FieldBottom - FieldTop);
+            var lineRect = new Rectangle(x, Field.FieldBounds.FieldTopY, 1, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
             spriteBatch.Draw(whiteTexture, lineRect, Color.White);
         }
         
@@ -74,8 +70,8 @@ public sealed class FieldRenderer
         int goalLine0 = YardToX(0);
         int goalLine100 = YardToX(100);
         
-        spriteBatch.Draw(whiteTexture, new Rectangle(goalLine0 - 1, FieldTop, 2, FieldBottom - FieldTop), Color.White);
-        spriteBatch.Draw(whiteTexture, new Rectangle(goalLine100 - 1, FieldTop, 2, FieldBottom - FieldTop), Color.White);
+        spriteBatch.Draw(whiteTexture, new Rectangle(goalLine0 - 1, Field.FieldBounds.FieldTopY, 2, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY), Color.White);
+        spriteBatch.Draw(whiteTexture, new Rectangle(goalLine100 - 1, Field.FieldBounds.FieldTopY, 2, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY), Color.White);
     }
     
     private void DrawYardNumbers(SpriteBatch spriteBatch)
@@ -92,19 +88,19 @@ public sealed class FieldRenderer
             var size = _font.MeasureString(text);
             
             // Top numbers
-            spriteBatch.DrawString(_font, text, new Vector2(x1 - size.X / 2, FieldTop + 5), Color.White);
-            spriteBatch.DrawString(_font, text, new Vector2(x2 - size.X / 2, FieldTop + 5), Color.White);
+            spriteBatch.DrawString(_font, text, new Vector2(x1 - size.X / 2, Field.FieldBounds.FieldTopY + 5), Color.White);
+            spriteBatch.DrawString(_font, text, new Vector2(x2 - size.X / 2, Field.FieldBounds.FieldTopY + 5), Color.White);
             
             // Bottom numbers (flipped)
-            spriteBatch.DrawString(_font, text, new Vector2(x1 - size.X / 2, FieldBottom - 15), Color.White);
-            spriteBatch.DrawString(_font, text, new Vector2(x2 - size.X / 2, FieldBottom - 15), Color.White);
+            spriteBatch.DrawString(_font, text, new Vector2(x1 - size.X / 2, Field.FieldBounds.FieldBottomY - 15), Color.White);
+            spriteBatch.DrawString(_font, text, new Vector2(x2 - size.X / 2, Field.FieldBounds.FieldBottomY - 15), Color.White);
         }
         
         // 50 yard line
         int x50 = YardToX(50);
         var size50 = _font.MeasureString("50");
-        spriteBatch.DrawString(_font, "50", new Vector2(x50 - size50.X / 2, FieldTop + 5), Color.White);
-        spriteBatch.DrawString(_font, "50", new Vector2(x50 - size50.X / 2, FieldBottom - 15), Color.White);
+        spriteBatch.DrawString(_font, "50", new Vector2(x50 - size50.X / 2, Field.FieldBounds.FieldTopY + 5), Color.White);
+        spriteBatch.DrawString(_font, "50", new Vector2(x50 - size50.X / 2, Field.FieldBounds.FieldBottomY - 15), Color.White);
     }
     
     private void DrawEndZones(SpriteBatch spriteBatch)
@@ -117,19 +113,19 @@ public sealed class FieldRenderer
         int goalLine100 = YardToX(100);
         
         // Left end zone
-        var leftEndZone = new Rectangle(FieldLeft - 8, FieldTop, 8, FieldBottom - FieldTop);
+        var leftEndZone = new Rectangle(Field.FieldBounds.FieldLeftX - Field.FieldBounds.EndZoneDepth, Field.FieldBounds.FieldTopY, Field.FieldBounds.EndZoneDepth, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
         spriteBatch.Draw(texture, leftEndZone, endZoneColor);
         
         // Right end zone
-        var rightEndZone = new Rectangle(goalLine100, FieldTop, 8, FieldBottom - FieldTop);
+        var rightEndZone = new Rectangle(goalLine100, Field.FieldBounds.FieldTopY, Field.FieldBounds.EndZoneDepth, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
         spriteBatch.Draw(texture, rightEndZone, endZoneColor);
     }
     
     private int YardToX(int yard)
     {
         // Map 0-100 yards to field coordinates
-        float yardWidth = (FieldRight - FieldLeft) / 100f;
-        return FieldLeft + (int)(yard * yardWidth);
+        float yardWidth = (Field.FieldBounds.FieldRightX - Field.FieldBounds.FieldLeftX) / 100f;
+        return Field.FieldBounds.FieldLeftX + (int)(yard * yardWidth);
     }
     
     private Texture2D GetSolidTexture(Color color)

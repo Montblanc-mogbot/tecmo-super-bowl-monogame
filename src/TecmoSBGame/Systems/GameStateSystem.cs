@@ -178,8 +178,8 @@ public class GameStateSystem : EntityUpdateSystem
             _ballMapper.Get(_ballCarrierId).HasBall = false;
 
         // Kick trajectory tuning (keep simple + deterministic for now).
-        const float fieldLeft = 16f;
-        const float fieldRight = 240f;
+        const float fieldLeft = TecmoSBGame.Field.FieldBounds.FieldLeftX;
+        const float fieldRight = TecmoSBGame.Field.FieldBounds.FieldRightX;
         const float kickoffHangtimeSeconds = 1.50f;
         const float kickoffApexHeight = 18.0f;
         const float kickoffForwardDistance = 140f;
@@ -437,23 +437,25 @@ public class GameStateSystem : EntityUpdateSystem
     {
         // Keep this conversion local to the kickoff slice for now.
         // Rendering currently maps 0..100 yards into a virtual field width (see FieldRenderer).
-        const float fieldLeft = 16f;
-        const float fieldRight = 240f;
-
-        var t = (x - fieldLeft) / (fieldRight - fieldLeft);
-        var yard = (int)MathF.Round(t * 100f);
-        return Math.Clamp(yard, 0, 100);
+        return TecmoSBGame.Field.FieldBounds.XToAbsoluteYard(x);
     }
 
     private static WhistleReason ParseWhistleReason(string? reason)
     {
         reason = (reason ?? string.Empty).Trim().ToLowerInvariant();
+
+        // Allow namespaced reasons like "bounds:oob".
+        var idx = reason.IndexOf(':');
+        if (idx >= 0 && idx + 1 < reason.Length)
+            reason = reason[(idx + 1)..];
+
         return reason switch
         {
             "tackle" => WhistleReason.Tackle,
             "oob" or "outofbounds" or "out_of_bounds" => WhistleReason.OutOfBounds,
             "td" or "touchdown" => WhistleReason.Touchdown,
             "safety" => WhistleReason.Safety,
+            "touchback" or "tb" => WhistleReason.Touchback,
             "incomplete" => WhistleReason.Incomplete,
             "turnover" => WhistleReason.Turnover,
             "" => WhistleReason.Other,

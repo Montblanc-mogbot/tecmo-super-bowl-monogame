@@ -39,6 +39,7 @@ internal static class Program
             .AddSystem(gameState)
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new PassFlightCompleteSystem(events, playState))
+            .AddSystem(new BallBoundsSystem(events, matchState, playState))
             .AddSystem(new WhistleOnTackleSystem(events))
             // TEMP: fumbles triggered off tackle whistle until tackle rules resolve.
             .AddSystem(new FumbleOnTackleWhistleSystem(events, playState))
@@ -52,8 +53,18 @@ internal static class Program
         var fixedStep = new FixedTimestepRunner(hz, maxTicksPerFrame: int.MaxValue, maxAccumulated: TimeSpan.FromDays(1));
         for (var i = 0; i < ticks; i++)
         {
+            var prevWhistle = playState.WhistleReason;
+
             events.BeginTick();
             fixedStep.TickOnce(world.Update);
+
+            // Detect whistle reasons that are typically produced by BallBoundsSystem.
+            if (prevWhistle == WhistleReason.None && playState.WhistleReason is WhistleReason.OutOfBounds or WhistleReason.Touchback or WhistleReason.Safety)
+            {
+                var ball = world.GetEntity(scenario.BallId);
+                var p = ball.Get<PositionComponent>().Position;
+                Console.WriteLine($"  [bounds] whistle={playState.WhistleReason} ball=({p.X:0.0},{p.Y:0.0})");
+            }
 
             // Print pass outcomes when they occur.
             events.Drain<PassResolvedEvent>(e =>
