@@ -8,6 +8,19 @@ public readonly record struct SnapEvent(int OffenseTeam, int DefenseTeam);
 
 public readonly record struct BallCaughtEvent(int ReceiverId, Vector2 Position);
 
+public enum PassOutcome
+{
+    Catch = 0,
+    Interception = 1,
+    Incomplete = 2,
+}
+
+/// <summary>
+/// High-level resolution event emitted when a pass flight completes.
+/// WinnerId is the entity that ends up possessing the ball (receiver/defender) or null for incompletions.
+/// </summary>
+public readonly record struct PassResolvedEvent(PassOutcome Outcome, int PasserId, int? TargetId, int? WinnerId, Vector2 BallPosition);
+
 public readonly record struct TackleEvent(int TacklerId, int BallCarrierId, Vector2 Position);
 
 // High-level intent events (requested by input/AI; resolved by gameplay systems).

@@ -51,6 +51,14 @@ internal static class Program
             events.BeginTick();
             fixedStep.TickOnce(world.Update);
 
+            // Print pass outcomes when they occur.
+            events.Drain<PassResolvedEvent>(e =>
+            {
+                var target = e.TargetId is null ? "none" : e.TargetId.Value.ToString(CultureInfo.InvariantCulture);
+                var winner = e.WinnerId is null ? "none" : e.WinnerId.Value.ToString(CultureInfo.InvariantCulture);
+                Console.WriteLine($"  [pass] outcome={e.Outcome} passer={e.PasserId} target={target} winner={winner} ball=({e.BallPosition.X:0.0},{e.BallPosition.Y:0.0})");
+            });
+
             // Snapshot at start, once per second, and at end.
             if (i == 0 || (i + 1) % hz == 0 || i == ticks - 1)
             {
