@@ -29,9 +29,11 @@ internal static class Program
         var gameState = new GameStateSystem(matchState, playState, events, headlessAutoAdvance: true);
 
         var loopState = new LoopState(new GameLoopMachine(yaml.GameLoop), new OnFieldLoopMachine(yaml.OnFieldLoop));
+        var controlState = new ControlState();
 
         var world = new WorldBuilder()
             .AddSystem(new MovementSystem())
+            .AddSystem(new PlayerControlSystem(controlState, loopState, enableInput: false))
             .AddSystem(gameState)
             .AddSystem(new WhistleOnTackleSystem(events))
             .AddSystem(new LoopMachineSystem(loopState, events))
@@ -48,7 +50,7 @@ internal static class Program
             // Snapshot at start, once per second, and at end.
             if (i == 0 || (i + 1) % hz == 0 || i == ticks - 1)
             {
-                PrintSummary(world, gameState, loopState, i + 1, hz, scenario);
+                PrintSummary(world, gameState, loopState, controlState, i + 1, hz, scenario);
             }
         }
 
@@ -71,13 +73,15 @@ internal static class Program
         return new LoadedYaml(sim, loop, onField);
     }
 
-    private static void PrintSummary(World world, GameStateSystem gameState, LoopState loopState, int tick, int hz, GameStateSystem.KickoffScenarioIds scenario)
+    private static void PrintSummary(World world, GameStateSystem gameState, LoopState loopState, ControlState controlState, int tick, int hz, GameStateSystem.KickoffScenarioIds scenario)
     {
         var t = (tick / (double)hz).ToString("0.000", CultureInfo.InvariantCulture);
         Console.WriteLine($"[t={t}s tick={tick}] phase={gameState.CurrentPhase} phaseTimer={gameState.PhaseTimer:0.000}");
         Console.WriteLine($"  loops: game={loopState.GameLoopStateId} onField={loopState.OnFieldStateId} (onFieldTimer={loopState.OnFieldSecondsInState:0.000}s)");
         Console.WriteLine($"  match: {gameState.MatchState.ToSummaryString()}");
         Console.WriteLine($"  play:  {gameState.PlayState.ToSummaryString()}");
+
+        PrintControlled(world, controlState);
 
         PrintEntity(world, "kicker", scenario.KickerId);
         PrintEntity(world, "returner", scenario.ReturnerId);
@@ -98,14 +102,38 @@ internal static class Program
         Console.WriteLine();
     }
 
+    private static void PrintControlled(World world, ControlState controlState)
+    {
+        if (controlState.ControlledEntityId is null)
+        {
+            Console.WriteLine("  control: (none)");
+            return;
+        }
+
+        var id = controlState.ControlledEntityId.Value;
+        var e = world.GetEntity(id);
+        var team = e.Get<TeamComponent>();
+
+        string role = controlState.Role.ToString();
+        if (e.Has<PlayerAttributesComponent>())
+        {
+            var pos = (e.Get<PlayerAttributesComponent>().Position ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(pos))
+                role = $"{role}/{pos}";
+        }
+
+        Console.WriteLine($"  control: id={id} team={team.TeamIndex} offense={team.IsOffense} role={role}");
+    }
+
     private static void PrintEntity(World world, string label, int entityId)
     {
         var e = world.GetEntity(entityId);
         var pos = e.Get<PositionComponent>().Position;
         var team = e.Get<TeamComponent>();
         var ball = e.Get<BallCarrierComponent>().HasBall;
+        var ctrl = e.Get<PlayerControlComponent>().IsControlled;
 
-        Console.WriteLine($"  {label} id={entityId} team={team.TeamIndex} offense={team.IsOffense} ball={ball} pos=({pos.X:0.0},{pos.Y:0.0})");
+        Console.WriteLine($"  {label} id={entityId} team={team.TeamIndex} offense={team.IsOffense} ball={ball} ctrl={ctrl} pos=({pos.X:0.0},{pos.Y:0.0})");
     }
 
     private static int GetIntArg(string[] args, string name, int defaultValue)

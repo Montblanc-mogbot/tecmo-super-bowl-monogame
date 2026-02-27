@@ -24,6 +24,7 @@ public sealed class MainGame : Game
     private MatchState? _matchState;
     private PlayState? _playState;
     private LoopState? _loopState;
+    private ControlState? _controlState;
 
     /// <summary>
     /// Provides access to all loaded game content.
@@ -71,6 +72,9 @@ public sealed class MainGame : Game
         var onFieldLoopMachine = new OnFieldLoopMachine(GameContent.OnFieldLoop);
         _loopState = new LoopState(gameLoopMachine, onFieldLoopMachine);
 
+        // Small shared service for "which entity currently receives player input".
+        _controlState = new ControlState();
+
         // Create game state system (used by ECS world)
         if (_playState is null)
             throw new InvalidOperationException("PlayState was not initialized.");
@@ -96,8 +100,13 @@ public sealed class MainGame : Game
             if (_loopState is null)
                 throw new InvalidOperationException("LoopState was not initialized.");
 
+            if (_controlState is null)
+                throw new InvalidOperationException("ControlState was not initialized.");
+
             _world = new WorldBuilder()
                 .AddSystem(new MovementSystem())
+                // Selection runs before input so the tick's movement is applied to the chosen entity.
+                .AddSystem(new PlayerControlSystem(_controlState, _loopState, enableInput: true))
                 .AddSystem(new InputSystem(_loopState))
                 .AddSystem(_gameStateSystem)
                 .AddSystem(new WhistleOnTackleSystem(_events))

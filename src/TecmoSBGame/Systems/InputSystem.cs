@@ -18,9 +18,10 @@ public class InputSystem : EntityUpdateSystem
     private ComponentMapper<BehaviorComponent> _behaviorMapper;
     private ComponentMapper<PositionComponent> _positionMapper;
     private ComponentMapper<BallCarrierComponent> _ballMapper;
+    private ComponentMapper<PlayerControlComponent> _controlMapper;
 
     public InputSystem(State.LoopState? loop = null)
-        : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent)))
+        : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent), typeof(PlayerControlComponent)))
     {
         _loop = loop;
     }
@@ -31,6 +32,7 @@ public class InputSystem : EntityUpdateSystem
         _behaviorMapper = mapperService.GetMapper<BehaviorComponent>();
         _positionMapper = mapperService.GetMapper<PositionComponent>();
         _ballMapper = mapperService.GetMapper<BallCarrierComponent>();
+        _controlMapper = mapperService.GetMapper<PlayerControlComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -47,8 +49,11 @@ public class InputSystem : EntityUpdateSystem
         {
             var team = _teamMapper.Get(entityId);
             
-            // Only process input for player-controlled entities
+            // Only process input for the single currently controlled entity on the player-controlled team.
             if (!team.IsPlayerControlled)
+                continue;
+
+            if (!_controlMapper.Get(entityId).IsControlled)
                 continue;
 
             var behavior = _behaviorMapper.Get(entityId);

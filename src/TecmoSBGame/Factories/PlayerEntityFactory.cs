@@ -40,6 +40,7 @@ public static class PlayerEntityFactory
         });
         entity.Attach(new SpriteComponent(spriteId));
         entity.Attach(new BallCarrierComponent { HasBall = false });
+        entity.Attach(new PlayerControlComponent { IsControlled = false });
 
         return entity.Id;
     }
