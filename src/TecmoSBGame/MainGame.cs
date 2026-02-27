@@ -124,6 +124,8 @@ public sealed class MainGame : Game
                 .AddSystem(new InputSystem(_loopState))
                 .AddSystem(new ActionResolutionSystem(_events, _matchState, _playState))
                 .AddSystem(new SnapResolutionSystem(_events, _matchState, _playState))
+                // Penalties are scaffolded but default to Off (no behavior changes).
+                .AddSystem(new PenaltySystem(_events, _matchState, _playState))
                 .AddSystem(new CollisionContactSystem(_events, _loopState))
                 .AddSystem(new EngagementSystem(_events))
                 .AddSystem(new TackleInterruptSystem(_events))

@@ -42,6 +42,12 @@ public sealed class MatchState
     /// <summary>Monotonic play counter (increments when a play ends).</summary>
     public int PlayNumber { get; set; } = 0;
 
+    /// <summary>
+    /// Ruleset toggle for penalty detection/enforcement.
+    /// Default is <see cref="TecmoSBGame.State.PenaltyRuleset.Off"/> to preserve current behavior.
+    /// </summary>
+    public PenaltyRuleset PenaltyRuleset { get; set; } = PenaltyRuleset.Off;
+
     /// <summary>Optional drive id (increments on possession changes, etc.).</summary>
     public int DriveId { get; set; } = 0;
 

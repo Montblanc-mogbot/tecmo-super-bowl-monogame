@@ -37,6 +37,25 @@ public readonly record struct BlockContactEvent(int BlockerId, int DefenderId, V
 
 // High-level intent events (requested by input/AI; resolved by gameplay systems).
 public readonly record struct TackleAttemptEvent(int TacklerId, int BallCarrierId, Vector2 Position);
+
+// Penalties (scaffolding): emitted by PenaltySystem when enabled.
+public enum PenaltyType
+{
+    Unknown = 0,
+    Offsides = 1,
+}
+
+/// <summary>
+/// Low-level detection signal: a penalty condition was detected.
+/// Enforcement/acceptance decisions are separate.
+/// </summary>
+public readonly record struct PenaltyEvent(int PlayId, int TeamIndex, PenaltyType Type, string Detail);
+
+/// <summary>
+/// High-level assessment signal: a penalty was applied to game state.
+/// </summary>
+public readonly record struct PenaltyAssessedEvent(int PlayId, int AgainstTeamIndex, PenaltyType Type, int Yards, bool Accepted);
+
 public enum PassType
 {
     Bullet = 0,

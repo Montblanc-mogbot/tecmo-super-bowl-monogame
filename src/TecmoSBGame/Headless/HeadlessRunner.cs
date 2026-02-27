@@ -49,6 +49,8 @@ public static class HeadlessRunner
             .AddSystem(new HeadlessContactSeederSystem())
             .AddSystem(new CollisionContactSystem(events, loopState))
             .AddSystem(new EngagementSystem(events))
+            // Penalties are scaffolded but default to Off (no behavior changes).
+            .AddSystem(new PenaltySystem(events, match, play))
             .AddSystem(new TackleInterruptSystem(events))
             .AddSystem(new TackleResolutionSystem(events, match, play))
             .AddSystem(new BehaviorStackSystem())
