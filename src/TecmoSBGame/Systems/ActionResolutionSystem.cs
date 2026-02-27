@@ -163,8 +163,12 @@ public sealed class ActionResolutionSystem : EntityUpdateSystem
 
     private void ResolvePassRequested(int qbEntityId)
     {
+        var a = _actionMapper.Get(qbEntityId);
+        var targetId = a.PendingTargetEntityId;
+        a.PendingTargetEntityId = null;
+
         if (_events is not null)
-            _events.Publish(new PassRequestedEvent(qbEntityId));
+            _events.Publish(new PassRequestedEvent(PasserId: qbEntityId, TargetId: targetId, PassType: PassType.Bullet));
 
         if (_play is null)
             return;

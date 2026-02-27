@@ -1,12 +1,14 @@
 using Microsoft.Xna.Framework;
+using TecmoSBGame.Events;
 
 namespace TecmoSBGame.Components;
 
 public enum BallFlightKind
 {
-    Kickoff,
-    Punt,
-    Pass,
+    None = 0,
+    Kickoff = 1,
+    Punt = 2,
+    Pass = 3,
 }
 
 /// <summary>
@@ -21,6 +23,11 @@ public enum BallFlightKind
 public sealed class BallFlightComponent
 {
     public BallFlightKind Kind;
+
+    // Metadata for passes (for deterministic snapshots/logging). Null for other kinds.
+    public int? PasserId;
+    public int? TargetId;
+    public PassType PassType;
 
     public Vector2 StartPos;
     public Vector2 EndPos;
@@ -40,6 +47,11 @@ public sealed class BallFlightComponent
     public BallFlightComponent(BallFlightKind kind, Vector2 startPos, Vector2 endPos, float durationSeconds, float apexHeight)
     {
         Kind = kind;
+
+        PasserId = null;
+        TargetId = null;
+        PassType = PassType.Bullet;
+
         StartPos = startPos;
         EndPos = endPos;
         DurationSeconds = durationSeconds;

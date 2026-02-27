@@ -74,6 +74,8 @@ public sealed class BallPhysicsSystem : EntityUpdateSystem
             if (_flight.Has(ballId))
             {
                 var f = _flight.Get(ballId);
+                if (f.Kind == BallFlightKind.None)
+                    goto IntegrateLoose;
 
                 f.ElapsedSeconds = MathF.Min(f.DurationSeconds, f.ElapsedSeconds + dt);
 
@@ -90,6 +92,7 @@ public sealed class BallPhysicsSystem : EntityUpdateSystem
                 continue;
             }
 
+IntegrateLoose:
             // Loose or in-air without a flight component: constant velocity integration.
             // Velocity is in "units per 60Hz tick".
             if (state.State is BallState.InAir or BallState.Loose)

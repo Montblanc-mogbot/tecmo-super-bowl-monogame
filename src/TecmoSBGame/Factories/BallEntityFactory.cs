@@ -20,6 +20,10 @@ public static class BallEntityFactory
 
         entity.Attach(new PositionComponent(position));
 
+        // Always attach a flight component so systems can overwrite it deterministically
+        // without requiring runtime attach support.
+        entity.Attach(new BallFlightComponent(BallFlightKind.None, position, position, durationSeconds: 0f, apexHeight: 0f));
+
         // Reuse VelocityComponent but do not drive it through MovementSystem.
         // (Ball motion is currently handled by the kickoff slice / ball sync logic.)
         entity.Attach(new VelocityComponent(maxSpeed: 10f, acceleration: 0f));

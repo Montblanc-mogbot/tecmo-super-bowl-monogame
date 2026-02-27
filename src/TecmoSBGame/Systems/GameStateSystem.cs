@@ -202,6 +202,9 @@ public class GameStateSystem : EntityUpdateSystem
             {
                 var f = _ballFlightMapper.Get(_ballEntityId);
                 f.Kind = BallFlightKind.Kickoff;
+                f.PasserId = null;
+                f.TargetId = null;
+                f.PassType = PassType.Bullet;
                 f.StartPos = start;
                 f.EndPos = end;
                 f.DurationSeconds = kickoffHangtimeSeconds;
@@ -278,9 +281,7 @@ public class GameStateSystem : EntityUpdateSystem
             }
         }
 
-        // Clear flight model now that the ball is held.
-        if (_ballEntityId != -1)
-            _world?.GetEntity(_ballEntityId).Detach<BallFlightComponent>();
+        // Keep the flight component attached for determinism; BallPhysicsSystem will ignore it while held.
 
         // Coverage team now pursues.
         foreach (var entityId in ActiveEntities)

@@ -35,8 +35,10 @@ internal static class Program
             .AddSystem(new MovementSystem())
             .AddSystem(new PlayerControlSystem(controlState, loopState, enableInput: false))
             .AddSystem(new ActionResolutionSystem(events, matchState, playState))
+            .AddSystem(new PassFlightStartSystem(events, playState))
             .AddSystem(gameState)
             .AddSystem(new BallPhysicsSystem())
+            .AddSystem(new PassFlightCompleteSystem(events, playState))
             .AddSystem(new WhistleOnTackleSystem(events))
             .AddSystem(new LoopMachineSystem(loopState, events))
             .Build();
@@ -158,7 +160,18 @@ internal static class Program
         if (e.Has<BallFlightComponent>())
         {
             var f = e.Get<BallFlightComponent>();
-            flightStr = $" flight={f.Kind} {f.ElapsedSeconds:0.000}/{f.DurationSeconds:0.000}s h={f.Height:0.00} apex={f.ApexHeight:0.00} complete={f.IsComplete}";
+            if (f.Kind != BallFlightKind.None)
+            {
+                var meta = string.Empty;
+                if (f.Kind == BallFlightKind.Pass)
+                {
+                    var passer = f.PasserId is null ? "none" : f.PasserId.Value.ToString(CultureInfo.InvariantCulture);
+                    var target = f.TargetId is null ? "none" : f.TargetId.Value.ToString(CultureInfo.InvariantCulture);
+                    meta = $" passer={passer} target={target} type={f.PassType}";
+                }
+
+                flightStr = $" flight={f.Kind} {f.ElapsedSeconds:0.000}/{f.DurationSeconds:0.000}s h={f.Height:0.00} apex={f.ApexHeight:0.00} complete={f.IsComplete}{(string.IsNullOrEmpty(meta) ? string.Empty : " " + meta)}";
+            }
         }
 
         Console.WriteLine($"  ball id={ballEntityId} state={state} owner={ownerStr} pos=({pos.X:0.0},{pos.Y:0.0}){flightStr}");
