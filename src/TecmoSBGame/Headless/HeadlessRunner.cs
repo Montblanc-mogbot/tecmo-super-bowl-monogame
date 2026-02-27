@@ -33,6 +33,11 @@ public static class HeadlessRunner
         var playList = PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml"));
         var defensePlays = DefensePlayYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "defenseplays", "bank4_defense_special_pointers.yaml"));
 
+        // Loop machines (used by clock system + future gating).
+        var gameLoopConfig = GameLoopYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "gameloop", "bank17_18_main_game_loop.yaml"));
+        var onFieldLoopConfig = OnFieldLoopYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "onfieldloop", "bank19_20_on_field_gameplay_loop.yaml"));
+        var loopState = new LoopState(new GameLoopMachine(gameLoopConfig), new OnFieldLoopMachine(onFieldLoopConfig));
+
         var formationSpawner = new FormationSpawner();
         var playSpawner = new PlaySpawner();
 
@@ -42,13 +47,15 @@ public static class HeadlessRunner
             .AddSystem(new SpeedModifierSystem())
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new HeadlessContactSeederSystem())
-            .AddSystem(new CollisionContactSystem(events, loop: null))
+            .AddSystem(new CollisionContactSystem(events, loopState))
             .AddSystem(new EngagementSystem(events))
             .AddSystem(new TackleInterruptSystem(events))
             .AddSystem(new TackleResolutionSystem(events, match, play))
             .AddSystem(new BehaviorStackSystem())
             .AddSystem(new PlayEndSystem(events, match, play, log: true))
             .AddSystem(new DownDistanceSystem(events, match, log: true))
+            .AddSystem(new LoopMachineSystem(loopState, events))
+            .AddSystem(new GameClockSystem(events, match, play, loopState, log: true))
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();
 
@@ -109,6 +116,10 @@ public static class HeadlessRunner
         {
             Console.WriteLine($"  id={a.EntityId,4} team={a.TeamIndex} {(a.IsOffense ? "OFF" : "DEF")} role={a.Role,-3} slot={a.Slot,-5} :: {a.Summary}");
         }
+
+        // Start in live play so the clock system can run during the headless slice.
+        // (In the full game, this is driven by input + SnapResolutionSystem.)
+        events.Publish(new SnapEvent(OffenseTeam: match.PossessionTeam, DefenseTeam: 1 - match.PossessionTeam));
 
         var elapsed = TimeSpan.FromSeconds(1.0 / 60.0);
         var total = TimeSpan.Zero;

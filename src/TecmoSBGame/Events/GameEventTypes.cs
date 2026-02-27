@@ -71,3 +71,8 @@ public readonly record struct FumbleEvent(int CarrierId, string Cause);
 /// Emitted when a loose ball is recovered by a player.
 /// </summary>
 public readonly record struct LooseBallPickupEvent(int PickerId, Vector2 BallPosition);
+
+// Clock / game flow events
+public readonly record struct QuarterEndedEvent(int Quarter);
+public readonly record struct HalftimeEvent();
+public readonly record struct GameEndedEvent(int FinalQuarter);

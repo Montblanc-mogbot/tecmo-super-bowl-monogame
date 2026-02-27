@@ -45,6 +45,12 @@ public sealed class MatchState
     /// <summary>Optional drive id (increments on possession changes, etc.).</summary>
     public int DriveId { get; set; } = 0;
 
+    /// <summary>
+    /// Simple end-of-match flag (regulation only for now).
+    /// Systems should treat this as authoritative to halt gameplay.
+    /// </summary>
+    public bool MatchOver { get; set; } = false;
+
     // ---- Small helpers (avoid encoding deep game rules at this stage) ----
 
     public int GetScore(int teamIndex) => teamIndex == 0 ? Team0Score : Team1Score;

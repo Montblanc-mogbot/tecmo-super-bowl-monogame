@@ -145,6 +145,8 @@ public sealed class MainGame : Game
                 .AddSystem(new DownDistanceSystem(_events, _matchState, log: true))
                 // Loop driver runs late so it can observe events published earlier in the tick.
                 .AddSystem(new LoopMachineSystem(_loopState, _events))
+                // Deterministic game clock (runs off loop state).
+                .AddSystem(new GameClockSystem(_events, _matchState, _playState, _loopState, log: true))
                 .AddSystem(new ContactDebugLogSystem(_events))
                 .AddSystem(new RenderingSystem(_spriteBatch, GraphicsDevice))
                 .Build();
