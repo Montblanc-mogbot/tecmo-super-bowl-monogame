@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Entities;
 using TecmoSB;
+using TecmoSBGame.Components;
 using TecmoSBGame.Events;
+using TecmoSBGame.Factories;
 using TecmoSBGame.Spawning;
 using TecmoSBGame.State;
 using TecmoSBGame.Systems;
@@ -26,14 +30,16 @@ public static class HeadlessRunner
         var fixedRunner = new FixedTimestepRunner(hz: 60, maxTicksPerFrame: 1);
 
         var formationData = FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
+        var playList = PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml"));
+        var defensePlays = DefensePlayYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "defenseplays", "bank4_defense_special_pointers.yaml"));
+
         var formationSpawner = new FormationSpawner();
+        var playSpawner = new PlaySpawner();
 
-        var gameState = new GameStateSystem(match, play, events, formationData: formationData, formationSpawner: formationSpawner, headlessAutoAdvance: true);
-
+        // We no longer need the full GameStateSystem for this headless pass; keep the core physics/contact stack.
         var world = new WorldBuilder()
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
-            .AddSystem(gameState)
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new HeadlessContactSeederSystem())
             .AddSystem(new CollisionContactSystem(events))
@@ -44,19 +50,40 @@ public static class HeadlessRunner
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();
 
-        var ids = gameState.SpawnKickoffScenario(world);
+        // Spawn offense from the first deterministic pass play's formation.
+        // Note: our current formation YAML is a partial scaffold and may not include every playlist formation id.
+        var chosenOffPlay = playList.PlayList.First(p => (p.Slot ?? string.Empty).StartsWith("Pass", StringComparison.OrdinalIgnoreCase));
+        var formationId = formationData.OffensiveFormations.Any(f => f.Id == chosenOffPlay.Formation)
+            ? chosenOffPlay.Formation
+            : "00";
 
-        Console.WriteLine("[headless] kickoff roster:");
-        foreach (var id in ids.AllEntityIds)
+        var offense = formationSpawner.Spawn(
+            world,
+            formationData,
+            formationId: formationId,
+            teamIndex: 0,
+            isOffense: true,
+            playerControlled: false);
+
+        // Spawn a simple 11-man defense (placeholders) with standardized PlayerRoleComponent.
+        var defenseEntityIds = SpawnPlaceholderDefense(world, teamIndex: 1);
+
+        Console.WriteLine($"[headless] spawned formation offense={offense.FormationId} (entities={offense.Players.Count}), defense=placeholder (entities={defenseEntityIds.Count})");
+
+        // Spawn play (attach assignments) and print summary.
+        var spawnedPlay = playSpawner.Spawn(
+            world,
+            playList,
+            defensePlays,
+            offenseEntityIds: offense.Players.Select(p => p.EntityId).ToList(),
+            defenseEntityIds: defenseEntityIds);
+
+        Console.WriteLine($"[headless] play: offense='{spawnedPlay.OffensivePlayName}' slot='{spawnedPlay.OffensiveSlot}' formation={spawnedPlay.OffensiveFormationId} playNo=0x{spawnedPlay.OffensivePlayNumber:X2}");
+        Console.WriteLine($"[headless] play: defense='{spawnedPlay.DefensiveCallId}'");
+        Console.WriteLine("[headless] assignments:");
+        foreach (var a in spawnedPlay.Assignments.OrderBy(a => a.TeamIndex).ThenBy(a => a.IsOffense ? 0 : 1).ThenBy(a => a.EntityId))
         {
-            var e = world.GetEntity(id);
-            var pos = e.Get<TecmoSBGame.Components.PositionComponent>()?.Position;
-            var role = e.Get<TecmoSBGame.Components.PlayerRoleComponent>()?.Role;
-
-            if (pos is null || role is null)
-                continue;
-
-            Console.WriteLine($"  id={id,4} role={role,-7} pos=({pos.Value.X,6:0.0},{pos.Value.Y,6:0.0})");
+            Console.WriteLine($"  id={a.EntityId,4} team={a.TeamIndex} {(a.IsOffense ? "OFF" : "DEF")} role={a.Role,-3} slot={a.Slot,-5} :: {a.Summary}");
         }
 
         var elapsed = TimeSpan.FromSeconds(1.0 / 60.0);
@@ -71,5 +98,45 @@ public static class HeadlessRunner
 
         Console.WriteLine($"[headless] completed ticks={ticks}");
         return 0;
+    }
+
+    private static List<int> SpawnPlaceholderDefense(World world, int teamIndex)
+    {
+        // Simple 4-3-ish distribution, stable coordinates.
+        // Defense assumed to be aligned to the right of the offense and moving -X.
+        var ids = new List<int>(capacity: 11);
+
+        // DL (4)
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(170, 76), PlayerRole.DL, slot: "RE"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(170, 100), PlayerRole.DL, slot: "DT"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(170, 124), PlayerRole.DL, slot: "NT"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(170, 148), PlayerRole.DL, slot: "LE"));
+
+        // LB (3)
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(190, 92), PlayerRole.LB, slot: "ROLB"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(192, 112), PlayerRole.LB, slot: "MLB"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(190, 132), PlayerRole.LB, slot: "LOLB"));
+
+        // DB (4)
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(210, 70), PlayerRole.DB, slot: "RCB"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(210, 154), PlayerRole.DB, slot: "LCB"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(222, 104), PlayerRole.DB, slot: "FS"));
+        ids.Add(SpawnDefender(world, teamIndex, new Vector2(222, 120), PlayerRole.DB, slot: "SS"));
+
+        return ids;
+    }
+
+    private static int SpawnDefender(World world, int teamIndex, Vector2 pos, PlayerRole role, string slot)
+    {
+        var id = PlayerEntityFactory.CreatePlayer(
+            world,
+            pos,
+            teamIndex,
+            isPlayerControlled: false,
+            isOffense: false);
+
+        var e = world.GetEntity(id);
+        e.Attach(new PlayerRoleComponent(role, slot));
+        return id;
     }
 }
