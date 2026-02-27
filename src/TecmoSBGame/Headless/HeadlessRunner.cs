@@ -48,6 +48,7 @@ public static class HeadlessRunner
             .AddSystem(new TackleResolutionSystem(events, match, play))
             .AddSystem(new BehaviorStackSystem())
             .AddSystem(new PlayEndSystem(events, match, play, log: true))
+            .AddSystem(new DownDistanceSystem(events, match, log: true))
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();
 

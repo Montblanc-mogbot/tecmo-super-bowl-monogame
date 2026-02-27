@@ -152,56 +152,7 @@ public sealed class PlayEndSystem : EntityUpdateSystem
 
         _play.Result = result;
 
-        // Advance match state once.
-        _match.PlayNumber++;
-
-        // Scoring.
-        if (touchdown)
-            _match.AddScore(offenseTeam, 6);
-        if (safety)
-            _match.AddScore(1 - offenseTeam, 2);
-
-        // Possession changes.
-        var newPossTeam = offenseTeam;
-        if (touchdown)
-            newPossTeam = 1 - offenseTeam; // kickoff to other team (placeholder)
-        else if (safety)
-            newPossTeam = 1 - offenseTeam; // free kick to scoring team (placeholder)
-        else if (turnover)
-            newPossTeam = endOwnerTeam;
-
-        if (newPossTeam != offenseTeam)
-        {
-            _match.PossessionTeam = newPossTeam;
-            _match.DriveId++;
-            _match.Down = 1;
-            _match.YardsToGo = 10;
-
-            // Simple offense direction convention.
-            _match.OffenseDirection = newPossTeam == 0 ? OffenseDirection.LeftToRight : OffenseDirection.RightToLeft;
-        }
-        else if (!touchdown && !safety)
-        {
-            var firstDown = yards >= _match.YardsToGo;
-            _match.AdvanceDownDistance(yardsGained: yards, firstDown: firstDown);
-        }
-
-        // Spot ball for next snap.
-        if (touchdown)
-        {
-            // Placeholder: after TD, spot at own 25 for the team that now has possession.
-            _match.BallSpot = BallSpot.Own(25);
-        }
-        else if (_play.WhistleReason == WhistleReason.Touchback)
-        {
-            _match.BallSpot = BallSpot.Own(25);
-        }
-        else
-        {
-            // Clamp away from 0/100 for non-scoring spots.
-            var spotAbs = Math.Clamp(_play.EndAbsoluteYard, 1, 99);
-            _match.SpotBallAbsoluteYard(spotAbs);
-        }
+        // NOTE: MatchState down/distance/possession/spotting is handled by DownDistanceSystem.
 
         // Publish a derived end event for any future consumers.
         _events.Publish(new PlayEndedEvent(
@@ -215,7 +166,7 @@ public sealed class PlayEndSystem : EntityUpdateSystem
 
         if (_log)
         {
-            Console.WriteLine($"[play-end] reason={_play.WhistleReason} endAbs={_play.EndAbsoluteYard} yards={yards} result(TD={touchdown} S={safety} TO={turnover}) | score {_match.Team0Score}-{_match.Team1Score} poss=T{_match.PossessionTeam} { _match.FormatDownDistance() } @ {_match.BallSpot}");
+            Console.WriteLine($"[play-end] playId={_play.PlayId} reason={_play.WhistleReason} endAbs={_play.EndAbsoluteYard} yards={yards} result(TD={touchdown} S={safety} TO={turnover})");
         }
 
         _lastProcessedPlayId = _play.PlayId;
