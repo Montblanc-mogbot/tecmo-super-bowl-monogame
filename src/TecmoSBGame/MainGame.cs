@@ -114,6 +114,7 @@ public sealed class MainGame : Game
                 .AddSystem(new PlayerControlSystem(_controlState, _loopState, enableInput: true))
                 .AddSystem(new InputSystem(_loopState))
                 .AddSystem(new ActionResolutionSystem(_events, _matchState, _playState))
+                .AddSystem(new CollisionContactSystem(_events))
                 .AddSystem(new PassFlightStartSystem(_events, _playState))
                 .AddSystem(_gameStateSystem)
                 .AddSystem(new BallPhysicsSystem())
@@ -126,6 +127,7 @@ public sealed class MainGame : Game
                 .AddSystem(new LooseBallPickupSystem(_events, _playState))
                 // Loop driver runs late so it can observe events published earlier in the tick.
                 .AddSystem(new LoopMachineSystem(_loopState, _events))
+                .AddSystem(new ContactDebugLogSystem(_events))
                 .AddSystem(new RenderingSystem(_spriteBatch, GraphicsDevice))
                 .Build();
 

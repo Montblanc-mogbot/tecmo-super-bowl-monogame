@@ -23,6 +23,18 @@ public readonly record struct PassResolvedEvent(PassOutcome Outcome, int PasserI
 
 public readonly record struct TackleEvent(int TacklerId, int BallCarrierId, Vector2 Position);
 
+/// <summary>
+/// Low-level contact signal emitted by collision checks when a defender is close enough to the ball carrier.
+/// Downstream systems decide whether this becomes a full tackle/whistle/fumble/etc.
+/// </summary>
+public readonly record struct TackleContactEvent(int DefenderId, int BallCarrierId, Vector2 Position);
+
+/// <summary>
+/// Low-level contact signal emitted by collision checks when an offensive player engages a defender.
+/// Downstream systems decide consequences (slowdown, animations, lane creation, etc.).
+/// </summary>
+public readonly record struct BlockContactEvent(int BlockerId, int DefenderId, Vector2 Position);
+
 // High-level intent events (requested by input/AI; resolved by gameplay systems).
 public readonly record struct TackleAttemptEvent(int TacklerId, int BallCarrierId, Vector2 Position);
 public enum PassType
