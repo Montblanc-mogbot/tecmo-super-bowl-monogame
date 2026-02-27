@@ -19,6 +19,8 @@ public class InputSystem : EntityUpdateSystem
     private ComponentMapper<PositionComponent> _positionMapper;
     private ComponentMapper<BallCarrierComponent> _ballMapper;
     private ComponentMapper<PlayerControlComponent> _controlMapper;
+    private ComponentMapper<MovementInputComponent> _moveInputMapper;
+    private ComponentMapper<MovementActionComponent> _actionMapper;
 
     public InputSystem(State.LoopState? loop = null)
         : base(Aspect.All(typeof(TeamComponent), typeof(BehaviorComponent), typeof(PlayerControlComponent)))
@@ -33,6 +35,8 @@ public class InputSystem : EntityUpdateSystem
         _positionMapper = mapperService.GetMapper<PositionComponent>();
         _ballMapper = mapperService.GetMapper<BallCarrierComponent>();
         _controlMapper = mapperService.GetMapper<PlayerControlComponent>();
+        _moveInputMapper = mapperService.GetMapper<MovementInputComponent>();
+        _actionMapper = mapperService.GetMapper<MovementActionComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -62,9 +66,14 @@ public class InputSystem : EntityUpdateSystem
             // Get input direction
             Vector2 inputDirection = GetInputDirection(keyboard, gamepad);
 
+            // Store explicit movement input intent for the MovementSystem.
+            if (_moveInputMapper.Has(entityId))
+                _moveInputMapper.Get(entityId).Direction = inputDirection;
+
+            // Keep behavior updated as well (useful for other systems / debugging),
+            // but MovementSystem will prefer MovementInput for the controlled entity.
             if (inputDirection != Vector2.Zero)
             {
-                // Move in input direction
                 behavior.State = BehaviorState.MovingToPosition;
                 behavior.TargetPosition = _positionMapper.Get(entityId).Position + inputDirection * 100f;
             }
@@ -120,15 +129,25 @@ public class InputSystem : EntityUpdateSystem
 
     private void OnActionPressed(int entityId, bool hasBall)
     {
+        // Hook point only: set an action state with timers/cooldowns.
+        if (!_actionMapper.Has(entityId))
+            return;
+
+        var a = _actionMapper.Get(entityId);
+        if (a.CooldownTimer > 0f)
+            return;
+
         if (hasBall)
         {
-            // Dive/tackle break
-            // TODO: Implement dive mechanic
+            a.State = MovementActionState.Dive;
+            a.StateTimer = a.DiveDurationSeconds;
+            a.CooldownTimer = a.DiveCooldownSeconds;
         }
         else
         {
-            // Speed burst or tackle attempt
-            // TODO: Implement speed burst or tackle
+            a.State = MovementActionState.Burst;
+            a.StateTimer = a.BurstDurationSeconds;
+            a.CooldownTimer = a.BurstCooldownSeconds;
         }
     }
 }

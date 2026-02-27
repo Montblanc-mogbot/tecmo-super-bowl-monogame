@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Entities;
 using TecmoSBGame.Components;
@@ -27,6 +28,14 @@ public static class PlayerEntityFactory
 
         entity.Attach(new PositionComponent(position));
         entity.Attach(new VelocityComponent(maxSpeed, acceleration));
+        entity.Attach(new MovementTuningComponent(
+            maxSpeedPerTick: maxSpeed,
+            accelPerTick: MathHelper.Clamp(acceleration, 0.05f, 1f) * maxSpeed,
+            decelPerTick: maxSpeed * 4.0f,
+            cutPenalty: 0.25f,
+            burstMultiplier: 1.20f));
+        entity.Attach(new MovementInputComponent());
+        entity.Attach(new MovementActionComponent());
         entity.Attach(new TeamComponent 
         { 
             TeamIndex = teamIndex, 
@@ -81,7 +90,52 @@ public static class PlayerEntityFactory
             Kab = stats.Kab
         });
 
+        // Deterministic mapping from ratings/role to movement tuning.
+        if (entity.Get<MovementTuningComponent>() is { } tuning)
+        {
+            ApplyMovementTuningFromAttributes(tuning, positionName, stats);
+        }
+
         return entityId;
+    }
+
+    private static void ApplyMovementTuningFromAttributes(MovementTuningComponent tuning, string positionName, PlayerStats stats)
+    {
+        // Ratings are assumed 0..100.
+        var rs = MathHelper.Clamp(stats.Rs / 100f, 0f, 1f);
+        var ms = MathHelper.Clamp(stats.Ms / 100f, 0f, 1f);
+
+        // Role modifiers: RB/WR/DB feel shiftier; linemen less so.
+        var pos = (positionName ?? string.Empty).Trim().ToUpperInvariant();
+        var shifty = pos is "RB" or "WR" or "DB" or "CB" or "S";
+        var heavy = pos is "OL" or "OT" or "OG" or "C" or "DL" or "DT" or "DE" or "NT" or "LB";
+
+        // Baselines (units per 60Hz tick): keep close to existing maxSpeed defaults (~2.0-3.0).
+        var baseMax = MathHelper.Lerp(1.85f, 3.65f, ms);
+        if (shifty) baseMax *= 1.05f;
+        if (heavy) baseMax *= 0.92f;
+
+        // Acceleration: higher RS ramps faster.
+        var baseAccel = MathHelper.Lerp(0.10f, 0.42f, rs);
+        if (shifty) baseAccel *= 1.10f;
+        if (heavy) baseAccel *= 0.88f;
+
+        // Decel: big so releasing input stops quickly.
+        var baseDecel = MathHelper.Lerp(1.8f, 3.8f, rs);
+
+        // Cut penalty: higher RS means less penalty.
+        var baseCutPenalty = MathHelper.Lerp(0.45f, 0.18f, rs);
+        if (shifty) baseCutPenalty *= 0.85f;
+        if (heavy) baseCutPenalty *= 1.10f;
+
+        var burstMult = shifty ? 1.28f : 1.20f;
+
+        tuning.MaxSpeedPerTick = baseMax;
+        tuning.AccelPerTick = baseAccel;
+        tuning.DecelPerTick = baseDecel;
+        tuning.CutPenalty = MathHelper.Clamp(baseCutPenalty, 0.05f, 0.85f);
+        tuning.BurstMultiplier = burstMult;
+        tuning.UseAccelCurve = true;
     }
 
     /// <summary>

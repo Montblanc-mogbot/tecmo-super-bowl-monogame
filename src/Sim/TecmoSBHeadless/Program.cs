@@ -122,7 +122,17 @@ internal static class Program
                 role = $"{role}/{pos}";
         }
 
-        Console.WriteLine($"  control: id={id} team={team.TeamIndex} offense={team.IsOffense} role={role}");
+        var vel = e.Get<VelocityComponent>().Velocity;
+        var speed = vel.Length();
+
+        var action = "none";
+        if (e.Has<MovementActionComponent>())
+        {
+            var a = e.Get<MovementActionComponent>();
+            action = $"{a.State} t={a.StateTimer:0.00}s cd={a.CooldownTimer:0.00}s";
+        }
+
+        Console.WriteLine($"  control: id={id} team={team.TeamIndex} offense={team.IsOffense} role={role} speed={speed:0.000} vel=({vel.X:0.000},{vel.Y:0.000}) action={action}");
     }
 
     private static void PrintEntity(World world, string label, int entityId)
