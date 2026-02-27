@@ -4,9 +4,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.Entities;
 using MonoGame.Extended.Entities.Systems;
+using TecmoSB;
 using TecmoSBGame.Components;
 using TecmoSBGame.Events;
 using TecmoSBGame.Factories;
+using TecmoSBGame.Spawning;
 using TecmoSBGame.State;
 
 namespace TecmoSBGame.Systems;
@@ -21,6 +23,8 @@ public class GameStateSystem : EntityUpdateSystem
     private readonly GameEvents? _events;
     private readonly MatchState _matchState;
     private readonly PlayState _playState;
+    private readonly FormationDataConfig? _formationData;
+    private readonly FormationSpawner? _formationSpawner;
     private ComponentMapper<PositionComponent> _positionMapper;
     private ComponentMapper<VelocityComponent> _velocityMapper;
     private ComponentMapper<TeamComponent> _teamMapper;
@@ -48,12 +52,20 @@ public class GameStateSystem : EntityUpdateSystem
     private bool _ballCaught = false;
     private bool _tackleMade = false;
 
-    public GameStateSystem(MatchState matchState, PlayState playState, GameEvents? events = null, bool headlessAutoAdvance = false)
+    public GameStateSystem(
+        MatchState matchState,
+        PlayState playState,
+        GameEvents? events = null,
+        FormationDataConfig? formationData = null,
+        FormationSpawner? formationSpawner = null,
+        bool headlessAutoAdvance = false)
         : base(Aspect.All(typeof(PositionComponent)))
     {
         _matchState = matchState ?? throw new ArgumentNullException(nameof(matchState));
         _playState = playState ?? throw new ArgumentNullException(nameof(playState));
         _events = events;
+        _formationData = formationData;
+        _formationSpawner = formationSpawner;
         _headlessAutoAdvance = headlessAutoAdvance;
     }
 
@@ -466,14 +478,38 @@ public class GameStateSystem : EntityUpdateSystem
         _ballEntityId = BallEntityFactory.CreateBall(world, new Vector2(40, 112));
         all.Add(_ballEntityId);
 
-        // Spawn kicker (kicking team, player controlled)
-        _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
-        all.Add(_kickerId);
+        // Spawn kicking team.
+        // Prefer YAML formation "00" (Kickoff) when available; fall back to the existing hard-coded slice.
+        if (_formationData is not null && _formationSpawner is not null)
+        {
+            var formation = _formationSpawner.Spawn(
+                world,
+                _formationData,
+                formationId: "00",
+                teamIndex: KickingTeam,
+                isOffense: true,
+                playerControlled: true);
 
-        // Spawn coverage team (kicking team, AI)
-        all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam));
-        all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam));
-        all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam));
+            foreach (var p in formation.Players)
+                all.Add(p.EntityId);
+
+            var kicker = formation.Players.FirstOrDefault(p => p.Role is PlayerRole.K or PlayerRole.P);
+            _kickerId = kicker?.EntityId ?? -1;
+
+            if (_kickerId <= 0 && formation.Players.Count > 0)
+                _kickerId = formation.Players[0].EntityId;
+        }
+        else
+        {
+            // Spawn kicker (kicking team, player controlled)
+            _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
+            all.Add(_kickerId);
+
+            // Spawn coverage team (kicking team, AI)
+            all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam));
+            all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam));
+            all.Add(PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam));
+        }
 
         // Spawn returner (receiving team, will be player controlled after catch)
         _ballCarrierId = PlayerEntityFactory.CreateReturner(world, new Vector2(200, 112), ReceivingTeam, false);

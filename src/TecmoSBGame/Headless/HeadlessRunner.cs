@@ -1,7 +1,9 @@
 using System;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Entities;
+using TecmoSB;
 using TecmoSBGame.Events;
+using TecmoSBGame.Spawning;
 using TecmoSBGame.State;
 using TecmoSBGame.Systems;
 using TecmoSBGame.Timing;
@@ -23,7 +25,10 @@ public static class HeadlessRunner
         // Fixed 60Hz, explicit tick control.
         var fixedRunner = new FixedTimestepRunner(hz: 60, maxTicksPerFrame: 1);
 
-        var gameState = new GameStateSystem(match, play, events, headlessAutoAdvance: true);
+        var formationData = FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
+        var formationSpawner = new FormationSpawner();
+
+        var gameState = new GameStateSystem(match, play, events, formationData: formationData, formationSpawner: formationSpawner, headlessAutoAdvance: true);
 
         var world = new WorldBuilder()
             .AddSystem(new MovementSystem())
@@ -39,7 +44,20 @@ public static class HeadlessRunner
             .AddSystem(new ContactDebugLogSystem(events))
             .Build();
 
-        gameState.SpawnKickoffScenario(world);
+        var ids = gameState.SpawnKickoffScenario(world);
+
+        Console.WriteLine("[headless] kickoff roster:");
+        foreach (var id in ids.AllEntityIds)
+        {
+            var e = world.GetEntity(id);
+            var pos = e.Get<TecmoSBGame.Components.PositionComponent>()?.Position;
+            var role = e.Get<TecmoSBGame.Components.PlayerRoleComponent>()?.Role;
+
+            if (pos is null || role is null)
+                continue;
+
+            Console.WriteLine($"  id={id,4} role={role,-7} pos=({pos.Value.X,6:0.0},{pos.Value.Y,6:0.0})");
+        }
 
         var elapsed = TimeSpan.FromSeconds(1.0 / 60.0);
         var total = TimeSpan.Zero;

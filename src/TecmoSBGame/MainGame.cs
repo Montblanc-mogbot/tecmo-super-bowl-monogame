@@ -79,7 +79,12 @@ public sealed class MainGame : Game
         if (_playState is null)
             throw new InvalidOperationException("PlayState was not initialized.");
 
-        _gameStateSystem = new GameStateSystem(_matchState, _playState, _events);
+        _gameStateSystem = new GameStateSystem(
+            _matchState,
+            _playState,
+            _events,
+            formationData: GameContent.FormationData,
+            formationSpawner: new Spawning.FormationSpawner());
     }
 
     protected override void LoadContent()

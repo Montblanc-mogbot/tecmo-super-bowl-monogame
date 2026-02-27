@@ -20,13 +20,20 @@ public static class FormationDataYamlLoader
     private sealed class FormationDataConfigYamlDto
     {
         public List<OffensiveFormationYamlDto> OffensiveFormations { get; set; } = new();
-        public List<CommandReferenceYamlDto> CommandReference { get; set; } = new();
+
+        // YAML is authored as a mapping:
+        //   command_reference:
+        //     SetPosFromKick:
+        //       description: "..."
+        //       params: [x, y]
+        public Dictionary<string, CommandReferenceYamlDto> CommandReference { get; set; } = new();
+
         public List<FormationTypeYamlDto> FormationTypes { get; set; } = new();
         public List<string> Notes { get; set; } = new();
 
         public FormationDataConfig ToModel() => new(
             OffensiveFormations.Select(f => f.ToModel()).ToList(),
-            CommandReference.Select(c => c.ToModel()).ToList(),
+            CommandReference.Select(kvp => kvp.Value.ToModel(kvp.Key)).ToList(),
             FormationTypes.Select(t => t.ToModel()).ToList(),
             Notes.ToList());
     }
@@ -61,16 +68,21 @@ public static class FormationDataYamlLoader
 
     private sealed class CommandReferenceYamlDto
     {
-        public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public string? Param { get; set; }
 
-        public CommandReference ToModel()
+        // YAML uses "params" for an array of parameter names.
+        public List<string>? Params { get; set; }
+
+        public CommandReference ToModel(string name)
         {
-            if (string.IsNullOrWhiteSpace(Name))
-                throw new InvalidDataException("CommandReference.name is required");
+            if (string.IsNullOrWhiteSpace(name))
+                throw new InvalidDataException("CommandReference key name is required");
 
-            return new CommandReference(Name, Description ?? string.Empty, Param);
+            var param = Params is { Count: > 0 }
+                ? string.Join(",", Params)
+                : null;
+
+            return new CommandReference(name, Description ?? string.Empty, param);
         }
     }
 
