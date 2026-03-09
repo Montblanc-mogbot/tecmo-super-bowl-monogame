@@ -94,6 +94,17 @@ public sealed class FormationSpawner
             var entity = world.GetEntity(entityId);
             entity.Attach(new PlayerRoleComponent(MapRoleKeyToComponentRole(roleKey), slot.Position));
 
+            // Blocking scaffold: if this slot's command script includes a block directive,
+            // attach a BlockTargetComponent so BlockerAISystem can select targets on snap.
+            if (TryGetInitialBlockAssignment(slot.Position, slot.Commands, out var assignment))
+            {
+                entity.Attach(new BlockTargetComponent
+                {
+                    Assignment = assignment,
+                    TargetEntityId = -1,
+                });
+            }
+
             spawned.Add(new SpawnedPlayer(entityId, slot.Position, MapRoleKeyToComponentRole(roleKey), initialPos));
         }
 
@@ -207,6 +218,50 @@ public sealed class FormationSpawner
             return false;
 
         return true;
+    }
+
+    private static bool TryGetInitialBlockAssignment(string slot, string commands, out BlockAssignmentType assignment)
+    {
+        assignment = default;
+
+        var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+        var c = commands ?? string.Empty;
+
+        // Explicit NES blocking opcodes in the YAML scripts look like: Block-NT, Block-RE, Block-ROLB, etc.
+        // We don't currently model defender "slots" in ECS, so we translate to a high-level assignment type.
+        if (c.Contains("Block-", StringComparison.OrdinalIgnoreCase) || c.Contains("PassBlock", StringComparison.OrdinalIgnoreCase) || c.Contains("SetToBlock", StringComparison.OrdinalIgnoreCase))
+        {
+            // If a slot suggests left/right, treat SetToBlock as a gap preference.
+            if (c.Contains("PullLeft", StringComparison.OrdinalIgnoreCase))
+            {
+                assignment = BlockAssignmentType.PullLeft;
+                return true;
+            }
+            if (c.Contains("PullRight", StringComparison.OrdinalIgnoreCase))
+            {
+                assignment = BlockAssignmentType.PullRight;
+                return true;
+            }
+
+            if (c.Contains("SetToBlock", StringComparison.OrdinalIgnoreCase) && !c.Contains("Block-", StringComparison.OrdinalIgnoreCase))
+            {
+                // Heuristic: set-to-block without a specific defender means "gap".
+                if (s.Contains("LG") || s.Contains("LT"))
+                    assignment = BlockAssignmentType.GapLeft;
+                else if (s.Contains("RG") || s.Contains("RT"))
+                    assignment = BlockAssignmentType.GapRight;
+                else
+                    assignment = BlockAssignmentType.ManOn;
+
+                return true;
+            }
+
+            // Default mapping for explicit Block-* or PassBlock: man-on (pick nearest eligible rusher).
+            assignment = BlockAssignmentType.ManOn;
+            return true;
+        }
+
+        return false;
     }
 
     private static Vector2 FallbackPosition(PlayerRoleKey role, string slot)

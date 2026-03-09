@@ -86,6 +86,14 @@ public readonly record struct PlayEndedEvent(
 /// </summary>
 public readonly record struct ResetToPreSnapEvent(int FromPlayId);
 
+/// <summary>
+/// Published by the high-level game flow when the user confirms advancing from PostPlay.
+/// Consumers should treat this as the authoritative "continue" signal.
+/// </summary>
+public readonly record struct AdvanceToNextPlayEvent(int FromPlayId);
+
+// (PostPlayContinueRequestedEvent removed; use AdvanceToNextPlayEvent.)
+
 public enum KickoffSetupReason
 {
     AfterTouchdown = 0,
@@ -109,7 +117,22 @@ public readonly record struct FumbleEvent(int CarrierId, string Cause);
 /// </summary>
 public readonly record struct LooseBallPickupEvent(int PickerId, Vector2 BallPosition);
 
+/// <summary>
+/// Post-play UI intent: player requested to continue to the next pre-snap slice.
+/// </summary>
+public readonly record struct PostPlayContinueRequestedEvent(int FromPlayId);
+
 // Clock / game flow events
 public readonly record struct QuarterEndedEvent(int Quarter);
 public readonly record struct HalftimeEvent();
 public readonly record struct GameEndedEvent(int FinalQuarter);
+
+/// <summary>
+/// Emitted when the user confirms a play call during pre-snap.
+/// </summary>
+public readonly record struct PlaySelectedEvent(
+    string OffensiveFormationId,
+    string OffensivePlayName,
+    string OffensivePlaySlot,
+    int OffensivePlayNumber,
+    string DefensiveCallId);

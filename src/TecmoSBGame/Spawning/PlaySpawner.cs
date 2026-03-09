@@ -46,7 +46,9 @@ public sealed class PlaySpawner
         PlayListConfig playList,
         DefensePlayConfig defensePlays,
         IReadOnlyList<int> offenseEntityIds,
-        IReadOnlyList<int> defenseEntityIds)
+        IReadOnlyList<int> defenseEntityIds,
+        PlayEntry? selectedOffensivePlay = null,
+        string? selectedDefensiveCallId = null)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (playList is null) throw new ArgumentNullException(nameof(playList));
@@ -54,13 +56,15 @@ public sealed class PlaySpawner
         if (offenseEntityIds is null) throw new ArgumentNullException(nameof(offenseEntityIds));
         if (defenseEntityIds is null) throw new ArgumentNullException(nameof(defenseEntityIds));
 
-        var offensivePlay = ChooseOffensivePlay(playList);
-        var defensiveExecution = ChooseDefensiveExecution(defensePlays);
+        var offensivePlay = selectedOffensivePlay ?? ChooseOffensivePlay(playList);
+        var defensiveExecution = ChooseDefensiveExecution(defensePlays, selectedDefensiveCallId);
 
         var playNumber = offensivePlay.PlayNumbers.Count > 0 ? offensivePlay.PlayNumbers[0] : 0;
 
         // Attach assignments
         var assignments = new List<SpawnedAssignment>(offenseEntityIds.Count + defenseEntityIds.Count);
+
+        int qbEntityId = -1;
 
         foreach (var id in offenseEntityIds)
         {
@@ -69,12 +73,19 @@ public sealed class PlaySpawner
             var slot = e.Get<PlayerRoleComponent>()?.Slot ?? "";
             var teamIndex = e.Get<TeamComponent>()?.TeamIndex ?? -1;
 
+            if (role == PlayerRole.QB)
+                qbEntityId = id;
+
             // Ensure play metadata is present.
             AttachOrUpdatePlayCall(e, offensivePlay, defensiveExecution.Id);
 
             var oa = new OffensiveAssignmentComponent();
             FillOffensiveAssignment(world, id, role, slot, oa);
             e.Attach(oa);
+
+            // ROUTE-* integration: translate the high-level waypoints into a frame-timed RouteComponent.
+            // This is a scaffold until we import real ROM route timing tables.
+            AttachRouteIfNeeded(world, id, role, slot, oa);
 
             assignments.Add(new SpawnedAssignment(
                 EntityId: id,
@@ -83,6 +94,44 @@ public sealed class PlaySpawner
                 Role: role,
                 Slot: slot,
                 Summary: DescribeOffense(oa)));
+        }
+
+        // QB AI: attach a brain + deterministic read order derived from eligible receivers.
+        if (qbEntityId != -1)
+        {
+            var qb = world.GetEntity(qbEntityId);
+            if (!qb.Has<QbBrainComponent>())
+                qb.Attach(new QbBrainComponent());
+
+            var brain = qb.Get<QbBrainComponent>();
+            brain.Dropback = InferDropbackType(offensivePlay);
+
+            // Priority order: WR1 -> WR2 -> TE -> RB -> remaining WR/TE/RB (by entity id).
+            var eligibles = offenseEntityIds
+                .Select(id => (id, prc: world.GetEntity(id).Get<PlayerRoleComponent>()))
+                .Where(x => x.prc is not null && (x.prc.Role is PlayerRole.WR or PlayerRole.TE or PlayerRole.RB))
+                .Select(x => (x.id, role: x.prc!.Role, slot: x.prc!.Slot ?? string.Empty))
+                .ToList();
+
+            static int Priority(PlayerRole role, string slot)
+            {
+                var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+                if (role == PlayerRole.WR && (s == "WR1" || s.Contains("WR1"))) return 0;
+                if (role == PlayerRole.WR && (s == "WR2" || s.Contains("WR2"))) return 1;
+                if (role == PlayerRole.TE) return 2;
+                if (role == PlayerRole.RB) return 3;
+                if (role == PlayerRole.WR) return 4;
+                return 5;
+            }
+
+            brain.ReadOrder.Clear();
+            foreach (var r in eligibles.OrderBy(x => Priority(x.role, x.slot)).ThenBy(x => x.id))
+                brain.ReadOrder.Add(r.id);
+
+            brain.CurrentReadIndex = 0;
+            brain.ReadTimer = 0;
+            brain.ThrowDecisionMade = false;
+            brain.TargetReceiverId = -1;
         }
 
         // Defensive assignments benefit from knowing offensive skill positions.
@@ -95,8 +144,9 @@ public sealed class PlaySpawner
         var qbId = offenseEntityIds.FirstOrDefault(id => world.GetEntity(id).Get<PlayerRoleComponent>()?.Role == PlayerRole.QB);
 
         var receiverIdx = 0;
-        foreach (var id in defenseEntityIds)
+        for (var defIndex = 0; defIndex < defenseEntityIds.Count; defIndex++)
         {
+            var id = defenseEntityIds[defIndex];
             var e = world.GetEntity(id);
             var role = e.Get<PlayerRoleComponent>()?.Role ?? PlayerRole.Unknown;
             var slot = e.Get<PlayerRoleComponent>()?.Slot ?? "";
@@ -107,6 +157,20 @@ public sealed class PlaySpawner
             var da = new DefensiveAssignmentComponent();
             FillDefensiveAssignment(id, role, slot, qbId, receivers, ref receiverIdx, da);
             e.Attach(da);
+
+            // Data-driven rush assignments (bank4 DefensePlayData).
+            // If the loaded YAML doesn't expose gap-level roles yet, fall back to a slot-based mapping.
+            AttachRushComponentIfPresent(world, id, defensiveExecution, defensePlays, defIndex);
+
+            if (da.Kind == DefensiveAssignmentKind.PassRush && !e.Has<RushComponent>())
+            {
+                e.Attach(new RushComponent
+                {
+                    TargetGap = InferDefaultRushGapFromSlot(slot),
+                    IsContain = slot.Contains("E", StringComparison.OrdinalIgnoreCase), // ends contain by default
+                    Type = RushType.Power,
+                });
+            }
 
             assignments.Add(new SpawnedAssignment(
                 EntityId: id,
@@ -131,22 +195,62 @@ public sealed class PlaySpawner
         // Deterministic pick:
         // 1) first "Pass" slot play (gives us routes to attach)
         // 2) otherwise first play in list
+        if (playList.PlayList.Count == 0)
+            return new PlayEntry(Name: "(no plays)", Slot: "", Formation: "", PlayNumbers: Array.Empty<int>(), Defense: Array.Empty<string>());
+
+        if (playList.PlayList.Count == 0)
+            return new PlayEntry(Name: "(no plays)", Slot: "", Formation: "", PlayNumbers: Array.Empty<int>(), Defense: Array.Empty<string>());
+
         var pass = playList.PlayList.FirstOrDefault(p => (p.Slot ?? string.Empty).StartsWith("Pass", StringComparison.OrdinalIgnoreCase));
         return pass ?? playList.PlayList.First();
     }
 
-    private static DefensiveExecution ChooseDefensiveExecution(DefensePlayConfig defensePlays)
+    private static DefensiveExecution ChooseDefensiveExecution(DefensePlayConfig defensePlays, string? preferredId)
     {
+        if (!string.IsNullOrWhiteSpace(preferredId))
+        {
+            var match = defensePlays.DefensiveExecutions.FirstOrDefault(d => string.Equals(d.Id, preferredId, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+                return match;
+        }
+
         // Deterministic pick: first defensive execution in YAML.
-        return defensePlays.DefensiveExecutions.First();
+        if (defensePlays.DefensiveExecutions.Count > 0)
+            return defensePlays.DefensiveExecutions.First();
+
+        // Graceful fallback.
+        return new DefensiveExecution(Id: "DEF-UNKNOWN", Description: "(missing defense YAML)", PlayerReactions: Array.Empty<PlayerReactionRef>());
+    }
+
+    private static DropbackType InferDropbackType(PlayEntry offense)
+    {
+        // Until playdata YAML contains an explicit dropback type, infer from the slot/name.
+        // Keep deterministic and conservative: most Tecmo pass plays are 5-step.
+        var slot = (offense.Slot ?? string.Empty).Trim().ToUpperInvariant();
+        var name = (offense.Name ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (slot.Contains("SHOTGUN") || name.Contains("SHOTGUN"))
+            return DropbackType.Shotgun;
+
+        if (slot.Contains("ROLLOUTL") || name.Contains("ROLLOUTL") || name.Contains("ROLL OUT L"))
+            return DropbackType.RolloutLeft;
+        if (slot.Contains("ROLLOUTR") || name.Contains("ROLLOUTR") || name.Contains("ROLL OUT R"))
+            return DropbackType.RolloutRight;
+
+        if (slot.Contains("3") || name.Contains("3-STEP") || name.Contains("3 STEP"))
+            return DropbackType.ThreeStep;
+        if (slot.Contains("7") || name.Contains("7-STEP") || name.Contains("7 STEP"))
+            return DropbackType.SevenStep;
+
+        return DropbackType.FiveStep;
     }
 
     private static void AttachOrUpdatePlayCall(MonoGame.Extended.Entities.Entity e, PlayEntry offense, string defenseId)
     {
-        if (!e.Has<PlayCallComponent>())
-            e.Attach(new PlayCallComponent());
+        if (!e.Has<PlayCallInfoComponent>())
+            e.Attach(new PlayCallInfoComponent());
 
-        var pc = e.Get<PlayCallComponent>();
+        var pc = e.Get<PlayCallInfoComponent>();
         pc.OffensivePlayName = offense.Name;
         pc.OffensivePlaySlot = offense.Slot;
         pc.OffensiveFormationId = offense.Formation;
@@ -275,6 +379,231 @@ public sealed class PlaySpawner
                 }
                 da.Notes = string.IsNullOrWhiteSpace(slot) ? "man" : $"man:{slot}";
                 break;
+        }
+    }
+
+    private static void AttachRushComponentIfPresent(
+        World world,
+        int entityId,
+        DefensiveExecution defensiveExecution,
+        DefensePlayConfig defensePlays,
+        int defenseIndex)
+    {
+        // DefensiveExecution.PlayerReactions is 11 entries of (Index, ReactionId).
+        // We treat defenseIndex (spawn order) as the player index.
+        var reactionRef = defensiveExecution.PlayerReactions.FirstOrDefault(r => r.Index == defenseIndex);
+        if (reactionRef.ReactionId is null)
+            return;
+
+        var reaction = defensePlays.DefensePlayerReactions.FirstOrDefault(r => string.Equals(r.Id, reactionRef.ReactionId, StringComparison.OrdinalIgnoreCase));
+        if (reaction is null)
+            return;
+
+        if (!TryParseRushRole(reaction.Role, out var gap, out var contain, out var stunt, out var stuntDelay, out var stuntGap))
+            return;
+
+        var e = world.GetEntity(entityId);
+        if (!e.Has<RushComponent>())
+            e.Attach(new RushComponent());
+
+        var rc = e.Get<RushComponent>();
+        rc.TargetGap = gap;
+        rc.IsContain = contain;
+
+        // Default rush move type until per-play data is surfaced: DL power, LB swim.
+        rc.Type = rc.IsContain ? RushType.Swim : RushType.Power;
+
+        rc.IsStunt = stunt;
+        rc.StuntDelayFrames = stuntDelay;
+        rc.StuntTargetGap = stuntGap;
+
+        rc.GapReached = false;
+        rc.Engaged = false;
+        rc.EngagedBlockerId = -1;
+    }
+
+    private static RushGap InferDefaultRushGapFromSlot(string slot)
+    {
+        // Stable fallback mapping for placeholder defenses until bank4 roles include gap details.
+        var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+
+        // Ends
+        if (s is "LE" or "LDE") return RushGap.ContainLeft;
+        if (s is "RE" or "RDE") return RushGap.ContainRight;
+
+        // Interior
+        if (s.Contains("NT", StringComparison.Ordinal)) return RushGap.ALeft;
+        if (s.Contains("DT", StringComparison.Ordinal)) return RushGap.ARight;
+
+        return RushGap.BLeft;
+    }
+
+    private static bool TryParseRushRole(
+        string role,
+        out RushGap gap,
+        out bool contain,
+        out bool stunt,
+        out int stuntDelayFrames,
+        out RushGap stuntTargetGap)
+    {
+        gap = RushGap.ALeft;
+        contain = false;
+        stunt = false;
+        stuntDelayFrames = 0;
+        stuntTargetGap = RushGap.ALeft;
+
+        if (string.IsNullOrWhiteSpace(role))
+            return false;
+
+        var s = role.Trim().ToUpperInvariant();
+
+        // Simple bank4-style roles: RUSH-1..RUSH-6
+        // Map to left/right A/B/C gaps.
+        if (s.StartsWith("RUSH-", StringComparison.Ordinal))
+        {
+            var numStr = s[5..];
+            if (int.TryParse(numStr, out var n))
+            {
+                gap = n switch
+                {
+                    1 => RushGap.ALeft,
+                    2 => RushGap.BLeft,
+                    3 => RushGap.CLeft,
+                    4 => RushGap.ARight,
+                    5 => RushGap.BRight,
+                    6 => RushGap.CRight,
+                    _ => RushGap.ALeft,
+                };
+                return true;
+            }
+        }
+
+        // Contain variants (if authored in YAML): CONTAIN-L / CONTAIN-R
+        if (s is "CONTAIN-L" or "CONTAINLEFT")
+        {
+            gap = RushGap.ContainLeft;
+            contain = true;
+            return true;
+        }
+
+        if (s is "CONTAIN-R" or "CONTAINRIGHT")
+        {
+            gap = RushGap.ContainRight;
+            contain = true;
+            return true;
+        }
+
+        // Stunt variants (optional authoring): STUNT:<from>-><to>@<delay>
+        // Example: STUNT:RUSH-2->RUSH-5@18
+        if (s.StartsWith("STUNT:", StringComparison.Ordinal))
+        {
+            // Very small parser; if it fails, ignore.
+            var payload = s[6..];
+            var parts = payload.Split('@', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 1)
+            {
+                var map = parts[0].Split("->", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                if (map.Length == 2
+                    && TryParseRushRole(map[0], out gap, out contain, out _, out _, out _)
+                    && TryParseRushRole(map[1], out stuntTargetGap, out var contain2, out _, out _, out _))
+                {
+                    contain = contain || contain2;
+                    stunt = true;
+                    stuntDelayFrames = 18;
+                    if (parts.Length >= 2 && int.TryParse(parts[1], out var d))
+                        stuntDelayFrames = Math.Clamp(d, 0, 120);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static void AttachRouteIfNeeded(World world, int entityId, PlayerRole role, string slot, OffensiveAssignmentComponent oa)
+    {
+        if (oa.Kind is not (OffensiveAssignmentKind.RouteRunner or OffensiveAssignmentKind.Quarterback))
+            return;
+
+        var e = world.GetEntity(entityId);
+        var origin = e.Get<PositionComponent>()?.Position ?? Vector2.Zero;
+
+        // If the entity already has a RouteComponent (e.g., future true YAML), don't overwrite.
+        if (e.Has<RouteComponent>())
+            return;
+
+        // Build nodes from current waypoint scaffold.
+        // Node0: break point after StemFrames.
+        // Node1: "run" extended to keep moving in the last segment direction.
+        var nodes = new List<RouteNode>();
+
+        // Default stem timing: until ROM tables are imported.
+        var stemFrames = role switch
+        {
+            PlayerRole.WR => 22,
+            PlayerRole.TE => 18,
+            PlayerRole.RB => 14,
+            PlayerRole.QB => 16,
+            _ => 18,
+        };
+
+        if (oa.RouteWaypoints.Count == 0)
+        {
+            // No explicit target. Avoid attaching a dead route.
+            return;
+        }
+
+        // First point: treat as a break/landmark point.
+        var a = oa.RouteWaypoints[0];
+        nodes.Add(new RouteNode
+        {
+            Offset = a - origin,
+            MinFrames = stemFrames,
+            Action = "RUN",
+        });
+
+        // Second point (if present) becomes the direction basis.
+        Vector2 b;
+        if (oa.RouteWaypoints.Count > 1)
+            b = oa.RouteWaypoints[1];
+        else
+            b = a + new Vector2(40, 0);
+
+        // Extend the final segment so the runner keeps moving.
+        var dir = b - a;
+        if (dir.LengthSquared() < 0.0001f)
+            dir = new Vector2(1, 0);
+        dir.Normalize();
+
+        var extendedEnd = a + dir * 220f;
+        nodes.Add(new RouteNode
+        {
+            Offset = extendedEnd - origin,
+            MinFrames = int.MaxValue,
+            Action = "RUN",
+        });
+
+        // BaseSpeed (units/tick at MS=69). Until ROM values are imported, use a stable constant.
+        // The RouteFollowSystem will scale this by player MS.
+        const float baseRouteSpeed = 3.65f;
+
+        e.Attach(new RouteComponent
+        {
+            RouteType = string.IsNullOrWhiteSpace(slot) ? role.ToString() : slot,
+            Nodes = nodes,
+            CurrentNodeIndex = 0,
+            FrameCounter = 0,
+            RouteComplete = false,
+            IsSitting = false,
+            StemFrames = stemFrames,
+            BaseSpeed = baseRouteSpeed,
+        });
+
+        // Ensure the Behavior state is set so MovementSystem will follow the route targets.
+        if (e.Get<BehaviorComponent>() is { } behavior)
+        {
+            behavior.State = BehaviorState.RunningRoute;
+            behavior.TargetPosition = a;
         }
     }
 

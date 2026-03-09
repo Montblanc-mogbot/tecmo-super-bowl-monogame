@@ -7,7 +7,7 @@ namespace TecmoSBGame.Components;
 /// Identifies which (offensive/defensive) play call an entity is currently executing.
 /// Useful for headless inspection and debugging.
 /// </summary>
-public sealed class PlayCallComponent
+public sealed class PlayCallInfoComponent
 {
     public string OffensivePlayName = "";
     public string OffensivePlaySlot = "";

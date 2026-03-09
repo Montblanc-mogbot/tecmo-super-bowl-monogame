@@ -40,10 +40,10 @@
 # Fonts
 #----------------------------------
 
-#/importer:FontDescriptionImporter
-#/processor:FontDescriptionProcessor
-#/processorParam:TextureFormat=Compressed
-#/build:Fonts/YardNumbers.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Fonts/Playcall.spritefont
 
 #----------------------------------
 # Audio

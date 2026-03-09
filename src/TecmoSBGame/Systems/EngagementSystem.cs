@@ -18,6 +18,9 @@ public sealed class EngagementSystem : EntityUpdateSystem
     private ComponentMapper<BehaviorComponent> _behavior = null!;
     private ComponentMapper<BehaviorStackComponent> _stack = null!;
     private ComponentMapper<EngagementComponent> _engagement = null!;
+    private ComponentMapper<PositionComponent> _pos = null!;
+    private ComponentMapper<BlockTargetComponent> _blockTarget = null!;
+    private ComponentMapper<VelocityComponent> _vel = null!;
 
     // Short, deterministic "hold" duration.
     public const float ENGAGEMENT_DURATION_SECONDS = 0.35f;
@@ -36,6 +39,9 @@ public sealed class EngagementSystem : EntityUpdateSystem
         _behavior = mapperService.GetMapper<BehaviorComponent>();
         _stack = mapperService.GetMapper<BehaviorStackComponent>();
         _engagement = mapperService.GetMapper<EngagementComponent>();
+        _pos = mapperService.GetMapper<PositionComponent>();
+        _blockTarget = mapperService.GetMapper<BlockTargetComponent>();
+        _vel = mapperService.GetMapper<VelocityComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -67,8 +73,41 @@ public sealed class EngagementSystem : EntityUpdateSystem
             var b = evt.DefenderId;
 
             // Entities must have the needed components.
-            if (!_behavior.Has(a) || !_behavior.Has(b) || !_stack.Has(a) || !_stack.Has(b) || !_engagement.Has(a) || !_engagement.Has(b))
+            if (!_behavior.Has(a) || !_behavior.Has(b) || !_stack.Has(a) || !_stack.Has(b) || !_engagement.Has(a) || !_engagement.Has(b) || !_pos.Has(a) || !_pos.Has(b))
                 return;
+
+            // Assignment gate (Tecmo-style): only engage if the blocker has selected this defender.
+            // Note: we allow defensive entities to engage without a BlockTargetComponent.
+            if (_blockTarget.Has(a))
+            {
+                var bt = _blockTarget.Get(a);
+                if (bt.TargetEntityId != b)
+                    return;
+            }
+
+            // Contact distance gate (~4-6 px in disassembly notes). CollisionContactSystem uses a larger
+            // proximity radius, so we re-check exact distance here.
+            var posA = _pos.Get(a).Position;
+            var posB = _pos.Get(b).Position;
+            var distSq = Vector2.DistanceSquared(posA, posB);
+            if (distSq > BlockerAISystem.CONTACT_DISTANCE_PIXELS * BlockerAISystem.CONTACT_DISTANCE_PIXELS)
+                return;
+
+            // Facing gate: a blocker can't engage a defender "behind" them.
+            if (_blockTarget.Has(a))
+            {
+                var facing = GetFacingDir(a);
+                if (facing != Vector2.Zero)
+                {
+                    var toDef = posB - posA;
+                    if (toDef.LengthSquared() > 0.01f)
+                    {
+                        var dir = Vector2.Normalize(toDef);
+                        if (Vector2.Dot(dir, facing) < -0.10f)
+                            return;
+                    }
+                }
+            }
 
             var ea = _engagement.Get(a);
             var eb = _engagement.Get(b);
@@ -115,5 +154,22 @@ public sealed class EngagementSystem : EntityUpdateSystem
         behavior.State = BehaviorState.Engaged;
         behavior.StateTimer = ENGAGEMENT_DURATION_SECONDS;
         behavior.TargetEntityId = partnerId;
+    }
+
+    private Vector2 GetFacingDir(int entityId)
+    {
+        if (_vel.Has(entityId))
+        {
+            var v = _vel.Get(entityId).Velocity;
+            if (v.LengthSquared() > 0.01f)
+                return Vector2.Normalize(v);
+        }
+
+        var b = _behavior.Get(entityId);
+        var to = b.TargetPosition - _pos.Get(entityId).Position;
+        if (to.LengthSquared() > 1f)
+            return Vector2.Normalize(to);
+
+        return Vector2.Zero;
     }
 }

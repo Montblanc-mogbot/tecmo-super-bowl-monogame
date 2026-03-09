@@ -21,6 +21,13 @@ public sealed class MatchState
     /// <summary>0-based team index that currently has possession.</summary>
     public int PossessionTeam { get; set; } = 0;
 
+    /// <summary>
+    /// Team ids (roster/theme selection), distinct from the runtime 0/1 indices.
+    /// Menu/flow systems set these when teams are selected.
+    /// </summary>
+    public int AwayTeamId { get; set; } = 0;
+    public int HomeTeamId { get; set; } = 1;
+
     /// <summary>Direction of the offense for the current possession.</summary>
     public OffenseDirection OffenseDirection { get; set; } = OffenseDirection.LeftToRight;
 

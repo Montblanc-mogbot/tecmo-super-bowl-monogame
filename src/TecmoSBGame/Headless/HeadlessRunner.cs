@@ -43,10 +43,19 @@ public static class HeadlessRunner
 
         // We no longer need the full GameStateSystem for this headless pass; keep the core physics/contact stack.
         var world = new WorldBuilder()
+            // Routes/blocks first so QB reads have meaningful receiver motion.
+            .AddSystem(new RouteFollowSystem())
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
+            // Phase transitions + QB AI.
+            .AddSystem(new SnapResolutionSystem(events, match, play))
+            .AddSystem(new QbDropbackSystem(events, match, play))
+            .AddSystem(new ReadProgressionSystem(events, match, play))
+            .AddSystem(new PassFlightStartSystem(events, play))
             .AddSystem(new BallPhysicsSystem())
+            .AddSystem(new PassFlightCompleteSystem(events, play))
             .AddSystem(new HeadlessContactSeederSystem())
+            .AddSystem(new BlockerAISystem(events, loopState, play))
             .AddSystem(new CollisionContactSystem(events, loopState))
             .AddSystem(new EngagementSystem(events))
             // Penalties are scaffolded but default to Off (no behavior changes).
@@ -136,6 +145,10 @@ public static class HeadlessRunner
 
             world.Update(new GameTime(total, elapsed));
 
+            // QB AI smoke signal: once the ball enters flight, we know reads->throw->PassFlightStart succeeded.
+            if (i == 0 || i == 30 || i == 60 || i == 90 || i == 120)
+                Console.WriteLine($"[headless] t={i,3} phase={play.Phase} ball={play.BallState} owner={(play.BallOwnerEntityId is null ? "none" : play.BallOwnerEntityId.Value.ToString())}");
+
             if (play.PlayId != lastPlayId)
             {
                 Console.WriteLine($"[headless] advanced to next play: {play.ToSummaryString()} | onField={loopState.OnFieldStateId}");
@@ -144,6 +157,20 @@ public static class HeadlessRunner
         }
 
         Console.WriteLine($"[headless] completed ticks={ticks} final: {play.ToSummaryString()} | onField={loopState.OnFieldStateId}");
+
+        // Blocking AI inspection (headless verification).
+        Console.WriteLine("[headless] blocking summary (entities with BlockTargetComponent):");
+        foreach (var id in offense.Players.Select(p => p.EntityId).OrderBy(i => i))
+        {
+            var e = world.GetEntity(id);
+            if (!e.Has<BlockTargetComponent>())
+                continue;
+
+            var bt = e.Get<BlockTargetComponent>();
+            var role = e.Has<PlayerRoleComponent>() ? e.Get<PlayerRoleComponent>().Slot : "";
+            Console.WriteLine($"  id={id,4} slot={role,-5} assign={bt.Assignment,-10} target={bt.TargetEntityId,4} engaged={bt.IsEngaged} engagedWith={bt.EngagedEntityId,4} frames={bt.EngagementFrame,3} double={bt.IsDoubleTeam}");
+        }
+
         return 0;
     }
 

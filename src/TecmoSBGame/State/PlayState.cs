@@ -62,6 +62,12 @@ public sealed class PlayState
 
     public bool IsOver => WhistleReason != WhistleReason.None;
 
+    /// <summary>
+    /// Indicates the post-play overlay should auto-dismiss without requiring player input.
+    /// Used for turnovers and scoring transitions.
+    /// </summary>
+    public bool AutoDismissPostPlay => Result.Turnover || Result.Touchdown || Result.Safety;
+
     public void ResetForNewPlay(int playId, int startAbsoluteYard, int playClockSecondsRemaining = 15)
     {
         PlayId = playId;
