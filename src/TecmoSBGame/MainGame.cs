@@ -248,6 +248,9 @@ public sealed class MainGame : Game
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _fieldRenderer?.LoadContent(Content);
 
+        // Initialize font system for UI text rendering
+        FontSystem.Instance.Load(Content);
+
         // Load fonts
         var playcallFont = Content.Load<SpriteFont>("Fonts/Playcall");
         _playCallAssets = new PlayCallUiAssets(playcallFont, GraphicsDevice);
