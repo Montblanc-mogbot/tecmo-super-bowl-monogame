@@ -45,6 +45,7 @@ public static class HeadlessRunner
         var world = new WorldBuilder()
             // Routes/blocks first so QB reads have meaningful receiver motion.
             .AddSystem(new RouteFollowSystem())
+            .AddSystem(new RushSystem(events, match, play))
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
             // Phase transitions + QB AI.
