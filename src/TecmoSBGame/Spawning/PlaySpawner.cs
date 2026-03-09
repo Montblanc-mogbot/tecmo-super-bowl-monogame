@@ -171,6 +171,15 @@ public sealed class PlaySpawner
                 });
             }
 
+            // Translate defensive assignment into Tecmo-style coverage responsibilities.
+            // This is a deterministic scaffold until ROM reaction tables are fully mapped.
+            if (!e.Has<CoverageComponent>())
+            {
+                var cov = BuildCoverageFromAssignment(role, slot, da);
+                if (cov is not null)
+                    e.Attach(cov);
+            }
+
             assignments.Add(new SpawnedAssignment(
                 EntityId: id,
                 TeamIndex: teamIndex,
@@ -378,6 +387,38 @@ public sealed class PlaySpawner
                 }
                 da.Notes = string.IsNullOrWhiteSpace(slot) ? "man" : $"man:{slot}";
                 break;
+        }
+    }
+
+    private static CoverageComponent? BuildCoverageFromAssignment(PlayerRole role, string slot, DefensiveAssignmentComponent da)
+    {
+        // Deterministic scaffold: translate our coarse DefensiveAssignmentKind into CoverageComponent.
+        // This is intentionally conservative; better ROM-accurate tables can replace this later.
+
+        switch (da.Kind)
+        {
+            case DefensiveAssignmentKind.ManCoverage:
+                return new CoverageComponent
+                {
+                    Type = CoverageType.ManToMan,
+                    AssignmentTargetId = da.TargetEntityId,
+                    Zone = ZoneLandmark.DeepMiddle,
+                };
+
+            case DefensiveAssignmentKind.ZoneCoverage:
+                // Rough slot-based landmark choice.
+                var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+                var zone = s.Contains('L') ? ZoneLandmark.HookLeft : (s.Contains('R') ? ZoneLandmark.HookRight : ZoneLandmark.DeepMiddle);
+
+                return new CoverageComponent
+                {
+                    Type = CoverageType.ZoneHook,
+                    AssignmentTargetId = -1,
+                    Zone = zone,
+                };
+
+            default:
+                return null;
         }
     }
 

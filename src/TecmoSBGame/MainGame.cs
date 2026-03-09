@@ -150,7 +150,8 @@ public sealed class MainGame : Game
         _world = new WorldBuilder()
             // Drive Behavior targets for route runners BEFORE MovementSystem reads Behavior.
             .AddSystem(new RouteFollowSystem())
-            .AddSystem(new RushSystem(_events, _matchState, _playState))
+            .AddSystem(new ManCoverageSystem(_events, _playState))
+            .AddSystem(new ZoneCoverageSystem(_events, _playState))
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
             // Pre-snap deterministic placement (scrimmage plays).

@@ -45,7 +45,6 @@ public static class HeadlessRunner
         var world = new WorldBuilder()
             // Routes/blocks first so QB reads have meaningful receiver motion.
             .AddSystem(new RouteFollowSystem())
-            .AddSystem(new RushSystem(events, match, play))
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
             // Phase transitions + QB AI.
@@ -175,6 +174,109 @@ public static class HeadlessRunner
         return 0;
     }
 
+
+
+    /// <summary>
+    /// Deterministic headless scenario that exercises COVER-1..COVER-7 behavior:
+    /// - spawns a pass play,
+    /// - attaches coverage components via PlaySpawner,
+    /// - triggers a pass at a fixed tick,
+    /// - observes defenders breaking toward the target.
+    /// </summary>
+    public static int RunCoverageScenario(int ticks = 240)
+    {
+        var events = new GameEvents();
+        var match = new MatchState();
+        var play = new PlayState();
+
+        var fixedRunner = new FixedTimestepRunner(hz: 60, maxTicksPerFrame: 1);
+
+        var formationData = FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
+        var playList = PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml"));
+        var defensePlays = DefensePlayYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "defenseplays", "bank4_defense_special_pointers.yaml"));
+
+        var gameLoopConfig = GameLoopYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "gameloop", "bank17_18_main_game_loop.yaml"));
+        var onFieldLoopConfig = OnFieldLoopYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "onfieldloop", "bank19_20_on_field_gameplay_loop.yaml"));
+        var loopState = new LoopState(new GameLoopMachine(gameLoopConfig), new OnFieldLoopMachine(onFieldLoopConfig));
+
+        var formationSpawner = new FormationSpawner();
+        var playSpawner = new PlaySpawner();
+
+        // Core systems plus coverage + pass start.
+        var world = new WorldBuilder()
+            .AddSystem(new SpeedModifierSystem())
+            .AddSystem(new ManCoverageSystem(events, play))
+            .AddSystem(new ZoneCoverageSystem(events, play))
+            .AddSystem(new MovementSystem())
+            .AddSystem(new BallPhysicsSystem())
+            .AddSystem(new PassFlightStartSystem(events, play))
+            .AddSystem(new PassFlightCompleteSystem(events, play))
+            .AddSystem(new HeadlessContactSeederSystem())
+            .AddSystem(new CollisionContactSystem(events, loopState))
+            .AddSystem(new EngagementSystem(events))
+            .AddSystem(new PenaltySystem(events, match, play))
+            .AddSystem(new TackleInterruptSystem(events))
+            .AddSystem(new TackleResolutionSystem(events, match, play))
+            .AddSystem(new BehaviorStackSystem())
+            .AddSystem(new PlayEndSystem(events, match, play, log: false))
+            .AddSystem(new DownDistanceSystem(events, match, log: false))
+            .AddSystem(new NextPlayResetSystem(events, match, play, loopState, log: false))
+            .AddSystem(new LoopMachineSystem(loopState, events))
+            .Build();
+
+        // Spawn offense.
+        var chosenOffPlay = playList.PlayList.First(p => (p.Slot ?? string.Empty).StartsWith("Pass", StringComparison.OrdinalIgnoreCase));
+        var formationId = formationData.OffensiveFormations.Any(f => f.Id == chosenOffPlay.Formation)
+            ? chosenOffPlay.Formation
+            : "00";
+
+        var offense = formationSpawner.Spawn(
+            world,
+            formationData,
+            formationId: formationId,
+            teamIndex: 0,
+            isOffense: true,
+            playerControlled: false);
+
+        var defenseEntityIds = SpawnPlaceholderDefense(world, teamIndex: 1);
+
+        var spawnedPlay = playSpawner.Spawn(
+            world,
+            playList,
+            defensePlays,
+            offenseEntityIds: offense.Players.Select(p => p.EntityId).ToList(),
+            defenseEntityIds: defenseEntityIds,
+            selectedOffensivePlay: chosenOffPlay,
+            selectedDefensiveCallId: null);
+
+        // Choose QB + a deterministic receiver target.
+        var qbId = offense.Players.First(p => world.GetEntity(p.EntityId).Get<PlayerRoleComponent>()?.Role == PlayerRole.QB).EntityId;
+        var targetId = offense.Players.First(p =>
+            {
+                var r = world.GetEntity(p.EntityId).Get<PlayerRoleComponent>()?.Role ?? PlayerRole.Unknown;
+                return r is PlayerRole.WR or PlayerRole.TE;
+            }).EntityId;
+
+        // Spawn a ball entity (required for PassFlightStartSystem).
+        BallEntityFactory.CreateBall(world, world.GetEntity(qbId).Get<PositionComponent>()!.Position);
+
+        world.CreateEntity().Attach(new CoverageScenarioDriverSystem(events, play, qbId, targetId, throwAtTick: 60));
+
+        System.Console.WriteLine($"[coverage] QB={qbId} target={targetId} defCall={spawnedPlay.DefensiveCallId}");
+
+        // Run fixed ticks.
+        for (var i = 0; i < ticks; i++)
+        {
+            fixedRunner.Advance(TimeSpan.FromSeconds(1.0 / 60.0), fixedGameTime =>
+            {
+                events.BeginTick();
+                world.Update(fixedGameTime);
+            });
+        }
+
+        System.Console.WriteLine("[coverage] scenario complete");
+        return 0;
+    }
     private static List<int> SpawnPlaceholderDefense(World world, int teamIndex)
     {
         // Simple 4-3-ish distribution, stable coordinates.

@@ -279,6 +279,21 @@ public class RushQBBehavior : Behavior
     }
 }
 
+#### Pass Rush (Gap Assignments)
+
+Tecmo-style pass rush is **assignment-based**: rushers target an assigned gap/contain landmark first, then transition to the QB.
+
+Implementation scaffold (Phase 6): `RushComponent` + `RushSystem`.
+
+**Rush move success formula (deterministic):**
+
+- Power/Bull (HP-based):
+  - `p = clamp((RusherHP - BlockerHP + 25) / 100, 0.10, 0.90)`
+- Swim/Spin (MS-based):
+  - `p = clamp((RusherMS - BlockerMS + 25) / 100, 0.10, 0.90)`
+
+Rush moves are attempted on a **30-frame cooldown** (60Hz). `Spin` is treated as a rare attempt.
+
 public class ManCoverageBehavior : Behavior
 {
     public Player Target { get; set; }
@@ -790,3 +805,61 @@ This design preserves Tecmo Super Bowl's classic gameplay feel while using moder
 5. **Frame-by-frame execution** - 60Hz behavior updates
 
 The YAML data files provide the foundation - all teams, plays, formations, and constants are ready to load. The C# implementation focuses on executing behaviors exactly as the original did.
+
+---
+
+## Coverage AI (Tecmo-style, Phase 6 scaffold)
+
+This repo models Tecmo pass coverage as **assignment-based** logic with explicit **frame delays**.
+
+### Man coverage mirroring delay (COVER-1)
+
+In the original game, man defenders do not mirror a receiver instantly. There is a **reaction delay** before the defender responds to a cut / route change.
+
+Implementation scaffold (deterministic, 60Hz):
+
+- **ReactionDelay (frames)** ≈ `(100 - RC) / 5`, clamped to `[0..20]`
+  - The ROM uses a coverage/reaction skill; in this codebase we currently use `PlayerAttributesComponent.Rec` as a proxy for that RC value.
+
+### Zone landmarks (COVER-1)
+
+Zone defenders are assigned a **landmark** (a point/area on the field) and will:
+
+1. Drop to the landmark
+2. Match/pursue threats that enter their zone
+3. Return to landmark when threats leave (no chasing past zone boundary)
+
+Landmark kinds used by `CoverageComponent.Zone`:
+
+- Deep: `DeepMiddle`, `DeepLeft`, `DeepRight`
+- Flats: `FlatLeft`, `FlatRight`
+- Hooks: `HookLeft`, `HookRight`
+- Curls: `CurlLeft`, `CurlRight`
+
+#### Landmark coordinates needed
+
+All coordinates are in the **NES-style field coordinate system** used by gameplay:
+
+- X: ~`[16..240]` (left sideline to right sideline)
+- Y: ~`[40..184]` (top to bottom field bounds)
+
+Current scaffold behavior:
+
+- Landmarks are derived deterministically from the defender's starting position (formation-aligned spawns)
+- Each landmark kind applies a small offset (e.g., deep zones offset backward/inside)
+
+Future ROM-accurate behavior should compute landmarks from:
+
+- Offense direction (L->R / R->L)
+- Ball spot / line of scrimmage
+- Defensive call (Cover 1/2/3/4 tables)
+
+### Ball-in-air reaction timing (COVER-1)
+
+Tecmo behavior: when a pass is thrown, coverage breaks toward the ball.
+
+Implementation scaffold:
+
+- Coverage systems observe `PassRequestedEvent` and/or `PlayState.BallState == InAir`
+- Defenders switch from drop/mirror to **break** toward the intended target (and later, the ball end-point when wired to flight data)
+

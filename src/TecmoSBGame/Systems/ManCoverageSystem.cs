@@ -60,12 +60,15 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
         _attr = mapperService.GetMapper<PlayerAttributesComponent>();
         _team = mapperService.GetMapper<TeamComponent>();
 
+        _ballTag = mapperService.GetMapper<BallComponent>();
+        _flight = mapperService.GetMapper<BallFlightComponent>();
     }
 
     public override void Update(GameTime gameTime)
     {
         // If a pass is requested this tick, allow an immediate global "break".
         int? breakTargetEntityId = null;
+        Vector2? breakTargetPoint = null;
 
         if (_events is not null)
         {
@@ -109,7 +112,8 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
             // If ball is in air, everyone can break (Tecmo: coverage collapses toward the throw).
             if ((_play is not null && _play.BallState == BallState.InAir) || breakTargetEntityId is not null)
             {
-                var point = receiverPos;
+                // Break toward the thrown ball end-point when available; otherwise break toward the receiver.
+                var point = breakTargetPoint ?? receiverPos;
                 SetMoveTarget(defenderId, point);
                 c.InPursuit = true;
                 c.PursuitTargetId = targetId;
@@ -192,5 +196,15 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
         // Base 10, adjust by ~0.05 per MS point.
         var cushion = 10f - diff * 0.05f;
         return MathHelper.Clamp(cushion, 4f, 14f);
+    }
+
+    private int? FindBallEntityId()
+    {
+        foreach (var id in ActiveEntities)
+        {
+            if (_ballTag.Has(id))
+                return id;
+        }
+        return null;
     }
 }
