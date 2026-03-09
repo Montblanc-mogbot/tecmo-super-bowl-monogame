@@ -31,6 +31,9 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
     private ComponentMapper<PlayerAttributesComponent> _attr = null!;
     private ComponentMapper<TeamComponent> _team = null!;
 
+    private ComponentMapper<BallComponent> _ballTag = null!;
+    private ComponentMapper<BallFlightComponent> _flight = null!;
+
 
     // Field bounds (keep in sync with other systems).
     private const float FIELD_LEFT = 16f;

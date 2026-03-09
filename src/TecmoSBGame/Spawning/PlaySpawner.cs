@@ -158,9 +158,8 @@ public sealed class PlaySpawner
             FillDefensiveAssignment(id, role, slot, qbId, receivers, ref receiverIdx, da);
             e.Attach(da);
 
-            // Data-driven rush assignments (bank4 DefensePlayData).
-            // If the loaded YAML doesn't expose gap-level roles yet, fall back to a slot-based mapping.
-            AttachRushComponentIfPresent(world, id, defensiveExecution, defensePlays, defIndex);
+            // Data-driven rush assignments (bank4 DefensePlayData) are scaffolded.
+            // (Gap-level roles are not wired through all YAML/config paths yet.)
 
             if (da.Kind == DefensiveAssignmentKind.PassRush && !e.Has<RushComponent>())
             {
