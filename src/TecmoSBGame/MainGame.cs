@@ -41,6 +41,8 @@ public sealed class MainGame : Game
     private FieldRenderer? _fieldRenderer;
     private TitleScreenRenderer? _titleRenderer;
     private MainMenuRenderer? _mainMenuRenderer;
+    private ScoreboardRenderer? _scoreboardRenderer;
+    private DownDistanceRenderer? _downDistanceRenderer;
 
     // Input/Flow
     private InputManager? _input;
@@ -119,6 +121,8 @@ public sealed class MainGame : Game
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
         _titleRenderer = new TitleScreenRenderer(GraphicsDevice);
         _mainMenuRenderer = new MainMenuRenderer(GraphicsDevice);
+        _scoreboardRenderer = new ScoreboardRenderer(GraphicsDevice);
+        _downDistanceRenderer = new DownDistanceRenderer(GraphicsDevice);
 
         // Input and Flow
         _input = new InputManager();
@@ -344,6 +348,16 @@ public sealed class MainGame : Game
             _fieldRenderer?.Draw(_spriteBatch);
             _world?.Draw(gameTime);
 
+            // HUD (scoreboard, down/distance)
+            if (_matchState is not null)
+            {
+                _scoreboardRenderer?.Draw(_spriteBatch, _matchState);
+                _downDistanceRenderer?.Draw(_spriteBatch, _matchState);
+            }
+
+            // Debug info
+            DrawDebugInfo(_spriteBatch);
+
             // Playcall overlay
             if (_playCallState is not null && _playCallState.Visible)
             {
@@ -360,5 +374,21 @@ public sealed class MainGame : Game
 
         _spriteBatch.End();
         base.Draw(gameTime);
+    }
+
+    /// <summary>
+    /// Draw debug info showing entity count and game state.
+    /// </summary>
+    private void DrawDebugInfo(SpriteBatch sb)
+    {
+        var font = FontSystem.Instance.GetFont(FontSize.Small);
+        if (font == null) return;
+
+        var sb_debug = $"DEBUG: Flow={_flow?.State}";
+        var entities = _world?.EntityCount.ToString() ?? "0";
+        var sb_entities = $"Entities: {entities}";
+
+        sb.DrawString(font, sb_debug, new Vector2(4, 200), Color.Yellow);
+        sb.DrawString(font, sb_entities, new Vector2(4, 212), Color.Yellow);
     }
 }
