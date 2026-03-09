@@ -44,6 +44,9 @@
 /processor:FontDescriptionProcessor
 /processorParam:TextureFormat=Compressed
 /build:Fonts/Playcall.spritefont
+/build:Fonts/UiSmall.spritefont
+/build:Fonts/UiMedium.spritefont
+/build:Fonts/UiLarge.spritefont
 
 #----------------------------------
 # Audio

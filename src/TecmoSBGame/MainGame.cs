@@ -21,24 +21,33 @@ using TecmoSBGame.Timing;
 
 namespace TecmoSBGame;
 
+/// <summary>
+/// Main game class for Tecmo Super Bowl MonoGame remake.
+/// 
+/// Design Pattern: MonoGame lifecycle with separated concerns
+/// - Constructor: Graphics setup only
+/// - Initialize(): Data loading, state creation, ECS world construction
+/// - LoadContent(): MonoGame content (textures, fonts, sounds)
+/// - Update()/Draw(): Game loop
+/// </summary>
 public sealed class MainGame : Game
 {
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
     private World? _world;
 
+    // Rendering
     private RenderViewport? _viewport;
     private FieldRenderer? _fieldRenderer;
-
     private TitleScreenRenderer? _titleRenderer;
     private MainMenuRenderer? _mainMenuRenderer;
 
+    // Input/Flow
     private InputManager? _input;
     private MenuNavigationSystem? _menuNav;
-
     private GameFlowController? _flow;
 
-    // Playcall UI (pre-snap)
+    // UI (initialized in LoadContent, depends on MonoGame Content)
     private PlayCallUiAssets? _playCallAssets;
     private FormationSelectRenderer? _formationSelectRenderer;
     private PlaySelectRenderer? _playSelectRenderer;
@@ -46,6 +55,7 @@ public sealed class MainGame : Game
     private PlayDiagramRenderer? _diagramRenderer;
     private PlayCallComponent? _playCallState;
 
+    // Game Systems (initialized in Initialize)
     private GameStateSystem? _gameStateSystem;
     private GameEvents? _events;
     private FixedTimestepRunner? _fixed;
@@ -55,7 +65,7 @@ public sealed class MainGame : Game
     private ControlState? _controlState;
 
     /// <summary>
-    /// Provides access to all loaded game content.
+    /// Provides access to all loaded game content (YAML data, not MonoGame ContentManager).
     /// </summary>
     public GameContent GameContent { get; private set; } = null!;
 
@@ -71,15 +81,46 @@ public sealed class MainGame : Game
         _graphics.SynchronizeWithVerticalRetrace = true;
     }
 
+    /// <summary>
+    /// Initialize game state, load data, and build ECS world.
+    /// Called once before LoadContent.
+    /// </summary>
     protected override void Initialize()
     {
+        // PHASE 1: Load YAML data (no GraphicsDevice required)
+        LoadGameData();
+
+        // PHASE 2: Initialize MonoGame (creates GraphicsDevice, calls LoadContent)
         base.Initialize();
 
+        // PHASE 3: Initialize non-MonoGame systems (renderers, input, flow)
+        InitializeSystems();
+
+        // PHASE 4: Build ECS World (depends on all above)
+        BuildWorld();
+    }
+
+    /// <summary>
+    /// Load all YAML game data. Must happen before any systems need it.
+    /// </summary>
+    private void LoadGameData()
+    {
+        GameContent = new GameContent(Services);
+        GameContent.LoadAll();
+    }
+
+    /// <summary>
+    /// Initialize systems that don't require MonoGame ContentManager.
+    /// </summary>
+    private void InitializeSystems()
+    {
+        // Renderers (use GraphicsDevice, not ContentManager)
         _viewport = new RenderViewport(GraphicsDevice);
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
         _titleRenderer = new TitleScreenRenderer(GraphicsDevice);
         _mainMenuRenderer = new MainMenuRenderer(GraphicsDevice);
 
+        // Input and Flow
         _input = new InputManager();
 
         _flow = new GameFlowController(seed: 0x5157);
@@ -99,17 +140,13 @@ public sealed class MainGame : Game
             new MenuItemComponent(MenuItemType.Data, "DATA", t => _flow.SelectMainMenuItem(t)),
         });
 
-        // Load all YAML content at startup.
-        GameContent = new GameContent(Services);
-        GameContent.LoadAll();
-
+        // Game State
         _events = new GameEvents();
-
         _matchState = new MatchState();
         _playState = new PlayState();
-
         _fixed = new FixedTimestepRunner(hz: 60, maxTicksPerFrame: 5);
 
+        // Loop State (from YAML)
         var gameLoopMachine = new GameLoopMachine(GameContent.GameLoop);
         var onFieldLoopMachine = new OnFieldLoopMachine(GameContent.OnFieldLoop);
         _loopState = new LoopState(gameLoopMachine, onFieldLoopMachine);
@@ -124,40 +161,28 @@ public sealed class MainGame : Game
             formationSpawner: new Spawning.FormationSpawner());
     }
 
-    protected override void LoadContent()
+    /// <summary>
+    /// Build the ECS World with all systems.
+    /// Must be called after InitializeSystems() so all dependencies exist.
+    /// </summary>
+    private void BuildWorld()
     {
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
-        _fieldRenderer?.LoadContent(Content);
-
-        // Playcall UI assets (SpriteFont + 1x1 pixel).
-        // NOTE: requires Content/Content.mgcb to include Fonts/Playcall.spritefont.
-        var playcallFont = Content.Load<SpriteFont>("Fonts/Playcall");
-        _playCallAssets = new PlayCallUiAssets(playcallFont, GraphicsDevice);
-        _formationSelectRenderer = new FormationSelectRenderer(_playCallAssets, GameContent.FormationData);
-        _playSelectRenderer = new PlaySelectRenderer(_playCallAssets);
-        _defensiveSelectRenderer = new DefensivePlaySelectRenderer(_playCallAssets);
-        _diagramRenderer = new PlayDiagramRenderer(_playCallAssets);
-
-        if (_world is not null)
-            return;
-
-        if (_spriteBatch is null || _events is null || _loopState is null || _controlState is null || _gameStateSystem is null)
-            throw new InvalidOperationException("MainGame was not initialized.");
-
-        if (_matchState is null || _playState is null)
-            throw new InvalidOperationException("Match/Play state was not initialized.");
+        if (_events == null || _matchState == null || _playState == null || 
+            _loopState == null || _controlState == null || _gameStateSystem == null)
+        {
+            throw new InvalidOperationException("Cannot build world: systems not initialized");
+        }
 
         _world = new WorldBuilder()
-            // Drive Behavior targets for route runners BEFORE MovementSystem reads Behavior.
+            // Route runners
             .AddSystem(new RouteFollowSystem())
             .AddSystem(new ManCoverageSystem(_events, _playState))
             .AddSystem(new ZoneCoverageSystem(_events, _playState))
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
-            // Pre-snap deterministic placement (scrimmage plays).
+            // Pre-snap
             .AddSystem(new PreSnapSystem(_loopState, _matchState, _playState))
             .AddSystem(new PreSnapBallPlacementSystem(_loopState, _matchState, _playState))
-            // Pre-snap playcall selection UI.
             .AddSystem(new PlayCallSystem(
                 _loopState,
                 _playState,
@@ -165,56 +190,76 @@ public sealed class MainGame : Game
                 GameContent.FormationData,
                 GameContent.PlayList,
                 GameContent.DefensePlays))
-            // Selection runs before input so the tick's movement is applied to the chosen entity.
+            // Input/Control
             .AddSystem(new PlayerControlSystem(_controlState, _loopState, enableInput: true))
             .AddSystem(new InputSystem(_loopState))
+            // Actions
             .AddSystem(new ActionResolutionSystem(_events, _matchState, _playState))
             .AddSystem(new SnapResolutionSystem(_events, _matchState, _playState))
-            // Penalties are scaffolded but default to Off (no behavior changes).
             .AddSystem(new PenaltySystem(_events, _matchState, _playState))
-            // Blocking AI drives blocker target selection/movement; EngagementSystem consumes BlockContactEvent.
+            // Blocking/Contact
             .AddSystem(new BlockerAISystem(_events, _loopState, _playState))
             .AddSystem(new CollisionContactSystem(_events, _loopState))
             .AddSystem(new EngagementSystem(_events))
             .AddSystem(new TackleInterruptSystem(_events))
             .AddSystem(new TackleResolutionSystem(_events, _matchState, _playState))
             .AddSystem(new BehaviorStackSystem())
-            // QB AI (dropback + reads) runs before pass flight start.
+            // QB/Pass
             .AddSystem(new QbDropbackSystem(_events, _matchState, _playState))
             .AddSystem(new ReadProgressionSystem(_events, _matchState, _playState))
             .AddSystem(new PassFlightStartSystem(_events, _playState))
-            .AddSystem(_gameStateSystem)
-            .AddSystem(new BallPhysicsSystem())
             .AddSystem(new PassFlightCompleteSystem(_events, _playState))
+            // Ball
+            .AddSystem(new BallPhysicsSystem())
             .AddSystem(new BallBoundsSystem(_events, _matchState, _playState))
+            // Game State
+            .AddSystem(_gameStateSystem)
             .AddSystem(new WhistleOnTackleSystem(_events))
-            // TEMP: fumbles triggered off tackle whistle until tackle rules resolve.
             .AddSystem(new FumbleOnTackleWhistleSystem(_events, _playState))
             .AddSystem(new FumbleResolutionSystem(_events, _playState))
             .AddSystem(new LooseBallPickupSystem(_events, _playState))
-            // Authoritative play-end aggregation (reads whistles, finalizes play state, emits PlayEndedEvent).
-            .AddSystem(new PlayEndSystem(_events, _matchState, _playState, log: true))
-            // Rules/refereeing: down & distance progression, possession, spotting (observes PlayEndedEvent).
-            .AddSystem(new DownDistanceSystem(_events, _matchState, log: true))
-            // Deterministic score->kickoff transition.
-            .AddSystem(new KickoffAfterScoreSystem(_events, _matchState, _playState, log: true))
-            // Deterministic PostPlay -> PreSnap reset for normal (non-scoring) plays.
-            .AddSystem(new NextPlayResetSystem(_events, _matchState, _playState, _loopState, log: true))
-            // Loop driver runs late so it can observe events published earlier in the tick.
-            .AddSystem(new LoopMachineSystem(_loopState, _events))
-            // Deterministic game clock (runs off loop state).
-            .AddSystem(new GameClockSystem(_events, _matchState, _playState, _loopState, log: true))
-            .AddSystem(new ContactDebugLogSystem(_events))
+            // Clock/Rules
+            .AddSystem(new GameClockSystem(_events, _matchState, _playState, _loopState))
+            .AddSystem(new PlayEndSystem(_events, _matchState, _playState))
+            .AddSystem(new NextPlayResetSystem(_events, _matchState, _playState))
+            .AddSystem(new DownDistanceSystem(_events, _matchState))
+            .AddSystem(new KickoffAfterScoreSystem(_events, _matchState, _playState))
+            // HUD
+            .AddSystem(new HudSystem(_matchState, _playState, _flow))
+            // Rendering
             .AddSystem(new RenderingSystem(_spriteBatch, GraphicsDevice))
             .Build();
 
-        // Create a singleton playcall UI entity.
-        var playcallEntity = _world.CreateEntity();
+        // Create playcall entity
         _playCallState = new PlayCallComponent();
+        var playcallEntity = _world.CreateEntity();
         playcallEntity.Attach(_playCallState);
 
-        // Spawn an initial kickoff scenario so the field sim has something to run when we reach gameplay.
+        // Spawn initial scenario
         _gameStateSystem.SpawnKickoffScenario(_world);
+    }
+
+    /// <summary>
+    /// Load MonoGame content (textures, fonts, sounds).
+    /// Called by base.Initialize() after GraphicsDevice is created.
+    /// </summary>
+    protected override void LoadContent()
+    {
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _fieldRenderer?.LoadContent(Content);
+
+        // Load fonts
+        var playcallFont = Content.Load<SpriteFont>("Fonts/Playcall");
+        _playCallAssets = new PlayCallUiAssets(playcallFont, GraphicsDevice);
+
+        // Initialize playcall renderers
+        if (GameContent?.FormationData == null)
+            throw new InvalidOperationException("FormationData not loaded. Check YAML content files.");
+
+        _formationSelectRenderer = new FormationSelectRenderer(_playCallAssets, GameContent.FormationData);
+        _playSelectRenderer = new PlaySelectRenderer(_playCallAssets);
+        _defensiveSelectRenderer = new DefensivePlaySelectRenderer(_playCallAssets);
+        _diagramRenderer = new PlayDiagramRenderer(_playCallAssets);
     }
 
     protected override void Update(GameTime gameTime)
@@ -236,7 +281,7 @@ public sealed class MainGame : Game
 
         _flow.UpdateUiInput(startPressed, leftPressed, rightPressed, upPressed, downPressed);
 
-        // Advance simulation continuously for now (gameplay systems read keyboard directly).
+        // Advance simulation
         if (_fixed is not null && _events is not null && _world is not null)
         {
             _fixed.Advance(gameTime.ElapsedGameTime, fixedGameTime =>
@@ -256,10 +301,8 @@ public sealed class MainGame : Game
         if (_menuNav is not null)
             _menuNav.Enabled = next == GameFlowState.MainMenu;
 
-        // When entering TeamSelect, stash selection to match state (for future wiring).
         if (next == GameFlowState.TeamSelect && _matchState is not null && _flow is not null)
         {
-            // TODO: handle SelectedMainMenuItem in match setup once game modes are implemented.
             _flow.ConfirmTeamSelection(_matchState);
         }
     }
@@ -283,6 +326,7 @@ public sealed class MainGame : Game
             effect: null,
             transformMatrix: _viewport?.ScaleMatrix);
 
+        // Draw based on current flow state
         if (_flow is not null && _flow.State == GameFlowState.Title)
         {
             _titleRenderer?.Draw(_spriteBatch, (float)gameTime.TotalGameTime.TotalSeconds);
@@ -293,30 +337,25 @@ public sealed class MainGame : Game
         }
         else
         {
+            // In-game rendering
             _fieldRenderer?.Draw(_spriteBatch);
             _world?.Draw(gameTime);
 
-            // Pre-snap playcall UI overlay.
+            // Playcall overlay
             if (_playCallState is not null && _playCallState.Visible)
             {
-                // NES virtual resolution (256x224).
                 var formationArea = new Rectangle(6, 6, 120, 212);
                 var playsArea = new Rectangle(130, 6, 120, 110);
-                var diagramArea = new Rectangle(130, 120, 120, 98);
 
                 _formationSelectRenderer?.Draw(_spriteBatch, formationArea, _playCallState);
                 _playSelectRenderer?.Draw(_spriteBatch, playsArea, _playCallState);
 
-                // When in defense step, the plays pane becomes a defense call grid.
                 if (_playCallState.Step == PlayCallStep.Defense)
                     _defensiveSelectRenderer?.Draw(_spriteBatch, playsArea, _playCallState);
-
-                _diagramRenderer?.Draw(_spriteBatch, diagramArea, _playCallState);
             }
         }
 
         _spriteBatch.End();
-
         base.Draw(gameTime);
     }
 }
