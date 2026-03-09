@@ -33,13 +33,9 @@ public class RenderingSystem : EntityDrawSystem
 
     public override void Draw(GameTime gameTime)
     {
-        _spriteBatch.Begin(
-            SpriteSortMode.Deferred,
-            BlendState.AlphaBlend,
-            SamplerState.PointClamp,
-            DepthStencilState.None,
-            RasterizerState.CullNone);
-
+        // NOTE: SpriteBatch.Begin() was already called by MainGame.Draw()
+        // Do NOT call Begin/End here - just issue draw commands
+        
         foreach (var entityId in ActiveEntities)
         {
             var position = _positionMapper.Get(entityId);
@@ -60,8 +56,8 @@ public class RenderingSystem : EntityDrawSystem
                 sprite.FlipHorizontal ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
                 0);
         }
-
-        _spriteBatch.End();
+        
+        // NOTE: Do NOT call _spriteBatch.End() here - MainGame.Draw() handles it
     }
     
     private Color GetTeamColor(int entityId)
