@@ -67,7 +67,8 @@ public sealed class FormationScriptSystem : EntityUpdateSystem
 
                 var op = s.Ops[s.Ip];
 
-                if (DebugLog && steps == 0)
+                // DebugLog can be extremely noisy; only emit at a reduced cadence.
+                if (DebugLog && steps == 0 && (s.Ip % 12 == 0))
                     Console.WriteLine($"[script] id={id} ip={s.Ip}/{s.Ops.Count} op={op.Kind} raw='{op.Raw}'");
 
                 s.Ip++;

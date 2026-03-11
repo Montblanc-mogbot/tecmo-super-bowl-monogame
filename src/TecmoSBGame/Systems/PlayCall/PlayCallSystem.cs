@@ -385,6 +385,8 @@ public sealed class PlayCallSystem : EntityUpdateSystem
 
         var playNo = off.PlayNumbers is not null && off.PlayNumbers.Count > 0 ? off.PlayNumbers[0] : 0;
 
+        Console.WriteLine($"[playcall] emit selected step={pc.Step} focus={pc.Focus} formation={off.Formation ?? pc.SelectedFormationId} slot={off.Slot} play=\"{off.Name}\" play_number={playNo} def={def}");
+
         _events.Publish(new PlaySelectedEvent(
             OffensiveFormationId: off.Formation ?? pc.SelectedFormationId,
             OffensivePlayName: off.Name ?? "",
