@@ -227,7 +227,7 @@ public sealed class MainGame : Game
             .AddSystem(new ManCoverageSystem(_events, _playState))
             .AddSystem(new ZoneCoverageSystem(_events, _playState))
             // Execute play scripts (PlayData YAML) to drive behavior.
-            .AddSystem(new PlayScriptSystem(_playState, _matchState))
+            .AddSystem(new PlayScriptSystem(_playState, _matchState, _controlState))
             // Execute Tecmo-style formation scripts (YAML commands) to drive behavior.
             .AddSystem(_formationScriptSystem)
             .AddSystem(new MovementSystem())

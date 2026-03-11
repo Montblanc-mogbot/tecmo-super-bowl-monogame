@@ -28,6 +28,11 @@ public sealed class ControlState
     // Input edge tracking (kept here so headless can disable input deterministically).
     internal bool PrevSwitchDown;
 
+    /// <summary>
+    /// One-shot forced selection (e.g., after a handoff). Cleared after it is consumed.
+    /// </summary>
+    public int? PendingForcedEntityId { get; set; }
+
     public void SetControlledEntity(int? entityId)
     {
         ControlledEntityId = entityId;

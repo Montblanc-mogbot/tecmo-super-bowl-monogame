@@ -20,6 +20,7 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
 
     private readonly PlayState _play;
     private readonly MatchState _match;
+    private readonly ControlState _control;
 
     private ComponentMapper<PlayScriptComponent> _script = null!;
     private ComponentMapper<BehaviorComponent> _behavior = null!;
@@ -33,11 +34,12 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
 
     public bool DebugLog { get; set; }
 
-    public PlayScriptSystem(PlayState playState, MatchState matchState)
+    public PlayScriptSystem(PlayState playState, MatchState matchState, ControlState control)
         : base(Aspect.All(typeof(PositionComponent)))
     {
         _play = playState ?? throw new ArgumentNullException(nameof(playState));
         _match = matchState ?? throw new ArgumentNullException(nameof(matchState));
+        _control = control ?? throw new ArgumentNullException(nameof(control));
     }
 
     public override void Initialize(IComponentMapperService mapperService)
@@ -300,6 +302,10 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
         // Update play model.
         _play.BallState = BallState.Held;
         _play.BallOwnerEntityId = targetId.Value;
+
+        // Tecmo intent: once the handoff completes, control should deterministically switch to the new ball carrier.
+        // We do this as a one-shot override consumed by PlayerControlSystem.
+        _control.PendingForcedEntityId = targetId.Value;
 
         // Update carrier flags.
         foreach (var pid in ActiveEntities)

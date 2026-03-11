@@ -78,10 +78,30 @@ public sealed class PlayerControlSystem : EntityUpdateSystem
         var ballCarrierId = FindBallCarrier(entities);
         var playerTeamIndex = ResolvePlayerTeamIndex(entities, ballCarrierId);
 
+        // One-shot forced selection (used for deterministic Tecmo-style control switches, e.g. handoff).
+        int? forced = null;
+        if (_control.PendingForcedEntityId is not null)
+        {
+            var candidate = _control.PendingForcedEntityId.Value;
+            foreach (var id in entities)
+            {
+                if (id != candidate)
+                    continue;
+
+                var team = _teamMapper.Get(id);
+                if (team.IsPlayerControlled && (playerTeamIndex is null || team.TeamIndex == playerTeamIndex))
+                    forced = id;
+
+                break;
+            }
+
+            _control.PendingForcedEntityId = null;
+        }
+
         // Manual switch overrides the default selection.
-        int? desired = wantsSwitch
+        int? desired = forced ?? (wantsSwitch
             ? ChooseNextOnSwitch(entities, playerTeamIndex, ballCarrierId)
-            : ChooseDefault(entities, playerTeamIndex, ballCarrierId);
+            : ChooseDefault(entities, playerTeamIndex, ballCarrierId));
 
         ApplySelection(entities, desired, playerTeamIndex, ballCarrierId);
     }
