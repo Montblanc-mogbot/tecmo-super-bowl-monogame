@@ -211,7 +211,11 @@ public sealed class MainGame : Game
         if (_spriteBatch is null || _renderResources is null)
             throw new InvalidOperationException("Cannot build world: missing SpriteBatch or RenderResources");
 
-        _renderingSystem = new RenderingSystem(_spriteBatch, _renderResources.Pixel)
+        var spriteRegistry = new TecmoSBGame.Rendering.Sprites.SpriteRegistry();
+        if (GameContent.SpriteManifest is not null)
+            spriteRegistry.LoadFromManifest(Content, GameContent.SpriteManifest);
+
+        _renderingSystem = new RenderingSystem(_spriteBatch, _renderResources.Pixel, spriteRegistry)
         {
             ShowLabels = _showEntityLabels,
         };

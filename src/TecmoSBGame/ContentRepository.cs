@@ -125,6 +125,11 @@ public sealed class ContentRepository
     /// </summary>
     public YamlContentLoader YamlLoader => _content.YamlLoader;
 
+    public Content.Sprites.SpriteManifestConfig? TryLoadSpriteManifest()
+    {
+        return _content.TryLoadYaml<Content.Sprites.SpriteManifestConfig>("sprites/sprite_manifest.yaml");
+    }
+
     /// <summary>
     /// MonoGame content manager for textures, sounds, etc.
     /// </summary>

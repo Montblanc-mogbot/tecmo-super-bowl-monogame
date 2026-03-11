@@ -18,6 +18,7 @@ public sealed class RenderingSystem : EntityDrawSystem
 {
     private readonly SpriteBatch _spriteBatch;
     private readonly Texture2D _pixel;
+    private readonly Rendering.Sprites.SpriteRegistry _sprites;
 
     private ComponentMapper<PositionComponent> _positionMapper = null!;
     private ComponentMapper<SpriteComponent> _spriteMapper = null!;
@@ -30,11 +31,12 @@ public sealed class RenderingSystem : EntityDrawSystem
 
     public bool ShowLabels { get; set; } = true;
 
-    public RenderingSystem(SpriteBatch spriteBatch, Texture2D pixel)
+    public RenderingSystem(SpriteBatch spriteBatch, Texture2D pixel, Rendering.Sprites.SpriteRegistry sprites)
         : base(Aspect.All(typeof(PositionComponent), typeof(SpriteComponent)))
     {
         _spriteBatch = spriteBatch ?? throw new ArgumentNullException(nameof(spriteBatch));
         _pixel = pixel ?? throw new ArgumentNullException(nameof(pixel));
+        _sprites = sprites ?? throw new ArgumentNullException(nameof(sprites));
     }
 
     public override void Initialize(IComponentMapperService mapperService)
@@ -58,13 +60,27 @@ public sealed class RenderingSystem : EntityDrawSystem
             var pos = _positionMapper.Get(entityId).Position;
             var sprite = _spriteMapper.Get(entityId);
 
-            // Placeholder: draw a 16x16 marker at entity position.
-            // Use Pixel + tinting (no per-frame texture allocations).
-            var teamColor = GetTeamColor(entityId);
             var rect = new Rectangle((int)pos.X - 8, (int)pos.Y - 8, 16, 16);
 
-            // Fill
-            _spriteBatch.Draw(_pixel, rect, teamColor);
+            // Prefer real sprite regions when available.
+            if (_sprites.TryGet(sprite.SpriteId, out var tex, out var src))
+            {
+                _spriteBatch.Draw(
+                    tex,
+                    destinationRectangle: rect,
+                    sourceRectangle: src,
+                    color: sprite.Tint,
+                    rotation: sprite.Rotation,
+                    origin: new Vector2(src.Width / 2f, src.Height / 2f),
+                    effects: sprite.FlipHorizontal ? SpriteEffects.FlipHorizontally : SpriteEffects.None,
+                    layerDepth: 0f);
+            }
+            else
+            {
+                // Fallback: draw a 16x16 marker at entity position.
+                var teamColor = GetTeamColor(entityId);
+                _spriteBatch.Draw(_pixel, rect, teamColor);
+            }
 
             // Outline for special states
             if (_ballCarrierMapper.Has(entityId) && _ballCarrierMapper.Get(entityId).HasBall)

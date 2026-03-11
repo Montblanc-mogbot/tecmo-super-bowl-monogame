@@ -29,6 +29,9 @@ public sealed class GameContent
     public SoundEngineConfig SoundEngine { get; private set; } = null!;
     public SoundDataConfig SoundData { get; private set; } = null!;
 
+    // Sprites
+    public Content.Sprites.SpriteManifestConfig? SpriteManifest { get; private set; }
+
     public GameContent(IServiceProvider serviceProvider)
     {
         _repository = new ContentRepository(serviceProvider);
@@ -85,8 +88,9 @@ public sealed class GameContent
             // Console.WriteLine("[GameContent] Loaded FG worksheet");
             
             // Sprites
-            // Bank9SpriteScripts = _repository.LoadBank9SpriteScripts();
-            // Console.WriteLine("[GameContent] Loaded sprite scripts");
+            SpriteManifest = _repository.TryLoadSpriteManifest();
+            if (SpriteManifest is not null)
+                Console.WriteLine("[GameContent] Loaded sprite manifest");
             
             // Sound
             // SoundEngine = _repository.LoadSoundEngine();

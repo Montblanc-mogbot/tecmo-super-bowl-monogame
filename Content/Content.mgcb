@@ -37,6 +37,16 @@
 #/build:Tiles/field_tiles.png
 
 #----------------------------------
+# Textures
+#----------------------------------
+
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyEnabled=False
+/processorParam:PremultiplyAlpha=True
+/build:Textures/DebugSprites.png
+
+#----------------------------------
 # Fonts
 #----------------------------------
 
