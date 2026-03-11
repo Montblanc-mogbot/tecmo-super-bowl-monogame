@@ -89,6 +89,10 @@ public sealed class PlayCallSystem : EntityUpdateSystem
 
             // Keep convenience fields fresh.
             SyncSelected(pc);
+
+            // Debug: surface current selection when user is attempting to confirm.
+            if (pc.Step == PlayCallStep.Offense && pc.Focus == PlayCallFocus.Play && pc.SelectedPlay is null)
+                Console.WriteLine($"[playcall] WARN selectedPlay=null formationId={pc.SelectedFormationId} playsForFormation={pc.PlaysForFormation.Count} playIndex={pc.PlayIndex}");
         }
     }
 
@@ -98,6 +102,20 @@ public sealed class PlayCallSystem : EntityUpdateSystem
         {
             foreach (var f in _formations.OffensiveFormations)
                 pc.FormationIds.Add(f.Id);
+
+            // Default to the first formation that actually has plays (skip kickoff/test formations like "00").
+            for (var i = 0; i < pc.FormationIds.Count; i++)
+            {
+                var fid = pc.FormationIds[i];
+                if (_playlist.PlayList is null)
+                    break;
+
+                if (_playlist.PlayList.Any(p => string.Equals(p.Formation, fid, StringComparison.OrdinalIgnoreCase)))
+                {
+                    pc.FormationIndex = i;
+                    break;
+                }
+            }
         }
 
         if (pc.DefensiveCalls.Count == 0)
@@ -321,6 +339,13 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             {
                 if (pc.Focus == PlayCallFocus.Formation)
                 {
+                    // If this formation has no plays, don't advance focus; user must pick a valid formation.
+                    if (pc.PlaysForFormation.Count == 0)
+                    {
+                        Console.WriteLine($"[playcall] offense confirm ignored: formation={pc.SelectedFormationId} has 0 plays");
+                        return;
+                    }
+
                     pc.Focus = PlayCallFocus.Play;
                     return;
                 }
