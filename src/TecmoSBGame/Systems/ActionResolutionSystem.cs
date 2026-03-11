@@ -182,6 +182,10 @@ public sealed class ActionResolutionSystem : EntityUpdateSystem
 
     private void ResolvePassRequested(int qbEntityId)
     {
+        // Kickoff/return (and any other non-scrimmage slices) should not allow passing.
+        if (_play is not null && !_play.AllowPass)
+            return;
+
         var a = _actionMapper.Get(qbEntityId);
         var targetId = a.PendingTargetEntityId;
         a.PendingTargetEntityId = null;

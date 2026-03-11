@@ -136,62 +136,60 @@ plays:
 player_reactions:
   # ---- Minimal run play reactions (play_number=10) ----
   - id: OFF_RUN10_QB
-    description: "RUN10 QB: step right then idle"
+    description: "RUN10 QB: handoff to HB"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap2PointStance }
-      - { cmd: moveRelative, params: [0x04, 0x00] }
-      - { cmd: wait, params: [0x00, 0x10] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [two_point] }
+      - { cmd: handoff_to, params: [HB] }
+      - { cmd: loop }
 
   - id: OFF_RUN10_HB
-    description: "RUN10 HB: take control and run right"
+    description: "RUN10 HB: run right"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap2PointStance }
-      - { cmd: playerTakesControl }
-      - { cmd: moveRelative, params: [0x30, 0x00] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [two_point] }
+      - { cmd: move_by, params: [48, 0] }
+      - { cmd: loop }
 
   - id: OFF_RUN10_FB
-    description: "RUN10 FB: lead block lane (simple drift right)"
+    description: "RUN10 FB: lead right"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap2PointStance }
-      - { cmd: moveRelative, params: [0x18, 0xF8] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [two_point] }
+      - { cmd: move_by, params: [24, -8] }
+      - { cmd: loop }
 
   - id: OFF_RUN10_WR1
-    description: "RUN10 WR1: stalk block (hold)"
+    description: "RUN10 WR1: stalk (left)"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap2PointStance }
-      - { cmd: moveRelative, params: [0x10, 0xF0] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [two_point] }
+      - { cmd: move_by, params: [16, -16] }
+      - { cmd: loop }
 
   - id: OFF_RUN10_WR2
-    description: "RUN10 WR2: stalk block (hold)"
+    description: "RUN10 WR2: stalk (right)"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap2PointStance }
-      - { cmd: moveRelative, params: [0x10, 0x10] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [two_point] }
+      - { cmd: move_by, params: [16, 16] }
+      - { cmd: loop }
 
   - id: OFF_RUN10_TE
-    description: "RUN10 TE: edge block (step right)"
+    description: "RUN10 TE: edge right"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap3PointStance }
-      - { cmd: moveRelative, params: [0x14, 0x00] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [three_point] }
+      - { cmd: move_by, params: [20, 0] }
+      - { cmd: loop }
 
   - id: OFF_RUN10_OL
-    description: "RUN10 OL: step right (run blocking scaffold)"
+    description: "RUN10 OL: zone step right"
     role: OFFENSE
     commands:
-      - { cmd: waitForSnap3PointStance }
-      - { cmd: moveRelative, params: [0x0C, 0x00] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [three_point] }
+      - { cmd: move_by, params: [12, 0] }
+      - { cmd: loop }
 
   # ---- Existing kickoff samples ----
   - id: OFFENSE_PLAYER_REACTION_001
@@ -233,20 +231,20 @@ player_reactions:
       - { cmd: loopTo, params: [loop_start] }
 
   - id: DEF_RUN10_RUSH
-    description: "RUN10 DEF: simple rush right-to-left (scaffold)"
+    description: "RUN10 DEF: rush"
     role: DEFENSE
     commands:
-      - { cmd: waitForSnap3PointStance }
-      - { cmd: moveRelative, params: [0xF4, 0x00] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [three_point] }
+      - { cmd: move_by, params: [-12, 0] }
+      - { cmd: loop }
 
   - id: DEF_RUN10_FIT
-    description: "RUN10 DEF: flow to ball (simple drift left)"
+    description: "RUN10 DEF: flow"
     role: DEFENSE
     commands:
-      - { cmd: waitForSnap2PointStance }
-      - { cmd: moveRelative, params: [0xF0, 0x00] }
-      - { cmd: loopTo, params: [0] }
+      - { cmd: wait_until_snap, params: [two_point] }
+      - { cmd: move_by, params: [-16, 0] }
+      - { cmd: loop }
 
   - id: DEFENSE_PLAYER_REACTION_001
     description: "Standard pass rush"

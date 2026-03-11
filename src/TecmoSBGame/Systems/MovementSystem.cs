@@ -219,6 +219,15 @@ public sealed class MovementSystem : EntityUpdateSystem
             case BehaviorState.Idle:
                 return Vector2.Zero;
 
+            case BehaviorState.TrackingPlayer:
+                if (behavior.TargetEntityId != 0 && _positionMapper.Has(behavior.TargetEntityId))
+                {
+                    var toTarget = _positionMapper.Get(behavior.TargetEntityId).Position - _positionMapper.Get(entityId).Position;
+                    if (toTarget.LengthSquared() > 1f)
+                        return SafeNormalize(toTarget);
+                }
+                return Vector2.Zero;
+
             case BehaviorState.MovingToPosition:
             case BehaviorState.RushingQB:
             case BehaviorState.RunningRoute:

@@ -61,6 +61,12 @@ public static class PlayScriptCompiler
                     ops.Add(new PlayScriptOp(PlayScriptOpKind.PassBlock, 0, 0, null, cmd));
                     break;
 
+                case "handoff_to":
+                    // Params: slot (string)
+                    var toSlot = c.Params is { Count: > 0 } ? c.Params[0]?.ToString() : "";
+                    ops.Add(new PlayScriptOp(PlayScriptOpKind.HandoffTo, 0, 0, toSlot, cmd));
+                    break;
+
                 case "pull_and_block":
                     // Params: dx, dy
                     ops.Add(new PlayScriptOp(PlayScriptOpKind.PullAndBlock,

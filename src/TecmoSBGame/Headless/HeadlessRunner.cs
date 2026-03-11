@@ -56,7 +56,7 @@ public static class HeadlessRunner
             .AddSystem(new PassFlightCompleteSystem(events, play))
             .AddSystem(new HeadlessContactSeederSystem())
             .AddSystem(new BlockerAISystem(events, loopState, play))
-            .AddSystem(new CollisionContactSystem(events, loopState))
+            .AddSystem(new CollisionContactSystem(events, loopState, play))
             .AddSystem(new EngagementSystem(events))
             // Penalties are scaffolded but default to Off (no behavior changes).
             .AddSystem(new PenaltySystem(events, match, play))
@@ -212,7 +212,7 @@ public static class HeadlessRunner
             .AddSystem(new PassFlightStartSystem(events, play))
             .AddSystem(new PassFlightCompleteSystem(events, play))
             .AddSystem(new HeadlessContactSeederSystem())
-            .AddSystem(new CollisionContactSystem(events, loopState))
+            .AddSystem(new CollisionContactSystem(events, loopState, play))
             .AddSystem(new EngagementSystem(events))
             .AddSystem(new PenaltySystem(events, match, play))
             .AddSystem(new TackleInterruptSystem(events))

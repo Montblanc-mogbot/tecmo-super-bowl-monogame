@@ -29,6 +29,9 @@ public sealed class PlayCallComponent
     public TecmoSB.PlayEntry? SelectedPlay;
     public string SelectedDefenseId = "";
 
+    // Auto-playcall guard (dev shortcut): prevent re-emitting selection every tick.
+    public int LastAutoPlaycallPlayId = -1;
+
     // Used for edge detection inside systems that don't have per-entity input state.
     public bool PrevA;
     public bool PrevB;

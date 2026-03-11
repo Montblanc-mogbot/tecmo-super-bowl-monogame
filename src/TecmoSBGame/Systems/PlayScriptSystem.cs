@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Entities;
 using MonoGame.Extended.Entities.Systems;
 using TecmoSBGame.Components;
+using TecmoSBGame.Field;
 using TecmoSBGame.State;
 
 namespace TecmoSBGame.Systems;
@@ -16,22 +17,38 @@ namespace TecmoSBGame.Systems;
 public sealed class PlayScriptSystem : EntityUpdateSystem
 {
     private readonly PlayState _play;
+    private readonly MatchState _match;
 
     private ComponentMapper<PlayScriptComponent> _script = null!;
     private ComponentMapper<BehaviorComponent> _behavior = null!;
+    private ComponentMapper<PositionComponent> _pos = null!;
+    private ComponentMapper<TeamComponent> _team = null!;
+    private ComponentMapper<PlayerRoleComponent> _role = null!;
+    private ComponentMapper<BallCarrierComponent> _carrier = null!;
+    private ComponentMapper<BallComponent> _ballTag = null!;
+    private ComponentMapper<BallStateComponent> _ballState = null!;
+    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
 
     public bool DebugLog { get; set; }
 
-    public PlayScriptSystem(PlayState playState)
-        : base(Aspect.All(typeof(PlayScriptComponent), typeof(BehaviorComponent)))
+    public PlayScriptSystem(PlayState playState, MatchState matchState)
+        : base(Aspect.All(typeof(PlayScriptComponent), typeof(BehaviorComponent), typeof(PositionComponent), typeof(TeamComponent)))
     {
         _play = playState ?? throw new ArgumentNullException(nameof(playState));
+        _match = matchState ?? throw new ArgumentNullException(nameof(matchState));
     }
 
     public override void Initialize(IComponentMapperService mapperService)
     {
         _script = mapperService.GetMapper<PlayScriptComponent>();
         _behavior = mapperService.GetMapper<BehaviorComponent>();
+        _pos = mapperService.GetMapper<PositionComponent>();
+        _team = mapperService.GetMapper<TeamComponent>();
+        _role = mapperService.GetMapper<PlayerRoleComponent>();
+        _carrier = mapperService.GetMapper<BallCarrierComponent>();
+        _ballTag = mapperService.GetMapper<BallComponent>();
+        _ballState = mapperService.GetMapper<BallStateComponent>();
+        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -78,11 +95,115 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
                         }
                         continue;
 
+                    case PlayScriptOpKind.SetAnchor:
+                        {
+                            var kind = (op.S ?? string.Empty).Trim().ToLowerInvariant();
+                            s.Anchor.Kind = kind switch
+                            {
+                                "los" or "line_of_scrimmage" => PlayAnchorKind.LineOfScrimmage,
+                                "mid" or "midfield" => PlayAnchorKind.Midfield,
+                                "ballcarrier" or "ball_carrier" => PlayAnchorKind.BallCarrier,
+                                _ => PlayAnchorKind.None,
+                            };
+                            s.Anchor.Dx = op.A;
+                            s.Anchor.Dy = op.B;
+                            continue;
+                        }
+
                     case PlayScriptOpKind.MoveBy:
-                        // For now treat MoveBy as a nudge: we don't yet model per-play anchors here.
-                        // Higher-level compiler will translate this into Behavior targets.
-                        steps = 999;
-                        break;
+                        {
+                            var b = _behavior.Get(id);
+                            b.State = BehaviorState.MovingToPosition;
+                            b.TargetPosition = _pos.Get(id).Position + new Vector2(op.A, op.B);
+                            steps = 999;
+                            break;
+                        }
+
+                    case PlayScriptOpKind.MoveToAnchorOffset:
+                        {
+                            var b = _behavior.Get(id);
+                            b.State = BehaviorState.MovingToPosition;
+                            b.TargetPosition = ResolveAnchorPosition(id, s.Anchor) + new Vector2(op.A, op.B);
+                            steps = 999;
+                            break;
+                        }
+
+                    case PlayScriptOpKind.PullAndBlock:
+                        {
+                            // Phase 1: move to a point (we'll add engagement selection next).
+                            var b = _behavior.Get(id);
+                            b.State = BehaviorState.MovingToPosition;
+                            b.TargetPosition = ResolveAnchorPosition(id, s.Anchor) + new Vector2(op.A, op.B);
+                            steps = 999;
+                            break;
+                        }
+
+                    case PlayScriptOpKind.PassBlock:
+                        {
+                            // Placeholder: hold position while in-play.
+                            var b = _behavior.Get(id);
+                            b.State = BehaviorState.Idle;
+                            steps = 999;
+                            break;
+                        }
+
+                    case PlayScriptOpKind.HandoffTo:
+                        {
+                            if (_play.Phase != PlayPhase.InPlay)
+                                continue;
+
+                            var slot = (op.S ?? string.Empty).Trim();
+                            if (slot.Length == 0)
+                                continue;
+
+                            var offenseTeam = _match.PossessionTeam;
+
+                            int? targetId = null;
+                            foreach (var pid in ActiveEntities)
+                            {
+                                if (!_team.Has(pid) || !_role.Has(pid))
+                                    continue;
+
+                                var t = _team.Get(pid);
+                                if (!t.IsOffense || t.TeamIndex != offenseTeam)
+                                    continue;
+
+                                if (string.Equals(_role.Get(pid).Slot, slot, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    targetId = pid;
+                                    break;
+                                }
+                            }
+
+                            if (targetId is null)
+                                continue;
+
+                            // Update play model.
+                            _play.BallState = BallState.Held;
+                            _play.BallOwnerEntityId = targetId.Value;
+
+                            // Update carrier flags.
+                            foreach (var pid in ActiveEntities)
+                            {
+                                if (_carrier.Has(pid))
+                                    _carrier.Get(pid).HasBall = pid == targetId.Value;
+                            }
+
+                            // Sync dedicated ball entity.
+                            foreach (var bid in ActiveEntities)
+                            {
+                                if (!_ballTag.Has(bid) || !_ballState.Has(bid) || !_ballOwner.Has(bid) || !_pos.Has(bid))
+                                    continue;
+
+                                _ballState.Get(bid).State = BallState.Held;
+                                _ballOwner.Get(bid).OwnerEntityId = targetId.Value;
+                                _pos.Get(bid).Position = _pos.Get(targetId.Value).Position;
+                                break;
+                            }
+
+                            steps = 999;
+                            break;
+                        }
 
                     case PlayScriptOpKind.Jump:
                     case PlayScriptOpKind.Loop:
@@ -98,6 +219,38 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
 
             // Note: the actual movement is driven by BehaviorComponent and MovementSystem.
             // This system will expand to set BehaviorState/TargetPosition/TargetEntityId.
+        }
+    }
+
+    private Vector2 ResolveAnchorPosition(int entityId, PlayAnchor anchor)
+    {
+        // Default: current position.
+        var basePos = _pos.Get(entityId).Position;
+
+        switch (anchor.Kind)
+        {
+            case PlayAnchorKind.LineOfScrimmage:
+            {
+                var abs = PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection);
+                var x = FieldBounds.AbsoluteYardToX(abs);
+                return new Vector2(x + anchor.Dx, 112 + anchor.Dy);
+            }
+
+            case PlayAnchorKind.Midfield:
+                return new Vector2(FieldBounds.AbsoluteYardToX(50) + anchor.Dx, 112 + anchor.Dy);
+
+            case PlayAnchorKind.BallCarrier:
+            {
+                foreach (var id in ActiveEntities)
+                {
+                    if (_carrier.Has(id) && _carrier.Get(id).HasBall && _pos.Has(id))
+                        return _pos.Get(id).Position + new Vector2(anchor.Dx, anchor.Dy);
+                }
+                return basePos;
+            }
+
+            default:
+                return basePos;
         }
     }
 }
