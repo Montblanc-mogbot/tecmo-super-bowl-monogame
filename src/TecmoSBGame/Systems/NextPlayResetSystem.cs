@@ -38,6 +38,7 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
     private ComponentMapper<EngagementComponent> _engagement = null!;
     private ComponentMapper<BehaviorStackComponent> _stack = null!;
     private ComponentMapper<BehaviorComponent> _behavior = null!;
+    private ComponentMapper<PlayScriptComponent> _script = null!;
 
     private ComponentMapper<BallComponent> _ballTag = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
@@ -66,6 +67,7 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
         _engagement = mapperService.GetMapper<EngagementComponent>();
         _stack = mapperService.GetMapper<BehaviorStackComponent>();
         _behavior = mapperService.GetMapper<BehaviorComponent>();
+        _script = mapperService.GetMapper<PlayScriptComponent>();
 
         _ballTag = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
@@ -177,14 +179,21 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
 
             if (_behavior.Has(entityId))
             {
+                // Reset to a fully neutral state so no tracking/route state bleeds into the next play.
                 var b = _behavior.Get(entityId);
-                if (b.State is BehaviorState.Engaged or BehaviorState.Tackling or BehaviorState.Grappling)
-                {
-                    b.State = BehaviorState.Idle;
-                    b.StateTimer = 0f;
-                    b.TargetEntityId = 0;
-                    b.TargetPosition = Vector2.Zero;
-                }
+                b.State = BehaviorState.Idle;
+                b.StateTimer = 0f;
+                b.TargetEntityId = 0;
+                b.TargetPosition = Vector2.Zero;
+            }
+
+            if (_script.Has(entityId))
+            {
+                // Keep ops but clear all transient execution state.
+                var s = _script.Get(entityId);
+                s.Ip = 0;
+                s.WaitSeconds = 0f;
+                s.PendingHandoffSlot = null;
             }
 
             if (_vel.Has(entityId))
