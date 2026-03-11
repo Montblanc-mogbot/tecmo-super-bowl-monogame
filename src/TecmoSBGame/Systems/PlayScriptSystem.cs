@@ -16,6 +16,8 @@ namespace TecmoSBGame.Systems;
 /// </summary>
 public sealed class PlayScriptSystem : EntityUpdateSystem
 {
+    private const float FramesPerSecond = 60f;
+
     private readonly PlayState _play;
     private readonly MatchState _match;
 
@@ -32,7 +34,7 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
     public bool DebugLog { get; set; }
 
     public PlayScriptSystem(PlayState playState, MatchState matchState)
-        : base(Aspect.All(typeof(BehaviorComponent), typeof(PositionComponent), typeof(TeamComponent)))
+        : base(Aspect.All(typeof(PositionComponent)))
     {
         _play = playState ?? throw new ArgumentNullException(nameof(playState));
         _match = matchState ?? throw new ArgumentNullException(nameof(matchState));
@@ -67,6 +69,11 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
             if (s.WaitSeconds > 0f)
             {
                 s.WaitSeconds = Math.Max(0f, s.WaitSeconds - dt);
+                if (s.WaitSeconds <= 0f && s.PendingHandoffSlot is not null)
+                {
+                    TryExecuteHandoffToSlot(s.PendingHandoffSlot);
+                    s.PendingHandoffSlot = null;
+                }
                 continue;
             }
 
@@ -191,51 +198,17 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
                             if (slot.Length == 0)
                                 continue;
 
-                            var offenseTeam = _match.PossessionTeam;
-
-                            int? targetId = null;
-                            foreach (var pid in ActiveEntities)
+                            var delayFrames = op.A;
+                            if (delayFrames > 0f)
                             {
-                                if (!_team.Has(pid) || !_role.Has(pid))
-                                    continue;
-
-                                var t = _team.Get(pid);
-                                if (!t.IsOffense || t.TeamIndex != offenseTeam)
-                                    continue;
-
-                                if (string.Equals(_role.Get(pid).Slot, slot, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    targetId = pid;
-                                    break;
-                                }
-                            }
-
-                            if (targetId is null)
-                                continue;
-
-                            // Update play model.
-                            _play.BallState = BallState.Held;
-                            _play.BallOwnerEntityId = targetId.Value;
-
-                            // Update carrier flags.
-                            foreach (var pid in ActiveEntities)
-                            {
-                                if (_carrier.Has(pid))
-                                    _carrier.Get(pid).HasBall = pid == targetId.Value;
-                            }
-
-                            // Sync dedicated ball entity.
-                            foreach (var bid in ActiveEntities)
-                            {
-                                if (!_ballTag.Has(bid) || !_ballState.Has(bid) || !_ballOwner.Has(bid) || !_pos.Has(bid))
-                                    continue;
-
-                                _ballState.Get(bid).State = BallState.Held;
-                                _ballOwner.Get(bid).OwnerEntityId = targetId.Value;
-                                _pos.Get(bid).Position = _pos.Get(targetId.Value).Position;
+                                // Yield until delay expires, then execute handoff once.
+                                s.PendingHandoffSlot = slot;
+                                s.WaitSeconds = delayFrames / FramesPerSecond;
+                                steps = 999;
                                 break;
                             }
 
+                            TryExecuteHandoffToSlot(slot);
                             steps = 999;
                             break;
                         }
@@ -298,6 +271,54 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
         }
 
         return best == int.MaxValue ? null : best;
+    }
+
+    private void TryExecuteHandoffToSlot(string slot)
+    {
+        var offenseTeam = _match.PossessionTeam;
+
+        int? targetId = null;
+        foreach (var pid in ActiveEntities)
+        {
+            if (!_team.Has(pid) || !_role.Has(pid) || !_pos.Has(pid))
+                continue;
+
+            var t = _team.Get(pid);
+            if (!t.IsOffense || t.TeamIndex != offenseTeam)
+                continue;
+
+            if (string.Equals(_role.Get(pid).Slot, slot, StringComparison.OrdinalIgnoreCase))
+            {
+                targetId = pid;
+                break;
+            }
+        }
+
+        if (targetId is null)
+            return;
+
+        // Update play model.
+        _play.BallState = BallState.Held;
+        _play.BallOwnerEntityId = targetId.Value;
+
+        // Update carrier flags.
+        foreach (var pid in ActiveEntities)
+        {
+            if (_carrier.Has(pid))
+                _carrier.Get(pid).HasBall = pid == targetId.Value;
+        }
+
+        // Sync dedicated ball entity.
+        foreach (var bid in ActiveEntities)
+        {
+            if (!_ballTag.Has(bid) || !_ballState.Has(bid) || !_ballOwner.Has(bid) || !_pos.Has(bid))
+                continue;
+
+            _ballState.Get(bid).State = BallState.Held;
+            _ballOwner.Get(bid).OwnerEntityId = targetId.Value;
+            _pos.Get(bid).Position = _pos.Get(targetId.Value).Position;
+            break;
+        }
     }
 
     private Vector2 ResolveAnchorPosition(int entityId, PlayAnchor anchor)

@@ -72,9 +72,10 @@ public static class PlayScriptCompiler
                     break;
 
                 case "handoff_to":
-                    // Params: slot (string)
+                    // Params: slot (string), delayFrames (int)
                     var toSlot = c.Params is { Count: > 0 } ? c.Params[0]?.ToString() : "";
-                    ops.Add(new PlayScriptOp(PlayScriptOpKind.HandoffTo, 0, 0, toSlot, cmd));
+                    var delayFrames = c.Params is { Count: > 1 } ? ParseFloat(c.Params[1]) : 0f;
+                    ops.Add(new PlayScriptOp(PlayScriptOpKind.HandoffTo, delayFrames, 0, toSlot, cmd));
                     break;
 
                 case "pull_and_block":

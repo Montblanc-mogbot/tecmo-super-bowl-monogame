@@ -24,6 +24,11 @@ public sealed class PlayScriptComponent
     public float WaitSeconds;
 
     /// <summary>
+    /// Pending handoff slot to execute once the delay elapses (if any).
+    /// </summary>
+    public string? PendingHandoffSlot;
+
+    /// <summary>
     /// Anchor computed during pre-snap (e.g., LOS or midfield reference). Kept in component state
     /// so commands can refer to it without re-deriving from raw ROM data.
     /// </summary>
