@@ -723,17 +723,24 @@ public sealed class MainGame : Game
             // Debug info
             DrawDebugInfo(_spriteBatch);
 
-            // Playcall overlay
+            // Playcall placeholder overlay
             if (_playCallState is not null && _playCallState.Visible)
             {
-                var formationArea = new Rectangle(6, 6, 120, 212);
-                var playsArea = new Rectangle(130, 6, 120, 110);
+                var font = FontSystem.Instance.GetFont(FontSize.Large);
+                var pixel = _renderResources?.Pixel;
+                if (pixel is not null)
+                {
+                    // Dim background
+                    _spriteBatch.Draw(pixel, new Rectangle(0, 0, 256, 224), Color.Black * 0.75f);
+                }
 
-                _formationSelectRenderer?.Draw(_spriteBatch, formationArea, _playCallState);
-                _playSelectRenderer?.Draw(_spriteBatch, playsArea, _playCallState);
-
-                if (_playCallState.Step == PlayCallStep.Defense)
-                    _defensiveSelectRenderer?.Draw(_spriteBatch, playsArea, _playCallState);
+                if (font is not null)
+                {
+                    const string text = "PLAYCALL";
+                    var size = font.MeasureString(text);
+                    var pos = new Vector2((256 - size.X) / 2f, (224 - size.Y) / 2f);
+                    _spriteBatch.DrawString(font, text, pos, Color.White);
+                }
             }
         }
 

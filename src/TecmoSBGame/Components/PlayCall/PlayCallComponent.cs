@@ -11,6 +11,9 @@ public sealed class PlayCallComponent
     public bool Visible;
     public bool WasVisible;
 
+    // Temporary placeholder UI: show a blank "PLAYCALL" screen briefly after selection.
+    public float DisplaySeconds;
+
     public PlayCallStep Step = PlayCallStep.Offense;
     public PlayCallFocus Focus = PlayCallFocus.Formation;
 

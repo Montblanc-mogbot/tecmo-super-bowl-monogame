@@ -58,70 +58,54 @@ public sealed class PlayCallSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
-        // Only show playcall during on-field pre-snap, and only when the ball is dead (scrimmage pre-snap).
-        // Kickoff pre-snap uses BallState.Held and does not show playcall.
-        var shouldShow = _loop.IsOnField("pre_snap")
+        // Playcall placeholder: during on-field pre-snap (dead ball), force a deterministic play selection.
+        // We keep a simple blank overlay visible briefly so the flow still has a recognizable "playcall" slice.
+        var inPlayCallSlice = _loop.IsOnField("pre_snap")
             && _play.Phase == PlayPhase.PreSnap
-            && _play.BallState == BallState.Dead
-            && !_play.PlayCallLockedIn;
+            && _play.BallState == BallState.Dead;
+
+        var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         foreach (var entityId in ActiveEntities)
         {
             var pc = _pc.Get(entityId);
-            pc.Visible = shouldShow;
 
-            if (!shouldShow)
+            if (!inPlayCallSlice)
             {
+                pc.Visible = false;
                 pc.WasVisible = false;
+                pc.DisplaySeconds = 0f;
                 continue;
             }
 
-            // Rising edge: playcall became visible for a new pre-snap slice.
-            if (!pc.WasVisible)
+            // If we've already locked in this down, keep a simple overlay visible for a brief moment.
+            if (_play.PlayCallLockedIn)
             {
-                pc.Step = PlayCallStep.Offense;
-                pc.Focus = PlayCallFocus.Formation;
-                pc.LastAutoPlaycallPlayId = -1;
-
-                // Force a rebuild of plays list.
-                pc.SelectedFormationId = "";
-                pc.SelectedPlay = null;
-                pc.SelectedDefenseId = "";
-
-                // Default to first formation that actually has plays.
-                if (pc.FormationIds.Count > 0 && _playlist.PlayList is not null)
-                {
-                    for (var i = 0; i < pc.FormationIds.Count; i++)
-                    {
-                        var fid = pc.FormationIds[i];
-                        if (_playlist.PlayList.Any(p => string.Equals(p.Formation, fid, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            pc.FormationIndex = i;
-                            pc.PlayIndex = 0;
-                            break;
-                        }
-                    }
-                }
+                pc.DisplaySeconds = MathF.Max(0f, pc.DisplaySeconds - dt);
+                pc.Visible = pc.DisplaySeconds > 0f;
+                pc.WasVisible = pc.Visible;
+                continue;
             }
 
-            EnsureLists(pc);
-            EnsureSelectionValid(pc);
+            // First entry: force the demo play and lock in.
+            const string FormationId = "04";
+            const string Slot = "Run 1";
+            const string Name = "T FAKE SWEEP R";
+            const int PlayNumber = 10;
 
-            // Dev shortcut: auto-select a deterministic play every down until a real playcall system exists.
-            // NOTE: manual playcall input will never work if AutoPlaycallEnabled is true.
-            if (_play.AutoPlaycallEnabled)
-            {
-                HandleAutoPlaycall(pc);
-            }
-            else
-            {
-                HandleInput(pc);
-            }
+            Console.WriteLine($"[playcall] forced offense formation={FormationId} slot=\"{Slot}\" play=\"{Name}\" play_number={PlayNumber}");
 
-            // Keep convenience fields fresh.
-            SyncSelected(pc);
+            _events.Publish(new PlaySelectedEvent(
+                OffensiveFormationId: FormationId,
+                OffensivePlayName: Name,
+                OffensivePlaySlot: Slot,
+                OffensivePlayNumber: PlayNumber,
+                DefensiveCallId: ""));
 
-            // Mark visible for edge detection.
+            _play.PlayCallLockedIn = true;
+
+            pc.DisplaySeconds = 0.35f;
+            pc.Visible = true;
             pc.WasVisible = true;
         }
     }
