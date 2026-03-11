@@ -11,8 +11,19 @@ public sealed record PlayDataConfig(
     IReadOnlyList<PlayCommandType> CommandTypes,
     IReadOnlyList<PlayerReactionScript> PlayerReactions,
     IReadOnlyList<PlayCategory> Categories,
+    IReadOnlyList<PlayDefinition> Plays,
     PlayDataRomInfo RomInfo,
     IReadOnlyList<string> Notes);
+
+/// <summary>
+/// Maps an offensive play number (as referenced by the play list) to per-slot reaction scripts.
+/// This is the key bridge between playlist selection and ROM-style player-reaction bytecode.
+/// </summary>
+public sealed record PlayDefinition(
+    int PlayNumber,
+    string Description,
+    IReadOnlyDictionary<string, string> Offense,
+    IReadOnlyDictionary<string, string> Defense);
 
 public sealed record PlayCommandType(
     string Name,

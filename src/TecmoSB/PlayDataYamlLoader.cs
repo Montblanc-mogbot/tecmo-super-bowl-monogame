@@ -23,6 +23,7 @@ public static class PlayDataYamlLoader
         public List<PlayCommandTypeYamlDto> CommandTypes { get; set; } = new();
         public List<PlayerReactionScriptYamlDto> PlayerReactions { get; set; } = new();
         public List<PlayCategoryYamlDto> Categories { get; set; } = new();
+        public List<PlayDefinitionYamlDto> Plays { get; set; } = new();
         public PlayDataRomInfoYamlDto RomInfo { get; set; } = new();
         public List<string> Notes { get; set; } = new();
 
@@ -36,8 +37,29 @@ public static class PlayDataYamlLoader
                 CommandTypes.Select(c => c.ToModel()).ToList(),
                 PlayerReactions.Select(r => r.ToModel()).ToList(),
                 Categories.Select(c => c.ToModel()).ToList(),
+                Plays.Select(p => p.ToModel()).ToList(),
                 RomInfo.ToModel(),
                 Notes.ToList());
+        }
+    }
+
+    private sealed class PlayDefinitionYamlDto
+    {
+        public int PlayNumber { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public Dictionary<string, string> Offense { get; set; } = new();
+        public Dictionary<string, string> Defense { get; set; } = new();
+
+        public PlayDefinition ToModel()
+        {
+            if (PlayNumber <= 0)
+                throw new InvalidDataException("PlayDefinition.play_number must be > 0");
+
+            return new PlayDefinition(
+                PlayNumber,
+                Description ?? string.Empty,
+                new Dictionary<string, string>(Offense ?? new()),
+                new Dictionary<string, string>(Defense ?? new()));
         }
     }
 
