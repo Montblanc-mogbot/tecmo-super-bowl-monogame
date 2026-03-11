@@ -49,6 +49,12 @@ public sealed class PlayState
     public bool AutoPlaycallEnabled { get; set; } = false;
 
     /// <summary>
+    /// When true, the user/AI has locked in play selection for this down; playcall UI should hide.
+    /// Cleared when advancing to the next play.
+    /// </summary>
+    public bool PlayCallLockedIn { get; set; }
+
+    /// <summary>
     /// Entity id of the current ball owner (ball carrier / receiver / etc). Null when the ball is not possessed.
     /// </summary>
     public int? BallOwnerEntityId { get; set; } = null;
@@ -92,6 +98,7 @@ public sealed class PlayState
         BallOwnerEntityId = null;
         AllowPass = true;
         AutoPlaycallEnabled = false;
+        PlayCallLockedIn = false;
 
         WhistleReason = WhistleReason.None;
         Result = default;

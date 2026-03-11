@@ -60,7 +60,10 @@ public sealed class PlayCallSystem : EntityUpdateSystem
     {
         // Only show playcall during on-field pre-snap, and only when the ball is dead (scrimmage pre-snap).
         // Kickoff pre-snap uses BallState.Held and does not show playcall.
-        var shouldShow = _loop.IsOnField("pre_snap") && _play.Phase == PlayPhase.PreSnap && _play.BallState == BallState.Dead;
+        var shouldShow = _loop.IsOnField("pre_snap")
+            && _play.Phase == PlayPhase.PreSnap
+            && _play.BallState == BallState.Dead
+            && !_play.PlayCallLockedIn;
 
         foreach (var entityId in ActiveEntities)
         {
@@ -317,11 +320,14 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             if (pc.Step == PlayCallStep.Offense)
             {
                 if (pc.Focus == PlayCallFocus.Formation)
+                {
                     pc.Focus = PlayCallFocus.Play;
-                else
-                    pc.Step = PlayCallStep.Defense;
+                    return;
+                }
 
-                pc.Focus = pc.Step == PlayCallStep.Defense ? PlayCallFocus.Defense : pc.Focus;
+                // Tecmo intent: player selects only their offensive play.
+                // Defense selection is AI-driven.
+                EmitSelected(pc);
                 return;
             }
 
@@ -382,7 +388,7 @@ public sealed class PlayCallSystem : EntityUpdateSystem
         SyncSelected(pc);
 
         var off = pc.SelectedPlay;
-        var def = pc.SelectedDefenseId;
+        string def = ""; // AI-selected (do not require player to pick defense)
 
         // Graceful no-data behavior: only emit if we have at least an offensive play.
         if (off is null)

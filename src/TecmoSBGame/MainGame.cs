@@ -383,6 +383,9 @@ public sealed class MainGame : Game
                 _events.BeginTick();
                 _world.Update(fixedGameTime);
 
+                // Apply manual play selection (PlayCallSystem emits PlaySelectedEvent).
+                _events.Drain<TecmoSBGame.Events.PlaySelectedEvent>(ApplyPlaySelected);
+
                 // Dev shortcut: auto-select and spawn a deterministic scrimmage play every down.
                 AutoPlaycallTick();
 
@@ -398,6 +401,45 @@ public sealed class MainGame : Game
         }
 
         base.Update(gameTime);
+    }
+
+    private void ApplyPlaySelected(TecmoSBGame.Events.PlaySelectedEvent e)
+    {
+        if (_world is null || _events is null || _matchState is null || _playState is null)
+            return;
+
+        // Only accept selections during scrimmage pre-snap.
+        if (_playState.Phase != TecmoSBGame.State.PlayPhase.PreSnap)
+            return;
+
+        // Make sure scrimmage roster exists.
+        EnsureScrimmageRoster(e.OffensiveFormationId);
+
+        var defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id ?? "DEFENSIVE_EXECUTION_1";
+
+        // Apply play assignments for this down.
+        var spawner = new Spawning.PlaySpawner();
+        var spawned = spawner.Spawn(
+            world: _world,
+            playList: GameContent.PlayList,
+            defensePlays: GameContent.DefensePlays,
+            offenseEntityIds: _scrimmageOffenseIds,
+            defenseEntityIds: _scrimmageDefenseIds,
+            selectedOffensivePlay: new TecmoSB.PlayEntry(
+                Name: e.OffensivePlayName,
+                Slot: e.OffensivePlaySlot,
+                Formation: e.OffensiveFormationId,
+                PlayNumbers: new[] { e.OffensivePlayNumber },
+                Defense: Array.Empty<string>()
+            ),
+            selectedDefensiveCallId: defId);
+
+        ApplyPlayDataScripts(offensivePlayNumber: e.OffensivePlayNumber);
+
+        // Hide playcall for this down.
+        _playState.PlayCallLockedIn = true;
+
+        Console.WriteLine($"[playcall] applied playId={_playState.PlayId} play_number={e.OffensivePlayNumber} def={spawned.DefensiveCallId}");
     }
 
     private void AutoPlaycallTick()

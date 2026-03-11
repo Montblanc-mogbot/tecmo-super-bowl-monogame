@@ -127,6 +127,7 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
         _play.Phase = PlayPhase.PreSnap;
         _play.BallState = BallState.Dead;
         _play.WhistleReason = WhistleReason.None;
+        _play.PlayCallLockedIn = false;
     }
 
     private void ClearTransientPerPlayComponents()
