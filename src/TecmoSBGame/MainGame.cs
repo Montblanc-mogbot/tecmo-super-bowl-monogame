@@ -328,7 +328,8 @@ public sealed class MainGame : Game
             return;
         }
 
-        _input.SetContext(_flow.State == GameFlowState.OnField ? InputContext.InPlay : InputContext.Menu);
+        var playcallVisible = _flow.State == GameFlowState.OnField && _playCallState is not null && _playCallState.Visible;
+        _input.SetContext(_flow.State == GameFlowState.OnField && !playcallVisible ? InputContext.InPlay : InputContext.Menu);
         _input.Update(gameTime);
 
         // Start/confirm (debounced so we don't skip multiple states on one press)
@@ -378,9 +379,8 @@ public sealed class MainGame : Game
         // This prevents the world from progressing (whistles, play-end, etc.) while the user is in menus.
         var simEnabled = _flow is not null && _flow.State is GameFlowState.Kickoff or GameFlowState.OnField or GameFlowState.PostPlay;
 
-        // While the playcall overlay is visible, freeze on-field simulation so players don't move under the UI.
-        if (_flow?.State == GameFlowState.OnField && _playCallState is not null && _playCallState.Visible)
-            simEnabled = false;
+        // While the playcall overlay is visible, we still advance the ECS so PlayCallSystem can process selection,
+        // but we switch input context to Menu to avoid driving controlled-player movement.
 
         // Once we transition from Kickoff to OnField, permanently hide kickoff entities so their scripts stop spamming
         // and they can't interfere with pre-snap playcall.
