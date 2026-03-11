@@ -21,8 +21,8 @@ namespace TecmoSBGame.Systems;
 /// </summary>
 public sealed class MovementSystem : EntityUpdateSystem
 {
-    private const float TrackingSlowDistance = 18f;
-    private const float TrackingStopDistance = 6f;
+    // NOTE: We used to do distance-based "arrival" slowdown for tracking. That isn't Tecmo-authentic.
+    // Tecmo achieves the feel mainly via turn-rate limits + explicit timed speed adjustments.
 
     private ComponentMapper<PositionComponent> _positionMapper = null!;
     private ComponentMapper<VelocityComponent> _velocityMapper = null!;
@@ -77,10 +77,6 @@ public sealed class MovementSystem : EntityUpdateSystem
             // Everyone else uses behavior-driven direction.
             var desiredDirection = GetDesiredDirection(entityId);
 
-            // When tracking a moving target, taper max speed as we approach to avoid orbiting/jitter.
-            // (Tecmo feel: defenders "arrive" and engage rather than endlessly overshooting.)
-            var trackingSpeedMultiplier = GetTrackingSpeedMultiplier(entityId);
-
             var currentSpeed = velocity.Velocity.Length();
             if (desiredDirection == Vector2.Zero)
             {
@@ -99,9 +95,10 @@ public sealed class MovementSystem : EntityUpdateSystem
             }
             else
             {
-                // Instant direction change allowed.
                 var lastDir = SafeNormalize(velocity.Velocity);
-                var newDir = desiredDirection;
+
+                // Tecmo-like turning: don't allow instantly snapping to the new desired direction.
+                var newDir = ApplyTurnLimit(lastDir, desiredDirection, tuning.MaxTurnDegreesPerTick * tickScale);
 
                 // Apply "cut" penalty when changing direction sharply.
                 // Tecmo feel: you can reverse instantly, but you lose speed.
@@ -114,7 +111,7 @@ public sealed class MovementSystem : EntityUpdateSystem
                     }
                 }
 
-                var maxSpeed = tuning.MaxSpeedPerTick * trackingSpeedMultiplier;
+                var maxSpeed = tuning.MaxSpeedPerTick;
                 if (_actionMapper.Has(entityId) && _actionMapper.Get(entityId).State == MovementActionState.Burst)
                     maxSpeed *= tuning.BurstMultiplier;
 
@@ -214,30 +211,6 @@ public sealed class MovementSystem : EntityUpdateSystem
         return GetBehaviorDirection(entityId);
     }
 
-    private float GetTrackingSpeedMultiplier(int entityId)
-    {
-        // Controlled entity shouldn't be speed-tapered by tracking logic.
-        if (_controlMapper.Has(entityId) && _controlMapper.Get(entityId).IsControlled)
-            return 1f;
-
-        if (!_behaviorMapper.Has(entityId))
-            return 1f;
-
-        var b = _behaviorMapper.Get(entityId);
-        if (b.State != BehaviorState.TrackingPlayer)
-            return 1f;
-
-        if (b.TargetEntityId == 0 || !_positionMapper.Has(b.TargetEntityId) || !_positionMapper.Has(entityId))
-            return 1f;
-
-        var dist = Vector2.Distance(_positionMapper.Get(entityId).Position, _positionMapper.Get(b.TargetEntityId).Position);
-        if (dist <= TrackingStopDistance)
-            return 0f;
-        if (dist >= TrackingSlowDistance)
-            return 1f;
-
-        return MathHelper.Clamp(dist / TrackingSlowDistance, 0.10f, 1f);
-    }
 
     private Vector2 GetBehaviorDirection(int entityId)
     {
@@ -255,10 +228,6 @@ public sealed class MovementSystem : EntityUpdateSystem
                 if (behavior.TargetEntityId != 0 && _positionMapper.Has(behavior.TargetEntityId))
                 {
                     var toTarget = _positionMapper.Get(behavior.TargetEntityId).Position - _positionMapper.Get(entityId).Position;
-                    // When very close, stop driving movement here; engage/tackle systems can take over.
-                    if (toTarget.LengthSquared() <= TrackingStopDistance * TrackingStopDistance)
-                        return Vector2.Zero;
-
                     return SafeNormalize(toTarget);
                 }
                 return Vector2.Zero;
@@ -274,6 +243,36 @@ public sealed class MovementSystem : EntityUpdateSystem
             default:
                 return Vector2.Zero;
         }
+    }
+
+    private static Vector2 ApplyTurnLimit(Vector2 lastDir, Vector2 desiredDir, float maxTurnDegrees)
+    {
+        if (desiredDir == Vector2.Zero)
+            return Vector2.Zero;
+
+        // If we don't have a previous heading (e.g., starting from rest), allow snapping.
+        if (lastDir == Vector2.Zero)
+            return desiredDir;
+
+        var maxTurnRad = MathHelper.ToRadians(MathF.Max(0f, maxTurnDegrees));
+        if (maxTurnRad <= 0.000001f)
+            return lastDir;
+
+        var a0 = MathF.Atan2(lastDir.Y, lastDir.X);
+        var a1 = MathF.Atan2(desiredDir.Y, desiredDir.X);
+
+        var delta = WrapAngle(a1 - a0);
+        var clamped = MathHelper.Clamp(delta, -maxTurnRad, maxTurnRad);
+        var a = a0 + clamped;
+
+        return new Vector2(MathF.Cos(a), MathF.Sin(a));
+    }
+
+    private static float WrapAngle(float radians)
+    {
+        while (radians > MathF.PI) radians -= MathF.Tau;
+        while (radians < -MathF.PI) radians += MathF.Tau;
+        return radians;
     }
 
     private static float MoveTowards(float current, float target, float maxDelta)

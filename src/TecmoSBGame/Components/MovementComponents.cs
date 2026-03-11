@@ -40,6 +40,12 @@ public sealed class MovementTuningComponent
     /// </summary>
     public bool UseAccelCurve = true;
 
+    /// <summary>
+    /// Maximum turning rate (degrees per 60Hz tick) when applying a new desired direction.
+    /// Tecmo feel comes largely from limiting how quickly a player can rotate.
+    /// </summary>
+    public float MaxTurnDegreesPerTick = 9f;
+
     public MovementTuningComponent(
         float maxSpeedPerTick,
         float accelPerTick,
