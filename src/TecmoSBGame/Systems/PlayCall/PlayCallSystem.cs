@@ -71,7 +71,38 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             pc.Visible = shouldShow;
 
             if (!shouldShow)
+            {
+                pc.WasVisible = false;
                 continue;
+            }
+
+            // Rising edge: playcall became visible for a new pre-snap slice.
+            if (!pc.WasVisible)
+            {
+                pc.Step = PlayCallStep.Offense;
+                pc.Focus = PlayCallFocus.Formation;
+                pc.LastAutoPlaycallPlayId = -1;
+
+                // Force a rebuild of plays list.
+                pc.SelectedFormationId = "";
+                pc.SelectedPlay = null;
+                pc.SelectedDefenseId = "";
+
+                // Default to first formation that actually has plays.
+                if (pc.FormationIds.Count > 0 && _playlist.PlayList is not null)
+                {
+                    for (var i = 0; i < pc.FormationIds.Count; i++)
+                    {
+                        var fid = pc.FormationIds[i];
+                        if (_playlist.PlayList.Any(p => string.Equals(p.Formation, fid, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            pc.FormationIndex = i;
+                            pc.PlayIndex = 0;
+                            break;
+                        }
+                    }
+                }
+            }
 
             EnsureLists(pc);
             EnsureSelectionValid(pc);
@@ -90,9 +121,8 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             // Keep convenience fields fresh.
             SyncSelected(pc);
 
-            // Debug: surface current selection when user is attempting to confirm.
-            if (pc.Step == PlayCallStep.Offense && pc.Focus == PlayCallFocus.Play && pc.SelectedPlay is null)
-                Console.WriteLine($"[playcall] WARN selectedPlay=null formationId={pc.SelectedFormationId} playsForFormation={pc.PlaysForFormation.Count} playIndex={pc.PlayIndex}");
+            // Mark visible for edge detection.
+            pc.WasVisible = true;
         }
     }
 

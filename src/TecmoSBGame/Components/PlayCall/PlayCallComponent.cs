@@ -9,6 +9,7 @@ namespace TecmoSBGame.Components.PlayCall;
 public sealed class PlayCallComponent
 {
     public bool Visible;
+    public bool WasVisible;
 
     public PlayCallStep Step = PlayCallStep.Offense;
     public PlayCallFocus Focus = PlayCallFocus.Formation;
