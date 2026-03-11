@@ -19,6 +19,17 @@ if (args.Length > 0 && string.Equals(args[0], "--headless", StringComparison.Ord
 }
 
 
+if (args.Length > 0 && string.Equals(args[0], "--headless-2plays", StringComparison.OrdinalIgnoreCase))
+{
+    var ticks = 240;
+    if (args.Length > 1 && int.TryParse(args[1], out var parsed) && parsed > 0)
+        ticks = parsed;
+
+    Environment.ExitCode = HeadlessRunner.RunTwoPlaysScenario(ticks);
+    return;
+}
+
+
 if (args.Length > 0 && string.Equals(args[0], "--headless-coverage", StringComparison.OrdinalIgnoreCase))
 {
     var ticks = 240;
