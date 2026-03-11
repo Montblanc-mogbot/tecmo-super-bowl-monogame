@@ -36,6 +36,19 @@ public sealed class PlayState
     public BallState BallState { get; set; } = BallState.Dead;
 
     /// <summary>
+    /// Simple gameplay gating used by systems that are shared across play types.
+    /// For example: kickoff return should NOT allow passing.
+    /// </summary>
+    public bool AllowPass { get; set; } = true;
+
+    /// <summary>
+    /// Dev shortcut: auto-select a deterministic playcall every down.
+    /// When enabled, <see cref="Systems.PlayCall.PlayCallSystem"/> will emit a <see cref="Events.PlaySelectedEvent"/>
+    /// as soon as the playcall UI would be visible.
+    /// </summary>
+    public bool AutoPlaycallEnabled { get; set; } = true;
+
+    /// <summary>
     /// Entity id of the current ball owner (ball carrier / receiver / etc). Null when the ball is not possessed.
     /// </summary>
     public int? BallOwnerEntityId { get; set; } = null;
@@ -77,6 +90,8 @@ public sealed class PlayState
 
         BallState = BallState.Dead;
         BallOwnerEntityId = null;
+        AllowPass = true;
+        AutoPlaycallEnabled = true;
 
         WhistleReason = WhistleReason.None;
         Result = default;

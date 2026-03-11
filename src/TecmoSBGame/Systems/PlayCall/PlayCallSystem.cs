@@ -73,7 +73,11 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             EnsureLists(pc);
             EnsureSelectionValid(pc);
 
-            HandleInput(pc);
+            // Dev shortcut: auto-select a deterministic play every down until a real playcall system exists.
+            if (_play.AutoPlaycallEnabled)
+                HandleAutoPlaycall(pc);
+            else
+                HandleInput(pc);
 
             // Keep convenience fields fresh.
             SyncSelected(pc);
@@ -137,6 +141,59 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             pc.Focus = PlayCallFocus.Defense;
         else if (pc.Focus == PlayCallFocus.Defense)
             pc.Focus = PlayCallFocus.Formation;
+    }
+
+    private void HandleAutoPlaycall(PlayCallComponent pc)
+    {
+        // Guard: only emit once per play.
+        if (pc.LastAutoPlaycallPlayId == _play.PlayId)
+            return;
+
+        EnsureLists(pc);
+
+        // Prefer formation 01 if it has any plays; otherwise first formation with any plays.
+        var formationIndex = -1;
+        var playIndex = 0;
+
+        // Try 01 first.
+        var idx01 = pc.FormationIds.FindIndex(id => string.Equals(id, "01", StringComparison.OrdinalIgnoreCase));
+        if (idx01 >= 0)
+        {
+            pc.FormationIndex = idx01;
+            EnsureLists(pc);
+            if (pc.PlaysForFormation.Count > 0)
+                formationIndex = idx01;
+        }
+
+        if (formationIndex < 0)
+        {
+            for (var i = 0; i < pc.FormationIds.Count; i++)
+            {
+                pc.FormationIndex = i;
+                EnsureLists(pc);
+                if (pc.PlaysForFormation.Count > 0)
+                {
+                    formationIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (formationIndex < 0)
+        {
+            // No data: nothing we can do.
+            return;
+        }
+
+        pc.FormationIndex = formationIndex;
+        pc.PlayIndex = Math.Clamp(playIndex, 0, Math.Max(0, pc.PlaysForFormation.Count - 1));
+        pc.DefenseIndex = 0;
+
+        pc.Step = PlayCallStep.Defense;
+        pc.Focus = PlayCallFocus.Defense;
+
+        EmitSelected(pc);
+        pc.LastAutoPlaycallPlayId = _play.PlayId;
     }
 
     private void HandleInput(PlayCallComponent pc)

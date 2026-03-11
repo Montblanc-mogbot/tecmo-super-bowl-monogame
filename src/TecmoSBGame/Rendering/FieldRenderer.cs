@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,18 +10,18 @@ namespace TecmoSBGame.Rendering;
 /// </summary>
 public sealed class FieldRenderer
 {
-    private readonly GraphicsDevice _graphicsDevice;
     private Texture2D? _fieldTexture;
     private Texture2D? _yardLineTexture;
     private SpriteFont? _font;
-    
+
     // Field dimensions live in TecmoSBGame.Field.FieldBounds (single source of truth).
-    
+
     public FieldRenderer(GraphicsDevice graphicsDevice)
     {
-        _graphicsDevice = graphicsDevice;
+        // NOTE: FieldRenderer should not allocate textures per-frame.
+        // Any shared GPU resources (e.g., a 1x1 pixel) should be provided at draw time.
     }
-    
+
     public void LoadContent(ContentManager content)
     {
         // TODO: Load actual field texture
@@ -28,50 +29,61 @@ public sealed class FieldRenderer
         // _yardLineTexture = content.Load<Texture2D>("field/yardline");
         // _font = content.Load<SpriteFont>("fonts/yardnumbers");
     }
-    
-    public void Draw(SpriteBatch spriteBatch)
+
+    public void Draw(SpriteBatch spriteBatch, Texture2D pixel)
     {
+        if (spriteBatch is null) throw new ArgumentNullException(nameof(spriteBatch));
+        if (pixel is null) throw new ArgumentNullException(nameof(pixel));
+
         // Draw field background
-        DrawFieldBackground(spriteBatch);
-        
+        DrawFieldBackground(spriteBatch, pixel);
+
         // Draw yard lines
-        DrawYardLines(spriteBatch);
-        
+        DrawYardLines(spriteBatch, pixel);
+
         // Draw yard numbers
         DrawYardNumbers(spriteBatch);
-        
+
         // Draw end zones
-        DrawEndZones(spriteBatch);
+        DrawEndZones(spriteBatch, pixel);
     }
     
-    private void DrawFieldBackground(SpriteBatch spriteBatch)
+    private void DrawFieldBackground(SpriteBatch spriteBatch, Texture2D pixel)
     {
         // Solid green field
-        var fieldRect = new Rectangle(Field.FieldBounds.FieldLeftX, Field.FieldBounds.FieldTopY, Field.FieldBounds.FieldRightX - Field.FieldBounds.FieldLeftX, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
-        var grassColor = new Color(0, 120, 0);  // Tecmo green
-        
-        var texture = GetSolidTexture(grassColor);
-        spriteBatch.Draw(texture, fieldRect, grassColor);
+        var fieldRect = new Rectangle(
+            Field.FieldBounds.FieldLeftX,
+            Field.FieldBounds.FieldTopY,
+            Field.FieldBounds.FieldRightX - Field.FieldBounds.FieldLeftX,
+            Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
+
+        var grassColor = new Color(0, 120, 0); // Tecmo green
+        spriteBatch.Draw(pixel, fieldRect, grassColor);
     }
-    
-    private void DrawYardLines(SpriteBatch spriteBatch)
+
+    private void DrawYardLines(SpriteBatch spriteBatch, Texture2D pixel)
     {
-        var whiteTexture = GetSolidTexture(Color.White);
-        
         // Draw yard lines every 10 yards
         for (int yard = 0; yard <= 100; yard += 10)
         {
             int x = YardToX(yard);
-            var lineRect = new Rectangle(x, Field.FieldBounds.FieldTopY, 1, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
-            spriteBatch.Draw(whiteTexture, lineRect, Color.White);
+            var lineRect = new Rectangle(x, Field.FieldBounds.FieldTopY, 1,
+                Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
+            spriteBatch.Draw(pixel, lineRect, Color.White);
         }
-        
+
         // Draw thicker goal lines
         int goalLine0 = YardToX(0);
         int goalLine100 = YardToX(100);
-        
-        spriteBatch.Draw(whiteTexture, new Rectangle(goalLine0 - 1, Field.FieldBounds.FieldTopY, 2, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY), Color.White);
-        spriteBatch.Draw(whiteTexture, new Rectangle(goalLine100 - 1, Field.FieldBounds.FieldTopY, 2, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY), Color.White);
+
+        spriteBatch.Draw(pixel,
+            new Rectangle(goalLine0 - 1, Field.FieldBounds.FieldTopY, 2,
+                Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY),
+            Color.White);
+        spriteBatch.Draw(pixel,
+            new Rectangle(goalLine100 - 1, Field.FieldBounds.FieldTopY, 2,
+                Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY),
+            Color.White);
     }
     
     private void DrawYardNumbers(SpriteBatch spriteBatch)
@@ -103,35 +115,34 @@ public sealed class FieldRenderer
         spriteBatch.DrawString(_font, "50", new Vector2(x50 - size50.X / 2, Field.FieldBounds.FieldBottomY - 15), Color.White);
     }
     
-    private void DrawEndZones(SpriteBatch spriteBatch)
+    private void DrawEndZones(SpriteBatch spriteBatch, Texture2D pixel)
     {
         // Solid color end zones
         var endZoneColor = new Color(0, 80, 0);
-        var texture = GetSolidTexture(endZoneColor);
-        
-        int goalLine0 = YardToX(0);
+
         int goalLine100 = YardToX(100);
-        
+
         // Left end zone
-        var leftEndZone = new Rectangle(Field.FieldBounds.FieldLeftX - Field.FieldBounds.EndZoneDepth, Field.FieldBounds.FieldTopY, Field.FieldBounds.EndZoneDepth, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
-        spriteBatch.Draw(texture, leftEndZone, endZoneColor);
-        
+        var leftEndZone = new Rectangle(
+            Field.FieldBounds.FieldLeftX - Field.FieldBounds.EndZoneDepth,
+            Field.FieldBounds.FieldTopY,
+            Field.FieldBounds.EndZoneDepth,
+            Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
+        spriteBatch.Draw(pixel, leftEndZone, endZoneColor);
+
         // Right end zone
-        var rightEndZone = new Rectangle(goalLine100, Field.FieldBounds.FieldTopY, Field.FieldBounds.EndZoneDepth, Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
-        spriteBatch.Draw(texture, rightEndZone, endZoneColor);
+        var rightEndZone = new Rectangle(
+            goalLine100,
+            Field.FieldBounds.FieldTopY,
+            Field.FieldBounds.EndZoneDepth,
+            Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
+        spriteBatch.Draw(pixel, rightEndZone, endZoneColor);
     }
-    
+
     private int YardToX(int yard)
     {
         // Map 0-100 yards to field coordinates
         float yardWidth = (Field.FieldBounds.FieldRightX - Field.FieldBounds.FieldLeftX) / 100f;
         return Field.FieldBounds.FieldLeftX + (int)(yard * yardWidth);
-    }
-    
-    private Texture2D GetSolidTexture(Color color)
-    {
-        var texture = new Texture2D(_graphicsDevice, 1, 1);
-        texture.SetData(new[] { color });
-        return texture;
     }
 }

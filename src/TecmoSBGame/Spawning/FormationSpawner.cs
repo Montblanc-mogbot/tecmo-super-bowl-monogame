@@ -8,6 +8,7 @@ using MonoGame.Extended.Entities;
 using TecmoSB;
 using TecmoSBGame.Components;
 using TecmoSBGame.Factories;
+using TecmoSBGame.Spawning;
 
 namespace TecmoSBGame.Spawning;
 
@@ -72,19 +73,24 @@ public sealed class FormationSpawner
             var roleKey = MapSlotToRoleKey(slot.Position, slot.Commands, formation.Description);
             var rosterPlayer = roster.Next(roleKey);
 
-            var initialPos = TryParseInitialPosition(slot.Commands, kAnchor, hAnchor, mAnchor)
-                ?? FallbackPosition(roleKey, slot.Position);
+            var parsedPos = TryParseInitialPosition(slot.Commands, kAnchor, hAnchor, mAnchor);
+            var initialPos = parsedPos ?? FallbackPosition(roleKey, slot.Position);
+            if (parsedPos is null)
+            {
+                // Debug aid: if YAML parsing fails, lots of players may collapse to similar fallback coords.
+                var preview = (slot.Commands ?? string.Empty).Replace("\n", " ").Replace("\r", " ");
+                if (preview.Length > 80) preview = preview[..80] + "…";
+                Console.WriteLine($"[formation] WARN: could not parse initial pos: formation={formationId} slot={slot.Position} roleKey={roleKey} cmds='{preview}'");
+            }
 
-            // Player-controlled: keep existing kickoff behavior: control the "main" actor.
-            // In kickoff, YAML "00" has an RT entry that appears to be the controlled kicker.
-            // We'll mark the first K/P/QB as player-controlled, otherwise none.
-            var isControlled = playerControlled && roleKey is PlayerRoleKey.K or PlayerRoleKey.P;
-
+            // In this codebase TeamComponent.IsPlayerControlled means "belongs to the human-controlled team",
+            // not "this specific entity is currently controlled".
+            // Actual control selection is handled by PlayerControlSystem via PlayerControlComponent.
             var entityId = PlayerEntityFactory.CreatePlayerWithAttributes(
                 world,
                 initialPos,
                 teamIndex,
-                isPlayerControlled: isControlled,
+                isPlayerControlled: playerControlled,
                 isOffense: isOffense,
                 positionName: slot.Position,
                 playerName: rosterPlayer.Name,
@@ -93,6 +99,15 @@ public sealed class FormationSpawner
 
             var entity = world.GetEntity(entityId);
             entity.Attach(new PlayerRoleComponent(MapRoleKeyToComponentRole(roleKey), slot.Position));
+
+            // Attach parsed formation script so FormationScriptSystem can execute it.
+            // NOTE: formation scripts are currently only required/accurate for kickoff return unit (formation "00").
+            // For scrimmage formations we rely on PlayData scripts instead to avoid conflicting directives.
+            if (formationId == "00")
+            {
+                var ops = FormationScriptParser.Parse(slot.Commands);
+                entity.Attach(new FormationScriptComponent(ops));
+            }
 
             // Blocking scaffold: if this slot's command script includes a block directive,
             // attach a BlockTargetComponent so BlockerAISystem can select targets on snap.

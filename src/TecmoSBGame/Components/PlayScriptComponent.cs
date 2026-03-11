@@ -60,6 +60,8 @@ public enum PlayScriptOpKind
     PassBlock = 40,
     PullAndBlock = 41,
 
+    HandoffTo = 50,
+
     Jump = 90,
     Loop = 91,
 

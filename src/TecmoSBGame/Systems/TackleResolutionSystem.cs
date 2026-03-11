@@ -44,6 +44,9 @@ public sealed class TackleResolutionSystem : EntityUpdateSystem
     // (tackler, carrier) -> remaining cooldown seconds
     private readonly Dictionary<ulong, float> _cooldowns = new(capacity: 64);
 
+    // (tackler, carrier) -> deterministic roll index (so repeated contacts don't produce identical outcomes forever)
+    private readonly Dictionary<ulong, int> _rollIndex = new(capacity: 64);
+
     public TackleResolutionSystem(GameEvents events, MatchState match, PlayState play)
         : base(Aspect.All(typeof(PlayerAttributesComponent)))
     {
@@ -97,10 +100,16 @@ public sealed class TackleResolutionSystem : EntityUpdateSystem
             var carrierRs = carrier?.Rs ?? 50;
             var carrierMs = carrier?.Ms ?? 50;
 
+            // Increment a per-pair roll index so repeated contacts can yield different deterministic outcomes.
+            _rollIndex.TryGetValue(key, out var roll);
+            roll++;
+            _rollIndex[key] = roll;
+
             var (outcome, pDown, pStumble, u) = ResolveOutcome(
                 playId: _play.PlayId,
                 tacklerId: tacklerId,
                 carrierId: carrierId,
+                rollIndex: roll,
                 tacklerHp: tacklerHp,
                 tacklerRs: tacklerRs,
                 tacklerMs: tacklerMs,
@@ -137,6 +146,7 @@ public sealed class TackleResolutionSystem : EntityUpdateSystem
         int playId,
         int tacklerId,
         int carrierId,
+        int rollIndex,
         int tacklerHp,
         int tacklerRs,
         int tacklerMs,
@@ -167,12 +177,13 @@ public sealed class TackleResolutionSystem : EntityUpdateSystem
         var pStumble = TackleTuning.StumbleBase + (TackleTuning.StumbleClosenessBonus * (1f - closeness));
         pStumble = MathHelper.Clamp(pStumble, 0f, 0.40f);
 
-        var u = DeterministicFloat01((uint)playId, (uint)tacklerId, (uint)carrierId, 0xC01AC7u);
+        // rollIndex makes repeated contacts produce different deterministic results (otherwise u is identical every time).
+        var u = DeterministicFloat01((uint)playId, (uint)tacklerId, (uint)carrierId, 0xC01AC7u ^ (uint)rollIndex);
 
         if (u < pDown)
         {
             // Within downed, allow a fall-forward sub-outcome.
-            var u2 = DeterministicFloat01((uint)playId, (uint)carrierId, (uint)tacklerId, 0xF411F0D0u);
+            var u2 = DeterministicFloat01((uint)playId, (uint)carrierId, (uint)tacklerId, 0xF411F0D0u ^ (uint)rollIndex);
             if (u2 < TackleTuning.FallForwardChance)
                 return (TackleOutcome.FallForward, pDown, pStumble, u);
             return (TackleOutcome.Downed, pDown, pStumble, u);

@@ -28,8 +28,9 @@ public static class BallEntityFactory
         // (Ball motion is currently handled by the kickoff slice / ball sync logic.)
         entity.Attach(new VelocityComponent(maxSpeed: 10f, acceleration: 0f));
 
-        // Keep SpriteComponent optional; headless uses only data.
-        // entity.Attach(new SpriteComponent("ball"));
+        // Attach a sprite marker so debug rendering can show the ball.
+        // (Still fine for headless: the component is inert and only read by rendering.)
+        entity.Attach(new SpriteComponent("ball"));
 
         return entity.Id;
     }

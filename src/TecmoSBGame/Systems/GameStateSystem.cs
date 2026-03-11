@@ -17,7 +17,7 @@ namespace TecmoSBGame.Systems;
 /// Manages game state for a single playable slice (kickoff scenario).
 /// Handles kickoff setup, receiving, and tackle resolution.
 /// </summary>
-public class GameStateSystem : EntityUpdateSystem
+public partial class GameStateSystem : EntityUpdateSystem
 {
     private readonly bool _headlessAutoAdvance;
     private readonly GameEvents? _events;
@@ -25,6 +25,8 @@ public class GameStateSystem : EntityUpdateSystem
     private readonly PlayState _playState;
     private readonly FormationDataConfig? _formationData;
     private readonly FormationSpawner? _formationSpawner;
+    private readonly PlayListConfig? _playList;
+    private readonly DefensePlayConfig? _defensePlays;
     private ComponentMapper<PositionComponent> _positionMapper;
     private ComponentMapper<VelocityComponent> _velocityMapper;
     private ComponentMapper<TeamComponent> _teamMapper;
@@ -56,12 +58,17 @@ public class GameStateSystem : EntityUpdateSystem
     private bool _ballCaught = false;
     private bool _tackleMade = false;
 
+    // Mode: kickoff slice vs scrimmage mode.
+    private bool _kickoffActive = true;
+
     public GameStateSystem(
         MatchState matchState,
         PlayState playState,
         GameEvents? events = null,
         FormationDataConfig? formationData = null,
         FormationSpawner? formationSpawner = null,
+        PlayListConfig? playList = null,
+        DefensePlayConfig? defensePlays = null,
         bool headlessAutoAdvance = false)
         : base(Aspect.All(typeof(PositionComponent)))
     {
@@ -70,6 +77,8 @@ public class GameStateSystem : EntityUpdateSystem
         _events = events;
         _formationData = formationData;
         _formationSpawner = formationSpawner;
+        _playList = playList;
+        _defensePlays = defensePlays;
         _headlessAutoAdvance = headlessAutoAdvance;
     }
 
@@ -88,10 +97,15 @@ public class GameStateSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
-        // React to score->kickoff transitions.
-        // (Use Read() so multiple systems can observe this setup event.)
+        // Once we leave the kickoff slice, this system becomes inert.
+        // Scrimmage is handled by loop + playcall + play execution systems.
+        if (_kickoffActive && _playState.AllowPass)
+            _kickoffActive = false;
+
         if (_events is not null)
         {
+            // React to score->kickoff transitions.
+            // (Use Read() so multiple systems can observe this setup event.)
             var setups = _events.Read<KickoffSetupEvent>();
             if (setups.Count > 0)
             {
@@ -99,6 +113,9 @@ public class GameStateSystem : EntityUpdateSystem
                 ApplyKickoffSetup(k.KickingTeam, k.ReceivingTeam);
             }
         }
+
+        if (!_kickoffActive)
+            return;
 
         // Do not Drain whistles here: LoopMachineSystem + PlayEndSystem rely on observing them.
         // Instead, let PlayEndSystem finalize PlayState/MatchState.
@@ -111,7 +128,7 @@ public class GameStateSystem : EntityUpdateSystem
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         PhaseTimer += dt;
 
-        // Keep PlayState updated for deterministic headless snapshots.
+        // Keep PlayState updated for deterministic headless snapshots (kickoff slice only).
         _playState.PlayElapsedSeconds += dt;
         _playState.Phase = CurrentPhase switch
         {
@@ -267,34 +284,58 @@ public class GameStateSystem : EntityUpdateSystem
         CurrentPhase = GamePhase.Return;
         PhaseTimer = 0f;
 
-        // Assign ball to returner.
+        // Assign ball to the best candidate returner.
+        // Tecmo uses a specific returner slot, but for now pick deterministically:
+        // choose the receiving player (with BallCarrierComponent) closest to the ball landing position.
+        var landPos = _positionMapper.Get(_ballEntityId).Position;
+
+        int chosenId = -1;
+        float chosenDistSq = float.PositiveInfinity;
+
         for (var i = 0; i < _receivingEntityIds.Count; i++)
         {
             var entityId = _receivingEntityIds[i];
-            if (!_teamMapper.Has(entityId) || !_ballMapper.Has(entityId))
+            if (!_teamMapper.Has(entityId) || !_ballMapper.Has(entityId) || !_positionMapper.Has(entityId))
                 continue;
 
-            var team = _teamMapper.Get(entityId);
+            var d = _positionMapper.Get(entityId).Position - landPos;
+            var distSq = d.LengthSquared();
+            if (distSq < chosenDistSq)
+            {
+                chosenDistSq = distSq;
+                chosenId = entityId;
+            }
+        }
 
-            _ballCarrierId = entityId;
-            _ballMapper.Get(entityId).HasBall = true;
+        if (chosenId != -1)
+        {
+            var team = _teamMapper.Get(chosenId);
+
+            // Clear any prior "has ball" flags on receiving unit.
+            for (var i = 0; i < _receivingEntityIds.Count; i++)
+            {
+                var id = _receivingEntityIds[i];
+                if (_ballMapper.Has(id))
+                    _ballMapper.Get(id).HasBall = false;
+            }
+
+            _ballCarrierId = chosenId;
+            _ballMapper.Get(chosenId).HasBall = true;
             team.IsOffense = true;
 
             _playState.BallState = BallState.Held;
-            _playState.BallOwnerEntityId = entityId;
+            _playState.BallOwnerEntityId = chosenId;
 
-            _events?.Publish(new BallCaughtEvent(entityId, _positionMapper.Get(entityId).Position));
+            _events?.Publish(new BallCaughtEvent(chosenId, _positionMapper.Get(chosenId).Position));
 
-            // Set player control.
+            // Set player control to the returner only.
             team.IsPlayerControlled = true;
 
-            if (_behaviorMapper.Has(entityId))
+            if (_behaviorMapper.Has(chosenId))
             {
-                var behavior = _behaviorMapper.Get(entityId);
+                var behavior = _behaviorMapper.Get(chosenId);
                 behavior.State = BehaviorState.Idle;
             }
-
-            break;
         }
 
         // Keep the flight component attached for determinism; BallPhysicsSystem will ignore it while held.
@@ -384,6 +425,7 @@ public class GameStateSystem : EntityUpdateSystem
 
     private void ResetKickoff()
     {
+        _kickoffActive = true;
         ApplyKickoffSetup(KickingTeam, ReceivingTeam);
     }
 
@@ -400,7 +442,7 @@ public class GameStateSystem : EntityUpdateSystem
             {
                 var t = _teamMapper.Get(id);
                 t.TeamIndex = KickingTeam;
-                t.IsOffense = true;
+                t.IsOffense = false; // kickoff coverage team = defense for tackle logic
                 t.IsPlayerControlled = true;
             }
         }
@@ -412,7 +454,7 @@ public class GameStateSystem : EntityUpdateSystem
             {
                 var t = _teamMapper.Get(id);
                 t.TeamIndex = ReceivingTeam;
-                t.IsOffense = false;
+                t.IsOffense = true; // return unit = offense for tackle logic
                 t.IsPlayerControlled = false;
             }
         }
@@ -428,6 +470,7 @@ public class GameStateSystem : EntityUpdateSystem
 
         var startAbs = PlayState.ToAbsoluteYard(_matchState.BallSpot, _matchState.OffenseDirection);
         _playState.ResetForNewPlay(_matchState.PlayNumber + 1, startAbs);
+        _playState.AllowPass = false; // kickoff slice: no passing
 
         // Best-effort: ball starts held by the kicker in this slice.
         if (_kickerId != -1)
@@ -496,12 +539,15 @@ public class GameStateSystem : EntityUpdateSystem
     public KickoffScenarioIds SpawnKickoffScenario(World world)
     {
         _world = world;
+        _kickoffActive = true;
+
         // Initialize match-level data for this slice.
         _matchState.ResetForKickoff(KickingTeam, ReceivingTeam);
 
         // Initialize play-level data.
         var startAbs = PlayState.ToAbsoluteYard(_matchState.BallSpot, _matchState.OffenseDirection);
         _playState.ResetForNewPlay(_matchState.PlayNumber + 1, startAbs);
+        _playState.AllowPass = false; // kickoff slice: no passing
 
         var all = new List<int>(capacity: 9);
         _kickingEntityIds.Clear();
@@ -511,53 +557,83 @@ public class GameStateSystem : EntityUpdateSystem
         _ballEntityId = BallEntityFactory.CreateBall(world, new Vector2(40, 112));
         all.Add(_ballEntityId);
 
-        // Spawn kicking team.
-        // Prefer YAML formation "00" (Kickoff) when available; fall back to the existing hard-coded slice.
+        // Tecmo kickoff structure:
+        // - Receiving team loads the kickoff-return offensive formation.
+        // - Kicking team runs a kickoff defense play.
+        //
+        // Our YAML currently only encodes the offensive formation script (formation id "00"),
+        // so we apply it to the *receiving* team to get authentic return-unit movement.
+        // The kicking team still uses the existing hard-coded slice until defensive kickoff
+        // play scripts are also mapped into ECS.
+
+        // Spawn receiving team from YAML kickoff-return formation when available.
         if (_formationData is not null && _formationSpawner is not null)
         {
-            var formation = _formationSpawner.Spawn(
+            var recvFormation = _formationSpawner.Spawn(
                 world,
                 _formationData,
                 formationId: "00",
-                teamIndex: KickingTeam,
+                teamIndex: ReceivingTeam,
                 isOffense: true,
-                playerControlled: true);
+                playerControlled: false);
 
-            foreach (var p in formation.Players)
+            Console.WriteLine($"[kickoff] spawned receiving formation 00 team={ReceivingTeam} players={recvFormation.Players.Count}");
+
+            foreach (var p in recvFormation.Players)
             {
                 all.Add(p.EntityId);
-                _kickingEntityIds.Add(p.EntityId);
+                _receivingEntityIds.Add(p.EntityId);
+
+                if (world.GetEntity(p.EntityId).Has<FormationScriptComponent>())
+                {
+                    var sc = world.GetEntity(p.EntityId).Get<FormationScriptComponent>();
+                    if (sc.Ops.Count > 0)
+                        Console.WriteLine($"  [kickoff] script slot={p.Slot} role={p.Role} id={p.EntityId} ops={sc.Ops.Count} first={sc.Ops[0].Kind}:{sc.Ops[0].Raw}");
+                    else
+                        Console.WriteLine($"  [kickoff] script slot={p.Slot} role={p.Role} id={p.EntityId} ops=0");
+                }
+                else
+                {
+                    Console.WriteLine($"  [kickoff] NO SCRIPT slot={p.Slot} role={p.Role} id={p.EntityId}");
+                }
             }
 
-            var kicker = formation.Players.FirstOrDefault(p => p.Role is PlayerRole.K or PlayerRole.P);
-            _kickerId = kicker?.EntityId ?? -1;
-
-            if (_kickerId <= 0 && formation.Players.Count > 0)
-                _kickerId = formation.Players[0].EntityId;
+            // Prefer KR from the formation if present.
+            var kr = recvFormation.Players.FirstOrDefault(p => p.Role is PlayerRole.RB or PlayerRole.WR);
+            _ballCarrierId = kr.EntityId;
         }
         else
         {
-            // Spawn kicker (kicking team, player controlled)
-            _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
-            all.Add(_kickerId);
-            _kickingEntityIds.Add(_kickerId);
+            // Fallback: spawn returner + a few blockers.
+            _ballCarrierId = PlayerEntityFactory.CreateReturner(world, new Vector2(200, 112), ReceivingTeam, false);
+            all.Add(_ballCarrierId);
+            _receivingEntityIds.Add(_ballCarrierId);
 
-            // Spawn coverage team (kicking team, AI)
-            var c1 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam);
-            var c2 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam);
-            var c3 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam);
-            all.Add(c1);
-            all.Add(c2);
-            all.Add(c3);
-            _kickingEntityIds.Add(c1);
-            _kickingEntityIds.Add(c2);
-            _kickingEntityIds.Add(c3);
+            var b1 = PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 80), ReceivingTeam);
+            var b2 = PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 144), ReceivingTeam);
+            var b3 = PlayerEntityFactory.CreateBlocker(world, new Vector2(220, 112), ReceivingTeam);
+            all.Add(b1);
+            all.Add(b2);
+            all.Add(b3);
+            _receivingEntityIds.Add(b1);
+            _receivingEntityIds.Add(b2);
+            _receivingEntityIds.Add(b3);
         }
 
-        // Spawn returner (receiving team, will be player controlled after catch)
-        _ballCarrierId = PlayerEntityFactory.CreateReturner(world, new Vector2(200, 112), ReceivingTeam, false);
-        all.Add(_ballCarrierId);
-        _receivingEntityIds.Add(_ballCarrierId);
+        // Spawn kicking team (still hard-coded slice for now).
+        _kickerId = PlayerEntityFactory.CreateKicker(world, new Vector2(40, 112), KickingTeam, true);
+        all.Add(_kickerId);
+        _kickingEntityIds.Add(_kickerId);
+
+        var c1 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 80), KickingTeam);
+        var c2 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(30, 144), KickingTeam);
+        var c3 = PlayerEntityFactory.CreateCoveragePlayer(world, new Vector2(20, 112), KickingTeam);
+        all.Add(c1);
+        all.Add(c2);
+        all.Add(c3);
+        _kickingEntityIds.Add(c1);
+        _kickingEntityIds.Add(c2);
+        _kickingEntityIds.Add(c3);
 
         // Kickoff starts with the kicker holding the ball (placeholder for tee/hand). Returner has no ball until caught.
         _playState.BallState = BallState.Held;
@@ -568,16 +644,8 @@ public class GameStateSystem : EntityUpdateSystem
         if (_ballMapper.Has(_ballCarrierId))
             _ballMapper.Get(_ballCarrierId).HasBall = false;
 
-        // Spawn blockers (receiving team, AI)
-        var b1 = PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 80), ReceivingTeam);
-        var b2 = PlayerEntityFactory.CreateBlocker(world, new Vector2(210, 144), ReceivingTeam);
-        var b3 = PlayerEntityFactory.CreateBlocker(world, new Vector2(220, 112), ReceivingTeam);
-        all.Add(b1);
-        all.Add(b2);
-        all.Add(b3);
-        _receivingEntityIds.Add(b1);
-        _receivingEntityIds.Add(b2);
-        _receivingEntityIds.Add(b3);
+        // NOTE: Receiving-unit blockers are spawned either via YAML formation (preferred)
+        // or via fallback hard-coded slice above.
 
         return new KickoffScenarioIds(_kickerId, _ballCarrierId, _ballEntityId, all);
     }

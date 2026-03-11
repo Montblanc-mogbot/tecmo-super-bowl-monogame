@@ -24,6 +24,7 @@ public sealed class CollisionContactSystem : EntityUpdateSystem
 {
     private readonly GameEvents _events;
     private readonly LoopState? _loop;
+    private readonly PlayState? _play;
 
     private ComponentMapper<PositionComponent> _pos;
     private ComponentMapper<TeamComponent> _team;
@@ -53,11 +54,12 @@ public sealed class CollisionContactSystem : EntityUpdateSystem
         }
     }
 
-    public CollisionContactSystem(GameEvents events, LoopState? loop = null)
+    public CollisionContactSystem(GameEvents events, LoopState? loop = null, PlayState? play = null)
         : base(Aspect.All(typeof(PositionComponent), typeof(TeamComponent)))
     {
         _events = events;
         _loop = loop;
+        _play = play;
     }
 
     public override void Initialize(IComponentMapperService mapperService)
@@ -70,8 +72,16 @@ public sealed class CollisionContactSystem : EntityUpdateSystem
     public override void Update(GameTime gameTime)
     {
         // Only evaluate contacts during live play (pre-snap should be static).
-        if (_loop is not null && !_loop.IsOnField("live_play"))
+        // Prefer PlayState gating (works for kickoff slice too); fall back to loop-state gating.
+        if (_play is not null)
+        {
+            if (_play.Phase != PlayPhase.InPlay)
+                return;
+        }
+        else if (_loop is not null && !_loop.IsOnField("live_play"))
+        {
             return;
+        }
 
         // Deterministic iteration order.
         var entities = new List<int>(ActiveEntities);
