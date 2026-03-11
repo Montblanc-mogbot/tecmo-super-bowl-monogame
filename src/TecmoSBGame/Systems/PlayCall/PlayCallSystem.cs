@@ -151,18 +151,54 @@ public sealed class PlayCallSystem : EntityUpdateSystem
 
         EnsureLists(pc);
 
-        // Prefer formation 01 if it has any plays; otherwise first formation with any plays.
+        // Demo goal: pick a deterministic real Tecmo play (play_number=10 "T FAKE SWEEP R") when available.
+        // If not found, fall back to the first formation with any plays.
+        const int DemoPlayNumber = 10;
+
         var formationIndex = -1;
         var playIndex = 0;
 
-        // Try 01 first.
-        var idx01 = pc.FormationIds.FindIndex(id => string.Equals(id, "01", StringComparison.OrdinalIgnoreCase));
-        if (idx01 >= 0)
+        for (var fi = 0; fi < pc.FormationIds.Count; fi++)
         {
-            pc.FormationIndex = idx01;
+            pc.FormationIndex = fi;
             EnsureLists(pc);
-            if (pc.PlaysForFormation.Count > 0)
-                formationIndex = idx01;
+
+            for (var pi = 0; pi < pc.PlaysForFormation.Count; pi++)
+            {
+                var p = pc.PlaysForFormation[pi];
+                if (p.PlayNumbers is null)
+                    continue;
+
+                foreach (var n in p.PlayNumbers)
+                {
+                    if (n == DemoPlayNumber)
+                    {
+                        formationIndex = fi;
+                        playIndex = pi;
+                        break;
+                    }
+                }
+
+                if (formationIndex >= 0)
+                    break;
+            }
+
+            if (formationIndex >= 0)
+                break;
+        }
+
+        // Fallback: Prefer formation 01 if it has any plays; otherwise first formation with any plays.
+        if (formationIndex < 0)
+        {
+            // Try 01 first.
+            var idx01 = pc.FormationIds.FindIndex(id => string.Equals(id, "01", StringComparison.OrdinalIgnoreCase));
+            if (idx01 >= 0)
+            {
+                pc.FormationIndex = idx01;
+                EnsureLists(pc);
+                if (pc.PlaysForFormation.Count > 0)
+                    formationIndex = idx01;
+            }
         }
 
         if (formationIndex < 0)

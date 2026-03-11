@@ -136,19 +136,20 @@ plays:
 player_reactions:
   # ---- Minimal run play reactions (play_number=10) ----
   - id: OFF_RUN10_QB
-    description: "RUN10 QB: handoff to HB"
+    description: "RUN10 QB: handoff to HB (delayed)"
     role: OFFENSE
     commands:
       - { cmd: wait_until_snap, params: [two_point] }
-      - { cmd: handoff_to, params: [HB] }
+      # Tecmo intent: short delay before HB possession/control swap.
+      - { cmd: handoff_to, params: [HB, 38] }
       - { cmd: loop }
 
   - id: OFF_RUN10_HB
-    description: "RUN10 HB: run right"
+    description: "RUN10 HB: controlled after handoff"
     role: OFFENSE
     commands:
       - { cmd: wait_until_snap, params: [two_point] }
-      - { cmd: move_by, params: [48, 0] }
+      # Keep script inert; once handoff completes, ControlSystem switches control to HB.
       - { cmd: loop }
 
   - id: OFF_RUN10_FB
@@ -231,19 +232,19 @@ player_reactions:
       - { cmd: loopTo, params: [loop_start] }
 
   - id: DEF_RUN10_RUSH
-    description: "RUN10 DEF: rush"
+    description: "RUN10 DEF: rush QB then pursue ballcarrier"
     role: DEFENSE
     commands:
       - { cmd: wait_until_snap, params: [three_point] }
-      - { cmd: move_by, params: [-12, 0] }
+      - { cmd: rush_qb }
       - { cmd: loop }
 
   - id: DEF_RUN10_FIT
-    description: "RUN10 DEF: flow"
+    description: "RUN10 DEF: pursue ballcarrier"
     role: DEFENSE
     commands:
       - { cmd: wait_until_snap, params: [two_point] }
-      - { cmd: move_by, params: [-16, 0] }
+      - { cmd: pursue_ballcarrier }
       - { cmd: loop }
 
   - id: DEFENSE_PLAYER_REACTION_001
