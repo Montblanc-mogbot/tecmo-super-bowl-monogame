@@ -76,6 +76,7 @@ public sealed class MainGame : Game
 
     // Dev shortcut: auto-playcall orchestration (spawn roster + apply selected play) until real playcall system exists.
     private GameStateSystem.KickoffScenarioIds? _kickoffScenario;
+    private bool _kickoffEntitiesHidden;
     private bool _scrimmageRosterInitialized;
     private readonly List<int> _scrimmageOffenseIds = new(capacity: 11);
     private readonly List<int> _scrimmageDefenseIds = new(capacity: 11);
@@ -376,6 +377,15 @@ public sealed class MainGame : Game
         // Advance simulation only when we're in gameplay flow states.
         // This prevents the world from progressing (whistles, play-end, etc.) while the user is in menus.
         var simEnabled = _flow is not null && _flow.State is GameFlowState.Kickoff or GameFlowState.OnField or GameFlowState.PostPlay;
+
+        // While the playcall overlay is visible, freeze on-field simulation so players don't move under the UI.
+        if (_flow?.State == GameFlowState.OnField && _playCallState is not null && _playCallState.Visible)
+            simEnabled = false;
+
+        // Once we transition from Kickoff to OnField, permanently hide kickoff entities so their scripts stop spamming
+        // and they can't interfere with pre-snap playcall.
+        if (_flow?.State == GameFlowState.OnField && !_kickoffEntitiesHidden)
+            HideKickoffEntities();
         if (simEnabled && _fixed is not null && _events is not null && _world is not null)
         {
             _fixed.Advance(gameTime.ElapsedGameTime, fixedGameTime =>
@@ -516,24 +526,45 @@ public sealed class MainGame : Game
             Console.WriteLine($"[playdata] play_number={offensivePlayNumber} scripts={attached}");
     }
 
+    private void HideKickoffEntities()
+    {
+        if (_world is null)
+            return;
+
+        if (_kickoffScenario is null)
+        {
+            _kickoffEntitiesHidden = true;
+            return;
+        }
+
+        foreach (var id in _kickoffScenario.Value.AllEntityIds)
+        {
+            // Keep the kickoff ball around if needed (it shouldn't matter once OnField begins).
+            if (id == _kickoffScenario.Value.BallId)
+                continue;
+
+            var e = _world.GetEntity(id);
+
+            // Stop kickoff scripts from continuing to run/log.
+            if (e.Has<FormationScriptComponent>())
+                e.Detach<FormationScriptComponent>();
+
+            if (e.Has<PositionComponent>())
+                e.Get<PositionComponent>().Position = new Vector2(-10000, -10000);
+        }
+
+        _kickoffEntitiesHidden = true;
+        Console.WriteLine("[kickoff] entities hidden (OnField entry)");
+    }
+
     private void EnsureScrimmageRoster(string offenseFormationId)
     {
         if (_scrimmageRosterInitialized)
             return;
 
         // Hide kickoff entities to prevent immediate collision/tackle loops.
-        if (_kickoffScenario is not null)
-        {
-            foreach (var id in _kickoffScenario.Value.AllEntityIds)
-            {
-                if (id == _kickoffScenario.Value.BallId)
-                    continue;
-
-                var e = _world!.GetEntity(id);
-                if (e.Has<PositionComponent>())
-                    e.Get<PositionComponent>().Position = new Vector2(-10000, -10000);
-            }
-        }
+        if (!_kickoffEntitiesHidden)
+            HideKickoffEntities();
 
         _scrimmageOffenseIds.Clear();
         _scrimmageDefenseIds.Clear();
