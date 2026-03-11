@@ -307,6 +307,8 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
         // We do this as a one-shot override consumed by PlayerControlSystem.
         _control.PendingForcedEntityId = targetId.Value;
 
+        Console.WriteLine($"[handoff] playId={_play.PlayId} to={slot} entity={targetId.Value}");
+
         // Update carrier flags.
         foreach (var pid in ActiveEntities)
         {

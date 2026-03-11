@@ -436,10 +436,12 @@ public sealed class MainGame : Game
             selectedOffensivePlay: off,
             selectedDefensiveCallId: defId);
 
-        // Attach play-data YAML scripts (ROM-style player reactions) when available.
-        ApplyPlayDataScripts(offensivePlayNumber: off.PlayNumbers is not null && off.PlayNumbers.Count > 0 ? off.PlayNumbers[0] : 0);
+        var offNum = off.PlayNumbers is not null && off.PlayNumbers.Count > 0 ? off.PlayNumbers[0] : 0;
 
-        Console.WriteLine($"[autoplaycall] playId={_playState.PlayId} off={off.Name} ({off.Formation}/{off.Slot}) def={spawned.DefensiveCallId}");
+        // Attach play-data YAML scripts (ROM-style player reactions) when available.
+        ApplyPlayDataScripts(offensivePlayNumber: offNum);
+
+        Console.WriteLine($"[autoplaycall] playId={_playState.PlayId} off=\"{off.Name}\" ({off.Formation}/{off.Slot}) play_number={offNum} def={spawned.DefensiveCallId}");
         _lastScrimmagePlaySpawnedId = _playState.PlayId;
     }
 
