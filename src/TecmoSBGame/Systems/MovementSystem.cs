@@ -21,6 +21,9 @@ namespace TecmoSBGame.Systems;
 /// </summary>
 public sealed class MovementSystem : EntityUpdateSystem
 {
+    private const float TrackingSlowDistance = 18f;
+    private const float TrackingStopDistance = 6f;
+
     private ComponentMapper<PositionComponent> _positionMapper = null!;
     private ComponentMapper<VelocityComponent> _velocityMapper = null!;
     private ComponentMapper<BallComponent> _ballTagMapper = null!;
@@ -74,6 +77,10 @@ public sealed class MovementSystem : EntityUpdateSystem
             // Everyone else uses behavior-driven direction.
             var desiredDirection = GetDesiredDirection(entityId);
 
+            // When tracking a moving target, taper max speed as we approach to avoid orbiting/jitter.
+            // (Tecmo feel: defenders "arrive" and engage rather than endlessly overshooting.)
+            var trackingSpeedMultiplier = GetTrackingSpeedMultiplier(entityId);
+
             var currentSpeed = velocity.Velocity.Length();
             if (desiredDirection == Vector2.Zero)
             {
@@ -107,7 +114,7 @@ public sealed class MovementSystem : EntityUpdateSystem
                     }
                 }
 
-                var maxSpeed = tuning.MaxSpeedPerTick;
+                var maxSpeed = tuning.MaxSpeedPerTick * trackingSpeedMultiplier;
                 if (_actionMapper.Has(entityId) && _actionMapper.Get(entityId).State == MovementActionState.Burst)
                     maxSpeed *= tuning.BurstMultiplier;
 
@@ -207,6 +214,31 @@ public sealed class MovementSystem : EntityUpdateSystem
         return GetBehaviorDirection(entityId);
     }
 
+    private float GetTrackingSpeedMultiplier(int entityId)
+    {
+        // Controlled entity shouldn't be speed-tapered by tracking logic.
+        if (_controlMapper.Has(entityId) && _controlMapper.Get(entityId).IsControlled)
+            return 1f;
+
+        if (!_behaviorMapper.Has(entityId))
+            return 1f;
+
+        var b = _behaviorMapper.Get(entityId);
+        if (b.State != BehaviorState.TrackingPlayer)
+            return 1f;
+
+        if (b.TargetEntityId == 0 || !_positionMapper.Has(b.TargetEntityId) || !_positionMapper.Has(entityId))
+            return 1f;
+
+        var dist = Vector2.Distance(_positionMapper.Get(entityId).Position, _positionMapper.Get(b.TargetEntityId).Position);
+        if (dist <= TrackingStopDistance)
+            return 0f;
+        if (dist >= TrackingSlowDistance)
+            return 1f;
+
+        return MathHelper.Clamp(dist / TrackingSlowDistance, 0.10f, 1f);
+    }
+
     private Vector2 GetBehaviorDirection(int entityId)
     {
         if (!_behaviorMapper.Has(entityId))
@@ -223,8 +255,11 @@ public sealed class MovementSystem : EntityUpdateSystem
                 if (behavior.TargetEntityId != 0 && _positionMapper.Has(behavior.TargetEntityId))
                 {
                     var toTarget = _positionMapper.Get(behavior.TargetEntityId).Position - _positionMapper.Get(entityId).Position;
-                    if (toTarget.LengthSquared() > 1f)
-                        return SafeNormalize(toTarget);
+                    // When very close, stop driving movement here; engage/tackle systems can take over.
+                    if (toTarget.LengthSquared() <= TrackingStopDistance * TrackingStopDistance)
+                        return Vector2.Zero;
+
+                    return SafeNormalize(toTarget);
                 }
                 return Vector2.Zero;
 
