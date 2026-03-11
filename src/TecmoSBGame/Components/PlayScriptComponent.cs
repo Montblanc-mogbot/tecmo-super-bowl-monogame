@@ -57,6 +57,10 @@ public enum PlayScriptOpKind
     MoveBy = 21,
     MoveToAnchorOffset = 22,
 
+    // Tracking / pursuit
+    PursueBallCarrier = 30,
+    RushQb = 31,
+
     PassBlock = 40,
     PullAndBlock = 41,
 

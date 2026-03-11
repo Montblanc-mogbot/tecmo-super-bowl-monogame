@@ -32,7 +32,7 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
     public bool DebugLog { get; set; }
 
     public PlayScriptSystem(PlayState playState, MatchState matchState)
-        : base(Aspect.All(typeof(PlayScriptComponent), typeof(BehaviorComponent), typeof(PositionComponent), typeof(TeamComponent)))
+        : base(Aspect.All(typeof(BehaviorComponent), typeof(PositionComponent), typeof(TeamComponent)))
     {
         _play = playState ?? throw new ArgumentNullException(nameof(playState));
         _match = matchState ?? throw new ArgumentNullException(nameof(matchState));
@@ -57,6 +57,9 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
 
         foreach (var id in ActiveEntities)
         {
+            if (!_script.Has(id))
+                continue;
+
             var s = _script.Get(id);
             if (s.Ops.Count == 0)
                 continue;
@@ -134,6 +137,38 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
                             var b = _behavior.Get(id);
                             b.State = BehaviorState.MovingToPosition;
                             b.TargetPosition = ResolveAnchorPosition(id, s.Anchor) + new Vector2(op.A, op.B);
+                            steps = 999;
+                            break;
+                        }
+
+                    case PlayScriptOpKind.PursueBallCarrier:
+                        {
+                            if (_play.Phase != PlayPhase.InPlay)
+                                continue;
+
+                            var target = FindBallCarrierEntityId();
+                            if (target is null)
+                                continue;
+
+                            var b = _behavior.Get(id);
+                            b.State = BehaviorState.TrackingPlayer;
+                            b.TargetEntityId = target.Value;
+                            steps = 999;
+                            break;
+                        }
+
+                    case PlayScriptOpKind.RushQb:
+                        {
+                            if (_play.Phase != PlayPhase.InPlay)
+                                continue;
+
+                            var target = FindOffenseQbEntityId();
+                            if (target is null)
+                                continue;
+
+                            var b = _behavior.Get(id);
+                            b.State = BehaviorState.TrackingPlayer;
+                            b.TargetEntityId = target.Value;
                             steps = 999;
                             break;
                         }
@@ -220,6 +255,49 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
             // Note: the actual movement is driven by BehaviorComponent and MovementSystem.
             // This system will expand to set BehaviorState/TargetPosition/TargetEntityId.
         }
+    }
+
+    private int? FindBallCarrierEntityId()
+    {
+        // Deterministic rule: first entity in id order with BallCarrierComponent.HasBall.
+        // (We don't rely on ActiveEntities containing only scripted players.)
+        int best = int.MaxValue;
+        foreach (var id in ActiveEntities)
+        {
+            if (!_carrier.Has(id))
+                continue;
+            if (!_carrier.Get(id).HasBall)
+                continue;
+            if (id < best)
+                best = id;
+        }
+
+        return best == int.MaxValue ? null : best;
+    }
+
+    private int? FindOffenseQbEntityId()
+    {
+        var offenseTeam = _match.PossessionTeam;
+
+        int best = int.MaxValue;
+        foreach (var id in ActiveEntities)
+        {
+            if (!_team.Has(id) || !_role.Has(id))
+                continue;
+
+            var t = _team.Get(id);
+            if (!t.IsOffense || t.TeamIndex != offenseTeam)
+                continue;
+
+            var slot = (_role.Get(id).Slot ?? string.Empty).Trim();
+            if (!string.Equals(slot, "QB", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (id < best)
+                best = id;
+        }
+
+        return best == int.MaxValue ? null : best;
     }
 
     private Vector2 ResolveAnchorPosition(int entityId, PlayAnchor anchor)

@@ -61,6 +61,16 @@ public static class PlayScriptCompiler
                     ops.Add(new PlayScriptOp(PlayScriptOpKind.PassBlock, 0, 0, null, cmd));
                     break;
 
+                case "pursue_ballcarrier":
+                case "pursue_ball_carrier":
+                    ops.Add(new PlayScriptOp(PlayScriptOpKind.PursueBallCarrier, 0, 0, null, cmd));
+                    break;
+
+                case "rush_qb":
+                case "rushqb":
+                    ops.Add(new PlayScriptOp(PlayScriptOpKind.RushQb, 0, 0, null, cmd));
+                    break;
+
                 case "handoff_to":
                     // Params: slot (string)
                     var toSlot = c.Params is { Count: > 0 } ? c.Params[0]?.ToString() : "";
