@@ -16,4 +16,17 @@
     <ProjectReference Include="..\TecmoSB\TecmoSB.csproj" />
   </ItemGroup>
 
+  <!-- Build MonoGame content (XNB) into the app output folder. -->
+  <Target Name="BuildMonoGameContent" AfterTargets="Build">
+    <!-- Run MGCB with explicit output/intermediate dirs so the game can load Content/*.xnb from $(TargetDir). -->
+    <PropertyGroup>
+      <_ContentDir>$(ProjectDir)..\..\Content</_ContentDir>
+      <_MgcbIntermediate>$(BaseIntermediateOutputPath)mgcb</_MgcbIntermediate>
+      <_MgcbOutput>$(TargetDir)Content</_MgcbOutput>
+    </PropertyGroup>
+
+    <Exec WorkingDirectory="$(_ContentDir)"
+          Command="mgcb -q /@:&quot;Content.mgcb&quot; /outputDir:&quot;$(_MgcbOutput)&quot; /intermediateDir:&quot;$(_MgcbIntermediate)&quot;" />
+  </Target>
+
 </Project>
