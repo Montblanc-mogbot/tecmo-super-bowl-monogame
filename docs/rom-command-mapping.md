@@ -1,48 +1,55 @@
-# ROM Command ↔ Engine Command Mapping
+# ROM command ↔ engine-native command mapping (2-play subset)
 
-This document maps Tecmo Super Bowl NES on-field *player command* opcodes to the engine-native
-PlayData YAML command vocabulary.
+Purpose: preserve Tecmo semantics while expressing behavior as engine-native commands + ECS state.
 
-Goal: preserve gameplay semantics while using a modern ECS/state model.
+This doc is intentionally **incomplete**: it covers only the subset needed for the current **2-play demo** (offensive play_number=10).
 
-Sources:
-- `Tecmo_Super_Bowl_NES_Disassembly/Bank21_22_play_commands_on_field_logic.asm`
-  - `GROUP_COMMAND_TABLE` (0x?0 group commands)
-  - `SINGLE_COMMAND_TABLE` (0xC0..0xFF single-player commands)
-- `Tecmo_Super_Bowl_NES_Disassembly/Bank5_6_off_def_play_data.asm`
+## Engine-native commands (current)
 
-## Conventions
-- **ROM opcode**: value used by the original script bytecode.
-- **ROM label**: label/name from the disassembly.
-- **Engine command**: YAML command id we expose in `content/playdata/*.yaml`.
-- **Notes**: what we preserve vs what we intentionally do not emulate.
+### Gating / flow
 
-## Single-player commands (0xC0..0xFF)
+- `wait_until_snap(stance)`
+  - **Intent:** script yields until the play is live.
+  - **Engine behavior:** `PlayScriptSystem` holds IP steady until `PlayState.Phase == InPlay`.
 
-| ROM | ROM label (disassembly) | Engine command | Notes |
-|---:|---|---|---|
-| 0xD7 | `MOVE_RELATIVE` | `move_by(dx,dy)` | Signed byte deltas; affects movement target/intent. |
-| 0xD0 | `SET_SNAP_LOC_RELATIVE_TO_BALL` | `set_anchor(kind=los, dx,dy)` | In ROM this sets a snap-relative anchor; engine stores anchor in PlayScript state. |
-| 0xD1 | `SET_SNAP_LOC_RELATIVE_TO_MID` | `set_anchor(kind=midfield, dx,dy)` | Same as above but midfield reference. |
-| 0xCC | `PASS_BLOCK` | `pass_block(...)` | Engine expresses as blocker intent + engagement permissions. |
-| 0xCD | `MOVE_AND_BLOCK_RELATIVE` | `pull_and_block(offset=..., target=...)` | High-level: move to offset then engage. |
-| 0xCF | `MOVE_AND_BLOCK_REL_BALL_CARRIER` | `pull_and_block(anchor=ballcarrier, offset=...)` | High-level: anchor follows ballcarrier. |
-| 0xFB/0xFC | `CAN_COLLIDE` | `enable_engagement(mode=collide, mask=...)` | Engine stores eligibility/filters; we may not reproduce bit-exact masks initially. |
-| 0xFD | `CAN_BLOCK` | `enable_engagement(mode=block, mask=...)` | Same as above. |
-| 0xEA | `THREE_PT_STANCE` | `wait_until_snap(stance=three_point)` | Snap gating; stance is cosmetic/animation for now. |
-| 0xEC | `TWO_PT_STANCE` | `wait_until_snap(stance=two_point)` | Snap gating. |
-| 0xFE | `BRANCH` | `branch_if(...)` | Engine uses label-based control flow rather than byte offsets. |
-| 0xFF | `JUMP` | `jump(label)` | Engine uses labels. |
+### Ball / possession
 
-## Group commands (0x?0)
+- `handoff_to(slot, delayFrames)`
+  - **Intent:** transfer possession from QB to the named slot after a deterministic delay.
+  - **Engine behavior:** delayed yield; then sets `PlayState.BallOwnerEntityId`, updates `BallCarrierComponent.HasBall`, and syncs the dedicated ball entity.
+  - **Control:** triggers deterministic control swap to the new carrier via `ControlState.PendingForcedEntityId`.
 
-These are multi-player style commands (upper nibble selects group command).
+### Tracking / pursuit
 
-| ROM group | ROM label | Engine command | Notes |
-|---:|---|---|---|
-| 0x30 | `BLOCK_COMMAND_START` | `block_group(...)` | Often sets/executes blocking across multiple players. |
-| 0x50 | `HANDOFF_COMMAND_START` | `handoff_to(slot, timing=...)` | Engine will model ball transfer via BallOwner/BallState + carrier flags. |
+- `rush_qb`
+  - **Intent:** defenders rush the QB (pressure).
+  - **Engine behavior:** sets `BehaviorState.TrackingPlayer` with `TargetEntityId = offense QB`.
 
-## TODO
-- Flesh out remaining opcodes as we implement them.
-- Add examples of full play scripts and the engine-native equivalents.
+- `pursue_ballcarrier`
+  - **Intent:** flow/pursue the current ballcarrier.
+  - **Engine behavior:** sets `BehaviorState.TrackingPlayer` with `TargetEntityId = current ballcarrier`.
+
+### Movement / turning (Tecmo-feel)
+
+- Turning is limited globally via `MovementTuningComponent.MaxTurnDegreesPerTick`.
+  - **Intent:** emulate Tecmo’s non-instant direction change and chase arcs.
+
+## ROM/disassembly references (intent-level)
+
+The Tecmo disassembly expresses pursuit feel with:
+
+- **Conservative chase turning** (turn-rate limiting / reduced adjustment):
+  - `CHASE_CONSERVATIVE_TURN_TABLE` in `Bank21_22_play_commands_on_field_logic.asm`
+
+- **Timed defender slowdown after snap** (time-based nerf):
+  - `DEFENDER_SLOW_DOWN_DELAY_FRAMES = $1E` in `Bank21_22_play_commands_on_field_logic.asm`
+
+We currently model the **turning** intent explicitly (turn-rate limiting). The **timed slowdown** intent is planned as a dedicated ECS speed-mod system with tunable constants.
+
+## 2-play demo wiring
+
+- Offensive play: `play_number=10` ("T FAKE SWEEP R")
+- PlayData YAML: `content/playdata/bank5_6_play_data.yaml`
+  - QB reaction uses `handoff_to(HB, 38)` after snap.
+  - Defense reactions use `rush_qb` / `pursue_ballcarrier`.
+
