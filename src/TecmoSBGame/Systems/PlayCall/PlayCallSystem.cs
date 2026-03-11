@@ -74,10 +74,15 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             EnsureSelectionValid(pc);
 
             // Dev shortcut: auto-select a deterministic play every down until a real playcall system exists.
+            // NOTE: manual playcall input will never work if AutoPlaycallEnabled is true.
             if (_play.AutoPlaycallEnabled)
+            {
                 HandleAutoPlaycall(pc);
+            }
             else
+            {
                 HandleInput(pc);
+            }
 
             // Keep convenience fields fresh.
             SyncSelected(pc);
@@ -381,7 +386,10 @@ public sealed class PlayCallSystem : EntityUpdateSystem
 
         // Graceful no-data behavior: only emit if we have at least an offensive play.
         if (off is null)
+        {
+            Console.WriteLine("[playcall] emit skipped: no offensive play selected");
             return;
+        }
 
         var playNo = off.PlayNumbers is not null && off.PlayNumbers.Count > 0 ? off.PlayNumbers[0] : 0;
 

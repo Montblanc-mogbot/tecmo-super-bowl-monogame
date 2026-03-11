@@ -408,8 +408,6 @@ public sealed class MainGame : Game
         if (!_playCallState.Visible)
             return;
 
-        Console.WriteLine($"[autoplaycall] visible playId={_playState.PlayId} step={_playCallState.Step} focus={_playCallState.Focus}");
-
         if (!_playState.AutoPlaycallEnabled)
             return;
 

@@ -46,7 +46,7 @@ public sealed class PlayState
     /// When enabled, <see cref="Systems.PlayCall.PlayCallSystem"/> will emit a <see cref="Events.PlaySelectedEvent"/>
     /// as soon as the playcall UI would be visible.
     /// </summary>
-    public bool AutoPlaycallEnabled { get; set; } = true;
+    public bool AutoPlaycallEnabled { get; set; } = false;
 
     /// <summary>
     /// Entity id of the current ball owner (ball carrier / receiver / etc). Null when the ball is not possessed.
@@ -91,7 +91,7 @@ public sealed class PlayState
         BallState = BallState.Dead;
         BallOwnerEntityId = null;
         AllowPass = true;
-        AutoPlaycallEnabled = true;
+        AutoPlaycallEnabled = false;
 
         WhistleReason = WhistleReason.None;
         Result = default;
