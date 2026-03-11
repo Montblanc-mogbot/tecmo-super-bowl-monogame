@@ -88,7 +88,9 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             }
 
             // First entry: force the demo play and lock in.
-            const string FormationId = "04";
+            // NOTE: formation_data.yaml currently only contains formations 00-02 (kickoff/punt/FG).
+            // Until we add real offensive formations, use 00 to avoid crashing.
+            const string FormationId = "00";
             const string Slot = "Run 1";
             const string Name = "T FAKE SWEEP R";
             const int PlayNumber = 10;
