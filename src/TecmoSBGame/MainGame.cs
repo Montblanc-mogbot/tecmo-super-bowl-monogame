@@ -8,6 +8,7 @@ using MonoGame.Extended.Entities;
 using TecmoSB;
 using TecmoSBGame.Audio;
 using TecmoSBGame.Components.Menu;
+using TecmoSBGame.Replay;
 using TecmoSBGame.Events;
 using TecmoSBGame.Flow;
 using TecmoSBGame.Input;
@@ -58,6 +59,7 @@ public sealed class MainGame : Game
     private TecmoSBGame.Rendering.Sprites.SpriteRegistry? _spriteRegistry;
 
     private TecmoSBGame.Audio.SoundService? _sound;
+    private TecmoSBGame.Replay.ReplayRecorder? _replay;
 
     // Debug sim toggles
     private FormationScriptSystem? _formationScriptSystem;
@@ -168,6 +170,7 @@ public sealed class MainGame : Game
         _flow.StateChanged += OnFlowStateChanged;
 
         _sound = new SoundService(Content);
+        _replay = new ReplayRecorder();
 
         _menuNav = new MenuNavigationSystem(_input)
         {
@@ -253,6 +256,7 @@ public sealed class MainGame : Game
             .AddSystem(new SpeedModifierSystem())
             .AddSystem(new AnimationSystem())
             .AddSystem(new AIDebugSystem(aiDebugConfig))
+            .AddSystem(new ReplayRecorderSystem(_playState, _replay!))
             // Pre-snap
             .AddSystem(new PreSnapSystem(_loopState, _matchState, _playState))
             .AddSystem(new PreSnapBallPlacementSystem(_loopState, _matchState, _playState))
@@ -411,6 +415,13 @@ public sealed class MainGame : Game
         {
             _debugOverlay.Enabled = !_debugOverlay.Enabled;
             Console.WriteLine($"[debug] overlay={_debugOverlay.Enabled}");
+        }
+
+        // F5: one-shot replay capture (tick snapshots)
+        if (_input.IsKeyPressed(Keys.F5) && _replay is not null)
+        {
+            _replay.Enabled = !_replay.Enabled;
+            Console.WriteLine($"[debug] replay={_replay.Enabled}");
         }
 
         // Advance simulation only when we're in gameplay flow states.
