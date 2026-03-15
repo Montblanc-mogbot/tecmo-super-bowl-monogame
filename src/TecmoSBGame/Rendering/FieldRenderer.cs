@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TecmoSBGame.Rendering.Sprites;
 
 namespace TecmoSBGame.Rendering;
 
@@ -30,13 +31,13 @@ public sealed class FieldRenderer
         // _font = content.Load<SpriteFont>("fonts/yardnumbers");
     }
 
-    public void Draw(SpriteBatch spriteBatch, Texture2D pixel)
+    public void Draw(SpriteBatch spriteBatch, Texture2D pixel, SpriteRegistry? sprites = null)
     {
         if (spriteBatch is null) throw new ArgumentNullException(nameof(spriteBatch));
         if (pixel is null) throw new ArgumentNullException(nameof(pixel));
 
-        // Draw field background
-        DrawFieldBackground(spriteBatch, pixel);
+        // Draw field background (tile/atlas-driven with fallback)
+        DrawFieldBackground(spriteBatch, pixel, sprites);
 
         // Draw yard lines
         DrawYardLines(spriteBatch, pixel);
@@ -48,17 +49,63 @@ public sealed class FieldRenderer
         DrawEndZones(spriteBatch, pixel);
     }
     
-    private void DrawFieldBackground(SpriteBatch spriteBatch, Texture2D pixel)
+    private void DrawFieldBackground(SpriteBatch spriteBatch, Texture2D pixel, SpriteRegistry? sprites)
     {
-        // Solid green field
         var fieldRect = new Rectangle(
             Field.FieldBounds.FieldLeftX,
             Field.FieldBounds.FieldTopY,
             Field.FieldBounds.FieldRightX - Field.FieldBounds.FieldLeftX,
             Field.FieldBounds.FieldBottomY - Field.FieldBounds.FieldTopY);
 
-        var grassColor = new Color(0, 120, 0); // Tecmo green
-        spriteBatch.Draw(pixel, fieldRect, grassColor);
+        // Tile size in virtual pixels (NES-ish).
+        const int tile = 16;
+
+        // If we have real art available via a sprite atlas, prefer it.
+        // Expected ids (optional): field_grass_a / field_grass_b.
+        var hasGrassA = sprites is not null && sprites.TryGet("field_grass_a", out _, out _);
+        var hasGrassB = sprites is not null && sprites.TryGet("field_grass_b", out _, out _);
+
+        for (int y = fieldRect.Top; y < fieldRect.Bottom; y += tile)
+        {
+            for (int x = fieldRect.Left; x < fieldRect.Right; x += tile)
+            {
+                var w = Math.Min(tile, fieldRect.Right - x);
+                var h = Math.Min(tile, fieldRect.Bottom - y);
+                var dst = new Rectangle(x, y, w, h);
+
+                var even = (((x - fieldRect.Left) / tile) + ((y - fieldRect.Top) / tile)) % 2 == 0;
+
+                if (sprites is not null && (hasGrassA || hasGrassB))
+                {
+                    var id = even ? "field_grass_a" : "field_grass_b";
+                    if (!sprites.TryGet(id, out var tex, out var src))
+                    {
+                        // If one of the two isn't present, fall back to the other.
+                        id = even ? "field_grass_b" : "field_grass_a";
+                        if (!sprites.TryGet(id, out tex, out src))
+                        {
+                            // Final fallback.
+                            DrawGrassFallback(pixel, spriteBatch, dst, even);
+                            continue;
+                        }
+                    }
+
+                    spriteBatch.Draw(tex, destinationRectangle: dst, sourceRectangle: src, color: Color.White);
+                }
+                else
+                {
+                    DrawGrassFallback(pixel, spriteBatch, dst, even);
+                }
+            }
+        }
+    }
+
+    private static void DrawGrassFallback(Texture2D pixel, SpriteBatch spriteBatch, Rectangle dst, bool even)
+    {
+        // Slight checkerboard to mimic grass tiles.
+        var grassA = new Color(0, 120, 0);
+        var grassB = new Color(0, 110, 0);
+        spriteBatch.Draw(pixel, dst, even ? grassA : grassB);
     }
 
     private void DrawYardLines(SpriteBatch spriteBatch, Texture2D pixel)

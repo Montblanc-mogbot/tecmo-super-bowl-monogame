@@ -53,6 +53,7 @@ public sealed class MainGame : Game
     // Debug rendering toggles
     private bool _showEntityLabels = true;
     private RenderingSystem? _renderingSystem;
+    private TecmoSBGame.Rendering.Sprites.SpriteRegistry? _spriteRegistry;
 
     // Debug sim toggles
     private FormationScriptSystem? _formationScriptSystem;
@@ -216,6 +217,7 @@ public sealed class MainGame : Game
         var spriteRegistry = new TecmoSBGame.Rendering.Sprites.SpriteRegistry();
         if (GameContent.SpriteManifest is not null)
             spriteRegistry.LoadFromManifest(Content, GameContent.SpriteManifest);
+        _spriteRegistry = spriteRegistry;
 
         _renderingSystem = new RenderingSystem(_spriteBatch, _renderResources.Pixel, spriteRegistry)
         {
@@ -718,7 +720,7 @@ public sealed class MainGame : Game
         {
             // In-game rendering
             if (_fieldRenderer is not null && _renderResources is not null)
-                _fieldRenderer.Draw(_spriteBatch, _renderResources.Pixel);
+                _fieldRenderer.Draw(_spriteBatch, _renderResources.Pixel, _spriteRegistry);
             _world?.Draw(gameTime);
 
             // HUD (scoreboard, down/distance)
