@@ -236,6 +236,7 @@ public sealed class MainGame : Game
             .AddSystem(_formationScriptSystem)
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
+            .AddSystem(new AnimationSystem())
             // Pre-snap
             .AddSystem(new PreSnapSystem(_loopState, _matchState, _playState))
             .AddSystem(new PreSnapBallPlacementSystem(_loopState, _matchState, _playState))
@@ -419,9 +420,7 @@ public sealed class MainGame : Game
         // Make sure scrimmage roster exists.
         EnsureScrimmageRoster(e.OffensiveFormationId);
 
-        var defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault(d => d.Id == "DEFENSIVE_EXECUTION_DEMO")?.Id
-            ?? GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id
-            ?? "DEFENSIVE_EXECUTION_1";
+        var defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id ?? "DEFENSIVE_EXECUTION_1";
 
         // Apply play assignments for this down.
         var spawner = new Spawning.PlaySpawner();
@@ -469,9 +468,7 @@ public sealed class MainGame : Game
 
         var defId = _playCallState.SelectedDefenseId;
         if (string.IsNullOrWhiteSpace(defId))
-            defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault(d => d.Id == "DEFENSIVE_EXECUTION_DEMO")?.Id
-                ?? GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id
-                ?? "DEFENSIVE_EXECUTION_1";
+            defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id ?? "DEFENSIVE_EXECUTION_1";
 
         EnsureScrimmageRoster(off.Formation ?? _playCallState.SelectedFormationId);
 
@@ -731,24 +728,17 @@ public sealed class MainGame : Game
             // Debug info
             DrawDebugInfo(_spriteBatch);
 
-            // Playcall placeholder overlay
+            // Playcall overlay
             if (_playCallState is not null && _playCallState.Visible)
             {
-                var font = FontSystem.Instance.GetFont(FontSize.Large);
-                var pixel = _renderResources?.Pixel;
-                if (pixel is not null)
-                {
-                    // Dim background
-                    _spriteBatch.Draw(pixel, new Rectangle(0, 0, 256, 224), Color.Black * 0.75f);
-                }
+                var formationArea = new Rectangle(6, 6, 120, 212);
+                var playsArea = new Rectangle(130, 6, 120, 110);
 
-                if (font is not null)
-                {
-                    const string text = "PLAYCALL";
-                    var size = font.MeasureString(text);
-                    var pos = new Vector2((256 - size.X) / 2f, (224 - size.Y) / 2f);
-                    _spriteBatch.DrawString(font, text, pos, Color.White);
-                }
+                _formationSelectRenderer?.Draw(_spriteBatch, formationArea, _playCallState);
+                _playSelectRenderer?.Draw(_spriteBatch, playsArea, _playCallState);
+
+                if (_playCallState.Step == PlayCallStep.Defense)
+                    _defensiveSelectRenderer?.Draw(_spriteBatch, playsArea, _playCallState);
             }
         }
 

@@ -58,56 +58,29 @@ public sealed class PlayCallSystem : EntityUpdateSystem
 
     public override void Update(GameTime gameTime)
     {
-        // Playcall placeholder: during on-field pre-snap (dead ball), force a deterministic play selection.
-        // We keep a simple blank overlay visible briefly so the flow still has a recognizable "playcall" slice.
-        var inPlayCallSlice = _loop.IsOnField("pre_snap")
+        // Show playcall during on-field pre-snap, and only when the ball is dead (scrimmage pre-snap).
+        // Kickoff pre-snap uses BallState.Held and does not show playcall.
+        var shouldShow = _loop.IsOnField("pre_snap")
             && _play.Phase == PlayPhase.PreSnap
-            && _play.BallState == BallState.Dead;
-
-        var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            && _play.BallState == BallState.Dead
+            && !_play.PlayCallLockedIn;
 
         foreach (var entityId in ActiveEntities)
         {
             var pc = _pc.Get(entityId);
+            pc.Visible = shouldShow;
 
-            if (!inPlayCallSlice)
-            {
-                pc.Visible = false;
-                pc.WasVisible = false;
-                pc.DisplaySeconds = 0f;
+            if (!shouldShow)
                 continue;
-            }
 
-            // If we've already locked in this down, keep a simple overlay visible for a brief moment.
-            if (_play.PlayCallLockedIn)
-            {
-                pc.DisplaySeconds = MathF.Max(0f, pc.DisplaySeconds - dt);
-                pc.Visible = pc.DisplaySeconds > 0f;
-                pc.WasVisible = pc.Visible;
-                continue;
-            }
+            EnsureLists(pc);
+            EnsureSelectionValid(pc);
 
-            // First entry: force the demo play and lock in.
-            // Demo scrimmage formation.
-            const string FormationId = "04";
-            const string Slot = "Run 1";
-            const string Name = "T FAKE SWEEP R";
-            const int PlayNumber = 10;
+            // Minimal real playcall: player selects offense only; defense is AI-selected.
+            HandleInput(pc);
 
-            Console.WriteLine($"[playcall] forced offense formation={FormationId} slot=\"{Slot}\" play=\"{Name}\" play_number={PlayNumber}");
-
-            _events.Publish(new PlaySelectedEvent(
-                OffensiveFormationId: FormationId,
-                OffensivePlayName: Name,
-                OffensivePlaySlot: Slot,
-                OffensivePlayNumber: PlayNumber,
-                DefensiveCallId: ""));
-
-            _play.PlayCallLockedIn = true;
-
-            pc.DisplaySeconds = 0.35f;
-            pc.Visible = true;
-            pc.WasVisible = true;
+            // Keep convenience fields fresh.
+            SyncSelected(pc);
         }
     }
 
@@ -115,10 +88,19 @@ public sealed class PlayCallSystem : EntityUpdateSystem
     {
         if (pc.FormationIds.Count == 0)
         {
-            foreach (var f in _formations.OffensiveFormations)
-                pc.FormationIds.Add(f.Id);
+            // Prefer the OFFENSE formation type list if present.
+            var offenseType = _formations.FormationTypes.FirstOrDefault(t => string.Equals(t.Id, "OFFENSE", StringComparison.OrdinalIgnoreCase));
+            if (offenseType is not null && offenseType.FormationIds.Count > 0)
+            {
+                pc.FormationIds.AddRange(offenseType.FormationIds);
+            }
+            else
+            {
+                foreach (var f in _formations.OffensiveFormations)
+                    pc.FormationIds.Add(f.Id);
+            }
 
-            // Default to the first formation that actually has plays (skip kickoff/test formations like "00").
+            // Default to the first formation that actually has plays.
             for (var i = 0; i < pc.FormationIds.Count; i++)
             {
                 var fid = pc.FormationIds[i];
@@ -184,94 +166,7 @@ public sealed class PlayCallSystem : EntityUpdateSystem
             pc.Focus = PlayCallFocus.Formation;
     }
 
-    private void HandleAutoPlaycall(PlayCallComponent pc)
-    {
-        // Guard: only emit once per play.
-        if (pc.LastAutoPlaycallPlayId == _play.PlayId)
-            return;
-
-        EnsureLists(pc);
-
-        // Demo goal: pick a deterministic real Tecmo play (play_number=10 "T FAKE SWEEP R") when available.
-        // If not found, fall back to the first formation with any plays.
-        const int DemoPlayNumber = 10;
-
-        var formationIndex = -1;
-        var playIndex = 0;
-
-        for (var fi = 0; fi < pc.FormationIds.Count; fi++)
-        {
-            pc.FormationIndex = fi;
-            EnsureLists(pc);
-
-            for (var pi = 0; pi < pc.PlaysForFormation.Count; pi++)
-            {
-                var p = pc.PlaysForFormation[pi];
-                if (p.PlayNumbers is null)
-                    continue;
-
-                foreach (var n in p.PlayNumbers)
-                {
-                    if (n == DemoPlayNumber)
-                    {
-                        formationIndex = fi;
-                        playIndex = pi;
-                        break;
-                    }
-                }
-
-                if (formationIndex >= 0)
-                    break;
-            }
-
-            if (formationIndex >= 0)
-                break;
-        }
-
-        // Fallback: Prefer formation 01 if it has any plays; otherwise first formation with any plays.
-        if (formationIndex < 0)
-        {
-            // Try 01 first.
-            var idx01 = pc.FormationIds.FindIndex(id => string.Equals(id, "01", StringComparison.OrdinalIgnoreCase));
-            if (idx01 >= 0)
-            {
-                pc.FormationIndex = idx01;
-                EnsureLists(pc);
-                if (pc.PlaysForFormation.Count > 0)
-                    formationIndex = idx01;
-            }
-        }
-
-        if (formationIndex < 0)
-        {
-            for (var i = 0; i < pc.FormationIds.Count; i++)
-            {
-                pc.FormationIndex = i;
-                EnsureLists(pc);
-                if (pc.PlaysForFormation.Count > 0)
-                {
-                    formationIndex = i;
-                    break;
-                }
-            }
-        }
-
-        if (formationIndex < 0)
-        {
-            // No data: nothing we can do.
-            return;
-        }
-
-        pc.FormationIndex = formationIndex;
-        pc.PlayIndex = Math.Clamp(playIndex, 0, Math.Max(0, pc.PlaysForFormation.Count - 1));
-        pc.DefenseIndex = 0;
-
-        pc.Step = PlayCallStep.Defense;
-        pc.Focus = PlayCallFocus.Defense;
-
-        EmitSelected(pc);
-        pc.LastAutoPlaycallPlayId = _play.PlayId;
-    }
+    // AutoPlaycall placeholder removed; use real playcall selection (offense only).
 
     private void HandleInput(PlayCallComponent pc)
     {

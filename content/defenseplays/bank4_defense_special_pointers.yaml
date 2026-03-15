@@ -9,21 +9,6 @@ id: bank4_defense_special_pointers
 # Defense execution sets (100+ defensive formations/schemes)
 # Each execution has 11 player slots (index 0-10)
 defensive_executions:
-  - id: DEFENSIVE_EXECUTION_DEMO
-    description: "Demo defense (placeholder)"
-    player_reactions:
-      - { index: 0, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 1, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 2, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 3, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 4, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 5, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 6, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 7, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 8, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 9, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-      - { index: 10, reaction_id: DEFENSE_PLAYER_REACTION_001 }
-
   - id: DEFENSIVE_EXECUTION_1
     description: "Base 4-3 defense"
     player_reactions:
