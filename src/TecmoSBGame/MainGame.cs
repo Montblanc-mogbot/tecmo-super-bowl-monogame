@@ -12,10 +12,10 @@ using TecmoSBGame.Flow;
 using TecmoSBGame.Input;
 using TecmoSBGame.Rendering;
 using TecmoSBGame.Rendering.PlayCall;
+using TecmoSBGame.Systems;
 using TecmoSBGame.Rendering.PostPlay;
 using TecmoSBGame.Rendering.UI;
 using TecmoSBGame.State;
-using TecmoSBGame.Systems;
 using TecmoSBGame.Systems.Menu;
 using TecmoSBGame.Systems.PlayCall;
 using TecmoSBGame.Components;
@@ -42,6 +42,7 @@ public sealed class MainGame : Game
 
     // Rendering
     private RenderViewport? _viewport;
+    private TecmoSBGame.Rendering.Camera2D? _camera;
     private RenderResources? _renderResources;
     private FieldRenderer? _fieldRenderer;
     private TitleScreenRenderer? _titleRenderer;
@@ -146,6 +147,7 @@ public sealed class MainGame : Game
     {
         // Renderers (use GraphicsDevice, not ContentManager)
         _viewport = new RenderViewport(GraphicsDevice);
+        _camera = new TecmoSBGame.Rendering.Camera2D();
         _renderResources = new RenderResources(GraphicsDevice);
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
         _titleRenderer = new TitleScreenRenderer(GraphicsDevice);
@@ -229,6 +231,7 @@ public sealed class MainGame : Game
             // Route runners
             .AddSystem(new RouteFollowSystem())
             .AddSystem(new ManCoverageSystem(_events, _playState))
+            .AddSystem(new CameraSystem(_camera!, worldBounds: new Rectangle(0, 0, 256, 224)))
             .AddSystem(new ZoneCoverageSystem(_events, _playState))
             // Execute play scripts (PlayData YAML) to drive behavior.
             .AddSystem(new PlayScriptSystem(_playState, _matchState, _controlState))
@@ -690,6 +693,9 @@ public sealed class MainGame : Game
 
         GraphicsDevice.Clear(Color.Black);
 
+        var cameraMatrix = _camera?.GetViewMatrix() ?? Matrix.Identity;
+        var scaleMatrix = _viewport?.ScaleMatrix ?? Matrix.Identity;
+
         _spriteBatch.Begin(
             SpriteSortMode.Deferred,
             BlendState.AlphaBlend,
@@ -697,10 +703,7 @@ public sealed class MainGame : Game
             DepthStencilState.None,
             RasterizerState.CullNone,
             effect: null,
-            transformMatrix: _viewport?.ScaleMatrix);
-
-        // TODO(camera): add a simple follow camera (ball/controlled entity) by composing a translation
-        // matrix before ScaleMatrix. For now we keep the fixed virtual NES viewport.
+            transformMatrix: cameraMatrix * scaleMatrix);
 
         // Draw based on current flow state
         if (_flow is not null && _flow.State == GameFlowState.Title)

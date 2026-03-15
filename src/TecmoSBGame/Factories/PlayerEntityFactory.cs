@@ -56,6 +56,9 @@ public static class PlayerEntityFactory
         entity.Attach(new BallCarrierComponent { HasBall = false });
         entity.Attach(new PlayerControlComponent { IsControlled = false });
 
+        // Camera target: controlled player should win.
+        entity.Attach(new CameraTargetComponent(priority: isPlayerControlled ? 100 : 10));
+
         return entity.Id;
     }
 

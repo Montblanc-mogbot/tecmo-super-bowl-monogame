@@ -31,6 +31,7 @@ public static class BallEntityFactory
         // Attach a sprite marker so debug rendering can show the ball.
         // (Still fine for headless: the component is inert and only read by rendering.)
         entity.Attach(new SpriteComponent("ball"));
+        entity.Attach(new CameraTargetComponent(priority: 50));
 
         return entity.Id;
     }
