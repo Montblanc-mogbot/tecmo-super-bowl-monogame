@@ -108,9 +108,11 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
             if (route.FrameCounter < minFrames)
                 continue;
 
-            var action = (node.Action ?? string.Empty).Trim().ToUpperInvariant();
+            var actionKind = node.ActionKind != RouteNodeAction.Run
+                ? node.ActionKind
+                : ParseAction(node.Action);
 
-            if (action == "SIT")
+            if (actionKind == RouteNodeAction.Sit)
             {
                 // Snap to sit point on the exact transition frame.
                 pos.Position = targetAbs;
@@ -119,7 +121,7 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
                 continue;
             }
 
-            if (action == "RETURN")
+            if (actionKind == RouteNodeAction.Return)
             {
                 // Treat as route complete (ballcarrier-like behavior handled elsewhere).
                 pos.Position = targetAbs;
@@ -143,6 +145,18 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
                 route.RouteComplete = true;
             }
         }
+    }
+
+    private static RouteNodeAction ParseAction(string? action)
+    {
+        var a = (action ?? string.Empty).Trim().ToUpperInvariant();
+        return a switch
+        {
+            "CUT" => RouteNodeAction.Cut,
+            "SIT" => RouteNodeAction.Sit,
+            "RETURN" => RouteNodeAction.Return,
+            _ => RouteNodeAction.Run,
+        };
     }
 
     private void ApplyRouteSpeed(int entityId, RouteComponent route)

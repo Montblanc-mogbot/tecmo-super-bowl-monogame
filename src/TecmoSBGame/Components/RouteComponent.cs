@@ -16,7 +16,13 @@ namespace TecmoSBGame.Components;
 public sealed class RouteComponent
 {
     // Route definition from YAML/play data
+    // Prefer RouteKind for code; keep RouteType string for YAML friendliness.
+    public RouteKind RouteKind { get; set; } = RouteKind.Unknown;
     public string RouteType { get; set; } = ""; // GO, POST, CORNER, OUT, IN, SLANT, CURL, etc.
+
+    /// <summary>
+    /// Frame-timed route nodes (offset from Origin).
+    /// </summary>
     public List<RouteNode> Nodes { get; set; } = new();
 
     // Runtime state
@@ -38,9 +44,44 @@ public sealed class RouteComponent
     public float OriginalMaxSpeedPerTick { get; set; }
 }
 
+public enum RouteKind
+{
+    Unknown = 0,
+    Go,
+    Post,
+    Corner,
+    Out,
+    In,
+    Slant,
+    Curl,
+    Flat,
+    Wheel,
+    Screen,
+    Block,
+}
+
+public enum RouteNodeAction
+{
+    Run = 0,
+    Cut,
+    Sit,
+    Return,
+}
+
 public struct RouteNode
 {
-    public Vector2 Offset; // Relative to LOS/origin
-    public int MinFrames; // Minimum frames before next node
-    public string Action; // "RUN", "CUT", "SIT", "RETURN"
+    /// <summary>Relative to LOS/origin.</summary>
+    public Vector2 Offset;
+
+    /// <summary>Minimum frames before transitioning to the next node.</summary>
+    public int MinFrames;
+
+    /// <summary>
+    /// Legacy/string form used by scaffold YAML.
+    /// Prefer ActionKind in code.
+    /// </summary>
+    public string Action;
+
+    /// <summary>Strongly typed action for engine code.</summary>
+    public RouteNodeAction ActionKind;
 }
