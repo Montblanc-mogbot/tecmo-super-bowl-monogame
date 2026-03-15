@@ -262,6 +262,7 @@ public sealed class MainGame : Game
             // Blocking/Contact
             .AddSystem(new BlockerAISystem(_events, _loopState, _playState))
             .AddSystem(new KickoffCoverageSystem(_playState, _matchState))
+            .AddSystem(new PuntCoverageSystem(_playState))
             .AddSystem(new CollisionContactSystem(_events, _loopState, _playState))
             .AddSystem(new EngagementSystem(_events))
             .AddSystem(new TackleInterruptSystem(_events))
