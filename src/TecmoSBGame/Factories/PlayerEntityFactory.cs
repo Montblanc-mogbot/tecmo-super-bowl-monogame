@@ -194,6 +194,10 @@ public static class PlayerEntityFactory
             ballCarrier.HasBall = false;
         }
 
+        // Kickoff return lane selection AI (scaffold). If player-controlled, do not attach.
+        if (!isPlayerControlled)
+            entity.Attach(new KickoffReturnComponent());
+
         return entityId;
     }
 

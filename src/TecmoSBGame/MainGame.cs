@@ -287,6 +287,7 @@ public sealed class MainGame : Game
             .AddSystem(new DownDistanceSystem(_events, _matchState))
             .AddSystem(new NextPlayResetSystem(_events, _matchState, _playState, _loopState))
             .AddSystem(new KickoffAfterScoreSystem(_events, _matchState, _playState))
+            .AddSystem(new KickoffReturnSystem(_matchState, _playState))
             // HUD
             .AddSystem(new HudSystem(_matchState, _playState, _flow))
             // Rendering
