@@ -419,7 +419,9 @@ public sealed class MainGame : Game
         // Make sure scrimmage roster exists.
         EnsureScrimmageRoster(e.OffensiveFormationId);
 
-        var defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id ?? "DEFENSIVE_EXECUTION_1";
+        var defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault(d => d.Id == "DEFENSIVE_EXECUTION_DEMO")?.Id
+            ?? GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id
+            ?? "DEFENSIVE_EXECUTION_1";
 
         // Apply play assignments for this down.
         var spawner = new Spawning.PlaySpawner();
@@ -467,7 +469,9 @@ public sealed class MainGame : Game
 
         var defId = _playCallState.SelectedDefenseId;
         if (string.IsNullOrWhiteSpace(defId))
-            defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id ?? "DEFENSIVE_EXECUTION_1";
+            defId = GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault(d => d.Id == "DEFENSIVE_EXECUTION_DEMO")?.Id
+                ?? GameContent.DefensePlays?.DefensiveExecutions?.FirstOrDefault()?.Id
+                ?? "DEFENSIVE_EXECUTION_1";
 
         EnsureScrimmageRoster(off.Formation ?? _playCallState.SelectedFormationId);
 

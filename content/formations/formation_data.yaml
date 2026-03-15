@@ -118,6 +118,44 @@ offensive_formations:
         address: "A1C2"
         commands: "SetPosFromHike(30 24); 3pt; JumpTo BE54:FC(FF E0); Block-RCB; LoopBack FC"
 
+  - id: "04"
+    name: "FORMATION_04"
+    description: "Scrimmage demo formation (basic)"
+    players:
+      - position: QB
+        address: "DEMO"
+        commands: "SetPosFromHike(F0 40); QB-Stance; LoopBack FE"
+      - position: HB
+        address: "DEMO"
+        commands: "SetPosFromHike(F0 58); 2pt; LoopBack FE"
+      - position: FB
+        address: "DEMO"
+        commands: "SetPosFromHike(E0 58); 2pt; LoopBack FE"
+      - position: WR1
+        address: "DEMO"
+        commands: "SetPosFromHike(A0 28); 2pt; LoopBack FE"
+      - position: WR2
+        address: "DEMO"
+        commands: "SetPosFromHike(40 28); 2pt; LoopBack FE"
+      - position: TE
+        address: "DEMO"
+        commands: "SetPosFromHike(10 40); 3pt; LoopBack FE"
+      - position: OC
+        address: "DEMO"
+        commands: "SetPosFromHike(F0 20); 3pt; LoopBack FE"
+      - position: LG
+        address: "DEMO"
+        commands: "SetPosFromHike(E0 20); 3pt; LoopBack FE"
+      - position: RG
+        address: "DEMO"
+        commands: "SetPosFromHike(00 20); 3pt; LoopBack FE"
+      - position: LT
+        address: "DEMO"
+        commands: "SetPosFromHike(D0 20); 3pt; LoopBack FE"
+      - position: RT
+        address: "DEMO"
+        commands: "SetPosFromHike(20 20); 3pt; LoopBack FE"
+
 # Command reference
 command_reference:
   SetPosFromKick:
