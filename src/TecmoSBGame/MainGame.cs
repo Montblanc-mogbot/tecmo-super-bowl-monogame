@@ -674,6 +674,24 @@ public sealed class MainGame : Game
         if (_menuNav is not null)
             _menuNav.Enabled = next == GameFlowState.MainMenu;
 
+        // Music state switching scaffold (assembly-accurate mapping TBD)
+        if (_sound is not null)
+        {
+            var music = next switch
+            {
+                GameFlowState.Title => MusicState.Title,
+                GameFlowState.MainMenu => MusicState.Menu,
+                GameFlowState.TeamSelect => MusicState.Menu,
+                GameFlowState.CoinToss => MusicState.Menu,
+                GameFlowState.Kickoff => MusicState.OnField,
+                GameFlowState.OnField => MusicState.OnField,
+                GameFlowState.PostPlay => MusicState.Score,
+                _ => MusicState.None,
+            };
+
+            _sound.SetMusicState(music);
+        }
+
         if (next == GameFlowState.TeamSelect && _matchState is not null && _flow is not null)
         {
             _flow.ConfirmTeamSelection(_matchState);

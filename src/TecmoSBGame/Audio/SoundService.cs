@@ -21,6 +21,8 @@ public sealed class SoundService
     public bool Enabled { get; set; } = true;
     public float Volume { get; set; } = 0.85f;
 
+    public MusicState MusicState { get; private set; } = MusicState.None;
+
     public SoundService(ContentManager content)
     {
         _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -66,5 +68,16 @@ public sealed class SoundService
             return;
 
         fx.Play(volume ?? Volume, pitch, pan);
+    }
+
+    public void SetMusicState(MusicState state)
+    {
+        if (MusicState == state)
+            return;
+
+        MusicState = state;
+
+        // TODO: implement actual music playback via Song/MediaPlayer and content keys.
+        // For now this is a state machine only.
     }
 }
