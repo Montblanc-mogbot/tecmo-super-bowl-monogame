@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using TecmoSB;
 
@@ -62,7 +63,17 @@ public sealed class GameContent
             
             PlayData = _repository.LoadPlayData();
             Console.WriteLine("[GameContent] Loaded play data");
-            
+
+            // Cross-file YAML validation pass (references, ranges, missing ids, etc.)
+            var yamlIssues = ContentValidation.YamlContentValidator.Validate(FormationData, PlayList, PlayData);
+            if (yamlIssues.Count > 0)
+            {
+                Console.WriteLine($"[GameContent] YAML VALIDATION FAILED ({yamlIssues.Count} issue(s)):");
+                foreach (var issue in yamlIssues)
+                    Console.WriteLine($"  - {issue}");
+                throw new InvalidDataException($"YAML validation failed with {yamlIssues.Count} issue(s). See log for details.");
+            }
+
             DefensePlays = _repository.LoadDefensePlays();
             Console.WriteLine("[GameContent] Loaded defense plays");
             
