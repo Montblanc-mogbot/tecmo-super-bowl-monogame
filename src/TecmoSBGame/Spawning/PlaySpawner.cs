@@ -144,6 +144,8 @@ public sealed class PlaySpawner
         var qbId = offenseEntityIds.FirstOrDefault(id => world.GetEntity(id).Get<PlayerRoleComponent>()?.Role == PlayerRole.QB);
 
         var receiverIdx = 0;
+        var hasMan = false;
+        var hasZone = false;
         for (var defIndex = 0; defIndex < defenseEntityIds.Count; defIndex++)
         {
             var id = defenseEntityIds[defIndex];
@@ -157,6 +159,9 @@ public sealed class PlaySpawner
             var da = new DefensiveAssignmentComponent();
             FillDefensiveAssignment(id, role, slot, qbId, receivers, ref receiverIdx, da);
             e.Attach(da);
+
+            hasMan |= da.Kind == DefensiveAssignmentKind.ManCoverage;
+            hasZone |= da.Kind == DefensiveAssignmentKind.ZoneCoverage;
 
             // Data-driven rush assignments (bank4 DefensePlayData) are scaffolded.
             // (Gap-level roles are not wired through all YAML/config paths yet.)
@@ -187,6 +192,19 @@ public sealed class PlaySpawner
                 Role: role,
                 Slot: slot,
                 Summary: DescribeDefense(da)));
+        }
+
+        // Attach a defensive look hint to the offense so offensive AI can react deterministically.
+        // (ROUTE-5 scaffold)
+        foreach (var id in offenseEntityIds)
+        {
+            var e = world.GetEntity(id);
+            if (!e.Has<DefensiveLookComponent>())
+                e.Attach(new DefensiveLookComponent());
+
+            var look = e.Get<DefensiveLookComponent>();
+            look.IsMan = hasMan;
+            look.IsZone = hasZone && !hasMan; // prefer man if mixed
         }
 
         return new SpawnedPlay(

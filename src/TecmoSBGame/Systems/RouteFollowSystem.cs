@@ -29,6 +29,7 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
     private ComponentMapper<BehaviorComponent> _behaviorMapper = null!;
     private ComponentMapper<PlayerAttributesComponent> _attrMapper = null!;
     private ComponentMapper<MovementTuningComponent> _tuningMapper = null!;
+    private ComponentMapper<DefensiveLookComponent> _lookMapper = null!;
 
     public RouteFollowSystem() : base(Aspect.All(typeof(RouteComponent), typeof(PositionComponent), typeof(BehaviorComponent)))
     {
@@ -41,6 +42,7 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
         _behaviorMapper = mapperService.GetMapper<BehaviorComponent>();
         _attrMapper = mapperService.GetMapper<PlayerAttributesComponent>();
         _tuningMapper = mapperService.GetMapper<MovementTuningComponent>();
+        _lookMapper = mapperService.GetMapper<DefensiveLookComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -95,6 +97,17 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
 
             // Node absolute target.
             var targetAbs = route.Origin + node.Offset;
+
+            // ROUTE-5: crude deterministic route adjustments vs man/zone coverage.
+            // We rely on DefensiveLookComponent attached by PlaySpawner.
+            if (_lookMapper.Has(entityId))
+            {
+                var look = _lookMapper.Get(entityId);
+                if (look.IsMan)
+                    targetAbs += route.ManAdjustOffset;
+                else if (look.IsZone)
+                    targetAbs += route.ZoneAdjustOffset;
+            }
 
             // Update behavior so MovementSystem moves toward our target.
             behavior.State = BehaviorState.RunningRoute;

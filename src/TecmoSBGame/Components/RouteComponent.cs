@@ -35,6 +35,11 @@ public sealed class RouteComponent
     public int StemFrames { get; set; } // Frames before break (heuristic until real ROM tables are imported)
     public float BaseSpeed { get; set; } // "base route speed" (units per 60Hz tick) at MS=69 (TSB max)
 
+    // Simple deterministic adjustments to help routes play differently vs coverage.
+    // These are intentionally crude placeholders until ROM-authentic logic is imported.
+    public Vector2 ManAdjustOffset { get; set; } = Vector2.Zero;
+    public Vector2 ZoneAdjustOffset { get; set; } = Vector2.Zero;
+
     // Internal runtime (captured once)
     public bool Initialized { get; set; }
     public Vector2 Origin { get; set; } // captured starting position
