@@ -46,6 +46,7 @@ public sealed class MainGame : Game
     private TecmoSBGame.Rendering.Camera2D? _camera;
     private RenderResources? _renderResources;
     private FieldRenderer? _fieldRenderer;
+    private DebugOverlayRenderer? _debugOverlay;
     private TitleScreenRenderer? _titleRenderer;
     private MainMenuRenderer? _mainMenuRenderer;
     private ScoreboardRenderer? _scoreboardRenderer;
@@ -154,6 +155,7 @@ public sealed class MainGame : Game
         _camera = new TecmoSBGame.Rendering.Camera2D();
         _renderResources = new RenderResources(GraphicsDevice);
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
+        _debugOverlay = new DebugOverlayRenderer { Enabled = false };
         _titleRenderer = new TitleScreenRenderer(GraphicsDevice);
         _mainMenuRenderer = new MainMenuRenderer(GraphicsDevice);
         _scoreboardRenderer = new ScoreboardRenderer(GraphicsDevice);
@@ -402,6 +404,13 @@ public sealed class MainGame : Game
         {
             _debugHudLog = !_debugHudLog;
             Console.WriteLine($"[debug] hudLog={_debugHudLog}");
+        }
+
+        // F4: toggle on-screen debug overlay
+        if (_input.IsKeyPressed(Keys.F4) && _debugOverlay is not null)
+        {
+            _debugOverlay.Enabled = !_debugOverlay.Enabled;
+            Console.WriteLine($"[debug] overlay={_debugOverlay.Enabled}");
         }
 
         // Advance simulation only when we're in gameplay flow states.
@@ -771,6 +780,10 @@ public sealed class MainGame : Game
 
             // Debug info
             DrawDebugInfo(_spriteBatch);
+
+            // Debug overlay (state ids, ball owner/state, key timers)
+            if (_debugOverlay is not null && _renderResources is not null && _matchState is not null && _playState is not null)
+                _debugOverlay.Draw(_spriteBatch, _renderResources, _matchState, _playState);
 
             // Playcall overlay
             if (_playCallState is not null && _playCallState.Visible)
