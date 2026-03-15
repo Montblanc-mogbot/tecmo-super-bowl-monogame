@@ -33,6 +33,12 @@ public sealed class KickoffCoverageComponent
     public Vector2 LaneLandmark { get; set; }
 
     /// <summary>
+    /// Entity id for the expected returner.
+    /// Spawners should set this deterministically for kickoff scenarios.
+    /// </summary>
+    public int ReturnerEntityId { get; set; } = -1;
+
+    /// <summary>
     /// When true, coverage breaks directly on the returner (ball carrier) rather than
     /// honoring lane landmark. Useful after the returner commits to a side.
     /// </summary>
