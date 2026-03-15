@@ -103,8 +103,13 @@ public sealed class RouteFollowSystem : EntityUpdateSystem
             // Advance route timing by exactly one frame per tick.
             route.FrameCounter++;
 
-            // Handle SIT/RETURN actions immediately when we reach the node's completion frame.
+            // Handle depth/break timing.
+            // Tecmo routes are timing-based; for now we treat the first node as the "stem" and allow
+            // RouteComponent.StemFrames to override the first node's duration.
             var minFrames = Math.Max(0, node.MinFrames);
+            if (idx == 0 && route.StemFrames > 0)
+                minFrames = route.StemFrames;
+
             if (route.FrameCounter < minFrames)
                 continue;
 
