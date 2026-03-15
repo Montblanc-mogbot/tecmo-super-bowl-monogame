@@ -40,5 +40,23 @@ if (args.Length > 0 && string.Equals(args[0], "--headless-coverage", StringCompa
     return;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--headless-nes-compare", StringComparison.OrdinalIgnoreCase))
+{
+    if (args.Length < 2)
+    {
+        Console.Error.WriteLine("usage: --headless-nes-compare <trace.json> [maxTicks]");
+        Environment.ExitCode = 2;
+        return;
+    }
+
+    var tracePath = args[1];
+    var ticks = 180;
+    if (args.Length > 2 && int.TryParse(args[2], out var parsed) && parsed > 0)
+        ticks = parsed;
+
+    Environment.ExitCode = NesTraceCompareRunner.Run(tracePath, ticks);
+    return;
+}
+
 using var game = new MainGame();
 game.Run();
