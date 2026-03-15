@@ -290,6 +290,7 @@ public sealed class MainGame : Game
             .AddSystem(new KickoffAfterScoreSystem(_events, _matchState, _playState))
             .AddSystem(new KickoffReturnSystem(_matchState, _playState))
             .AddSystem(new PuntReturnSystem(_matchState, _playState))
+            .AddSystem(new FieldGoalBlockRushSystem(_playState))
             // HUD
             .AddSystem(new HudSystem(_matchState, _playState, _flow))
             // Rendering
