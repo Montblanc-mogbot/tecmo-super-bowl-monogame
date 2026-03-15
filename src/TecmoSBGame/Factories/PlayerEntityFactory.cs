@@ -52,6 +52,7 @@ public static class PlayerEntityFactory
         entity.Attach(new BehaviorStackComponent());
         entity.Attach(new EngagementComponent { PartnerEntityId = -1, CooldownSeconds = 0f });
         entity.Attach(new SpriteComponent(spriteId));
+        entity.Attach(AnimationComponent.CreateWithDefaultPlayerClips(spriteId));
         entity.Attach(new BallCarrierComponent { HasBall = false });
         entity.Attach(new PlayerControlComponent { IsControlled = false });
 
