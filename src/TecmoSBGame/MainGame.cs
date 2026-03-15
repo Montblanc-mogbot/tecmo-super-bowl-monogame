@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.Entities;
 using TecmoSB;
+using TecmoSBGame.Audio;
 using TecmoSBGame.Components.Menu;
 using TecmoSBGame.Events;
 using TecmoSBGame.Flow;
@@ -54,6 +55,8 @@ public sealed class MainGame : Game
     private bool _showEntityLabels = true;
     private RenderingSystem? _renderingSystem;
     private TecmoSBGame.Rendering.Sprites.SpriteRegistry? _spriteRegistry;
+
+    private TecmoSBGame.Audio.SoundService? _sound;
 
     // Debug sim toggles
     private FormationScriptSystem? _formationScriptSystem;
@@ -161,6 +164,8 @@ public sealed class MainGame : Game
 
         _flow = new GameFlowController(seed: 0x5157);
         _flow.StateChanged += OnFlowStateChanged;
+
+        _sound = new SoundService(Content);
 
         _menuNav = new MenuNavigationSystem(_input)
         {
@@ -296,6 +301,7 @@ public sealed class MainGame : Game
             .AddSystem(new PuntReturnSystem(_matchState, _playState))
             .AddSystem(new FieldGoalBlockRushSystem(_playState))
             // HUD
+            .AddSystem(new SoundSystem(_events, _sound!))
             .AddSystem(new HudSystem(_matchState, _playState, _flow))
             // Rendering
             .AddSystem(_renderingSystem)
@@ -324,6 +330,8 @@ public sealed class MainGame : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _fieldRenderer?.LoadContent(Content);
+
+        _sound?.LoadDefaultCues();
 
         // Initialize font system for UI text rendering
         FontSystem.Instance.Load(Content);
