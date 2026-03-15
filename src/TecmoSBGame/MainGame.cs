@@ -229,6 +229,9 @@ public sealed class MainGame : Game
             DebugLog = _debugScriptLog,
         };
 
+        // Create AI debug config (kept as a singleton instance so systems can read it without world scans)
+        var aiDebugConfig = new TecmoSBGame.Components.AIDebugConfigComponent { Enabled = false };
+
         _world = new WorldBuilder()
             // Route runners
             .AddSystem(new RouteFollowSystem())
@@ -242,6 +245,7 @@ public sealed class MainGame : Game
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
             .AddSystem(new AnimationSystem())
+            .AddSystem(new AIDebugSystem(aiDebugConfig))
             // Pre-snap
             .AddSystem(new PreSnapSystem(_loopState, _matchState, _playState))
             .AddSystem(new PreSnapBallPlacementSystem(_loopState, _matchState, _playState))
@@ -296,6 +300,10 @@ public sealed class MainGame : Game
             // Rendering
             .AddSystem(_renderingSystem)
             .Build();
+
+        // Create AI debug config entity
+        var aiDebugEntity = _world.CreateEntity();
+        aiDebugEntity.Attach(aiDebugConfig);
 
         // Create playcall entity
         _playCallState = new PlayCallComponent();

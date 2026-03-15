@@ -32,6 +32,7 @@ public static class BallEntityFactory
         // (Still fine for headless: the component is inert and only read by rendering.)
         entity.Attach(new SpriteComponent("ball"));
         entity.Attach(new CameraTargetComponent(priority: 50));
+        entity.Attach(new AIDebugDrawableComponent());
 
         return entity.Id;
     }

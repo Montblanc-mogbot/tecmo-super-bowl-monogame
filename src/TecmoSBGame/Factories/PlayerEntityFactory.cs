@@ -55,6 +55,7 @@ public static class PlayerEntityFactory
         entity.Attach(AnimationComponent.CreateWithDefaultPlayerClips(spriteId));
         entity.Attach(new BallCarrierComponent { HasBall = false });
         entity.Attach(new PlayerControlComponent { IsControlled = false });
+        entity.Attach(new AIDebugDrawableComponent());
 
         // Camera target: controlled player should win.
         entity.Attach(new CameraTargetComponent(priority: isPlayerControlled ? 100 : 10));
