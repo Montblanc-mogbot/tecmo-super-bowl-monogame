@@ -51,6 +51,7 @@ public static class HeadlessRunner
             .AddSystem(new SnapResolutionSystem(events, match, play))
             .AddSystem(new QbDropbackSystem(events, match, play))
             .AddSystem(new ReadProgressionSystem(events, match, play))
+            .AddSystem(new AIDecisionLogSystem(play))
             .AddSystem(new PassFlightStartSystem(events, play))
             .AddSystem(new BallPhysicsSystem())
             .AddSystem(new PassFlightCompleteSystem(events, play))
