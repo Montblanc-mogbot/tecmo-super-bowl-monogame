@@ -1,4 +1,5 @@
 using System;
+using TecmoSBGame.Determinism;
 
 namespace TecmoSBGame.State;
 
@@ -14,6 +15,19 @@ public sealed class PlayState
     /// Identifier for the play within the match. By convention this can align with <see cref="MatchState.PlayNumber"/> + 1.
     /// </summary>
     public int PlayId { get; set; } = 0;
+
+    /// <summary>
+    /// Deterministic per-play seed for AI/physics randomness.
+    ///
+    /// Rule: if PlayId + StartAbsoluteYard + BaseSeed are the same, decisions should be identical.
+    /// </summary>
+    public uint DeterministicSeed { get; set; } = 0;
+
+    /// <summary>
+    /// Deterministic base seed for the overall session/match.
+    /// Override this at match start for repeatable full-game simulations.
+    /// </summary>
+    public uint BaseSeed { get; set; } = 0x1234ABCDu;
 
     /// <summary>
     /// Phase within the play lifecycle (pre-snap / in-play / post-play).
@@ -105,6 +119,9 @@ public sealed class PlayState
 
         StartAbsoluteYard = Math.Clamp(startAbsoluteYard, 0, 100);
         EndAbsoluteYard = StartAbsoluteYard;
+
+        // Derive per-play deterministic seed.
+        DeterministicSeed = DeterministicRng.SeedFromPlay(BaseSeed, PlayId, StartAbsoluteYard);
     }
 
     public string ToSummaryString()
