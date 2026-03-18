@@ -22,9 +22,14 @@ public sealed class Sim : IDisposable
 
     private readonly Systems.MovementSystem _movement = new();
 
+    private readonly System.Collections.Generic.List<int> _offense = new(11);
+    private readonly System.Collections.Generic.List<int> _defense = new(11);
+    private int _ballEntityId;
+
     public Sim()
     {
         World = World.Create();
+        BootstrapDemoWorld();
     }
 
     public void Dispose()
@@ -40,6 +45,12 @@ public sealed class Sim : IDisposable
         World = World.Create();
         Snapshot.Tick = 0;
         _pendingSelection = null;
+
+        _offense.Clear();
+        _defense.Clear();
+        _ballEntityId = 0;
+
+        BootstrapDemoWorld();
     }
 
     public void ApplyPlaySelection(in PendingPlaySelection sel)
@@ -70,11 +81,84 @@ public sealed class Sim : IDisposable
         UpdateSnapshot();
     }
 
+    private void BootstrapDemoWorld()
+    {
+        var (off, def, ball) = Spawning.FormationSpawner.SpawnDemoScrimmage(World);
+        _offense.AddRange(off);
+        _defense.AddRange(def);
+        _ballEntityId = ball;
+    }
+
     private void UpdateSnapshot()
     {
-        // Temporary: until we have real spawners, expose an empty snapshot.
-        Snapshot.Players = Array.Empty<SimSnapshot.PlayerSnapshot>();
-        Snapshot.Ball = default;
+        // Collect players
+        var players = new SimSnapshot.PlayerSnapshot[_offense.Count + _defense.Count];
+        var idx = 0;
+
+        void Fill(int entityId)
+        {
+            // Query by entity id (use World.Get with an Entity wrapper)
+            var e = new Arch.Core.Entity(World, entityId);
+            if (!e.IsAlive())
+                return;
+
+            if (!e.Has<Components.Position>() || !e.Has<Components.Team>())
+                return;
+
+            var pos = e.Get<Components.Position>().Value;
+            var team = e.Get<Components.Team>();
+
+            players[idx] = new SimSnapshot.PlayerSnapshot
+            {
+                EntityId = entityId,
+                Position = pos,
+                TeamIndex = team.TeamIndex,
+                IsOffense = team.IsOffense,
+                HasBall = false,
+                SpriteId = team.IsOffense ? "qb" : "def",
+            };
+            idx++;
+        }
+
+        foreach (var id in _offense) Fill(id);
+        foreach (var id in _defense) Fill(id);
+
+        if (idx != players.Length)
+            Array.Resize(ref players, idx);
+
+        Snapshot.Players = players;
+
+        // Ball
+        var ballEntity = new Arch.Core.Entity(World, _ballEntityId);
+        if (ballEntity.IsAlive() && ballEntity.Has<Components.Position>() && ballEntity.Has<Components.Ball>())
+        {
+            var bpos = ballEntity.Get<Components.Position>().Value;
+            var b = ballEntity.Get<Components.Ball>();
+            Snapshot.Ball = new SimSnapshot.BallSnapshot
+            {
+                Position = bpos,
+                IsHeld = b.State == TecmoSBGame.State.BallState.Held,
+                OwnerEntityId = b.OwnerEntityId,
+                SpriteId = "ball",
+            };
+
+            // Mark owner in players snapshot
+            if (b.OwnerEntityId != 0)
+            {
+                for (var i = 0; i < Snapshot.Players.Length; i++)
+                {
+                    if (Snapshot.Players[i].EntityId == b.OwnerEntityId)
+                    {
+                        Snapshot.Players[i].HasBall = true;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            Snapshot.Ball = default;
+        }
     }
 
     public readonly record struct PendingPlaySelection(
