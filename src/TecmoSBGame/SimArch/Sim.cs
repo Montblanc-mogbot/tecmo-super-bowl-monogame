@@ -21,10 +21,13 @@ public sealed class Sim : IDisposable
     private PendingPlaySelection? _pendingSelection;
 
     private readonly Systems.MovementSystem _movement = new();
+    private readonly Systems.PlayScriptSystem _playScripts = new();
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
     private readonly System.Collections.Generic.List<int> _defense = new(11);
     private int _ballEntityId;
+
+    private Components.Control _control;
 
     public Sim()
     {
@@ -69,11 +72,12 @@ public sealed class Sim : IDisposable
             var sel = _pendingSelection.Value;
             _pendingSelection = null;
 
-            // TODO: call SimArch spawners to attach scripts/routes based on selection.
-            Console.WriteLine($"[sim-arch] apply play selection play_number={sel.PlayNumber} formation={sel.FormationId}");
+            // Apply play selection.
+            Spawning.PlaySpawner.ApplyPlay(World, _offense, _defense, _ballEntityId, sel.PlayNumber);
         }
 
         // Run systems (minimal set for now).
+        _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds);
 
         // Update snapshot.
@@ -87,6 +91,8 @@ public sealed class Sim : IDisposable
         _offense.AddRange(off);
         _defense.AddRange(def);
         _ballEntityId = ball;
+
+        _control = new Components.Control { ControlledEntityId = off.Count > 0 ? off[0] : 0, PendingForcedEntityId = 0 };
     }
 
     private void UpdateSnapshot()
