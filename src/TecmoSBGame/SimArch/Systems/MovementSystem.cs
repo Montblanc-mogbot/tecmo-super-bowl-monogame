@@ -19,7 +19,7 @@ public sealed class MovementSystem
     public float MaxTurnDegreesPerTick = 9f;
     public float MaxSpeedPerTick = 1.5f;
 
-    public void Update(World world, float dtSeconds)
+    public void Update(World world, float dtSeconds, int controlledEntityId, Vector2 inputDir)
     {
         // Tick scale assumes 60Hz sim. We'll unify this later.
         var tickScale = dtSeconds * 60f;
@@ -29,11 +29,18 @@ public sealed class MovementSystem
         // Later we will separate steering/desired direction from integration.
         var query = new QueryDescription().WithAll<Position, Velocity, Behavior>();
 
+        var inputNorm = SafeNormalize(inputDir);
+
         world.Query(in query, (Entity e, ref Position pos, ref Velocity vel, ref Behavior b) =>
         {
             Vector2 desiredDir;
 
-            if (b.State == BehaviorState.TrackingEntity && b.TargetEntityId != 0)
+            // Controlled player: input overrides AI steering.
+            if (e.Id == controlledEntityId && inputNorm != Vector2.Zero)
+            {
+                desiredDir = inputNorm;
+            }
+            else if (b.State == BehaviorState.TrackingEntity && b.TargetEntityId != 0)
             {
                 var te = new Entity(world, b.TargetEntityId);
                 if (te.IsAlive() && te.Has<Position>())

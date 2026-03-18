@@ -28,6 +28,7 @@ public sealed class Sim : IDisposable
     private int _ballEntityId;
 
     private Components.Control _control;
+    private Components.Input _input;
 
     public Sim()
     {
@@ -64,6 +65,11 @@ public sealed class Sim : IDisposable
         SimEventBus.Send(ref e);
     }
 
+    public void SetInput(Microsoft.Xna.Framework.Vector2 direction)
+    {
+        _input.Direction = direction;
+    }
+
     public void Update(float dtSeconds)
     {
         // Apply queued selection at the start of a tick.
@@ -78,7 +84,7 @@ public sealed class Sim : IDisposable
 
         // Run systems (minimal set for now).
         _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
-        _movement.Update(World, dtSeconds);
+        _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
 
         // Update snapshot.
         Snapshot.Tick++;

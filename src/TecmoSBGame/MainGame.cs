@@ -439,6 +439,15 @@ public sealed class MainGame : Game
             {
                 if (_simMode == TecmoSBGame.SimArch.SimMode.Arch)
                 {
+                    // Minimal Arch input sampling (keyboard only) for now.
+                    var kb = Microsoft.Xna.Framework.Input.Keyboard.GetState();
+                    var dir = Microsoft.Xna.Framework.Vector2.Zero;
+                    if (kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left) || kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.A)) dir.X -= 1;
+                    if (kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right) || kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D)) dir.X += 1;
+                    if (kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) || kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.W)) dir.Y -= 1;
+                    if (kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) || kb.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) dir.Y += 1;
+
+                    _archSim?.SetInput(dir);
                     _archSim?.Update((float)fixedGameTime.ElapsedGameTime.TotalSeconds);
                     return;
                 }
