@@ -23,9 +23,17 @@
       <_ContentDir>$(ProjectDir)..\..\Content</_ContentDir>
       <_MgcbIntermediate>$(BaseIntermediateOutputPath)mgcb</_MgcbIntermediate>
       <_MgcbOutput>$(TargetDir)Content</_MgcbOutput>
+      <_MgcbTool>$(UserProfile)/.dotnet/tools/mgcb</_MgcbTool>
     </PropertyGroup>
 
-    <Exec WorkingDirectory="$(_ContentDir)" Command="mgcb -q /@:&quot;Content.mgcb&quot; /outputDir:&quot;$(_MgcbOutput)&quot; /intermediateDir:&quot;$(_MgcbIntermediate)&quot;" />
+    <!-- Prefer the user-installed global tool path if present; fallback to PATH lookup. -->
+    <Exec WorkingDirectory="$(_ContentDir)"
+          Condition="Exists('$(_MgcbTool)')"
+          Command="&quot;$(_MgcbTool)&quot; -q /@:&quot;Content.mgcb&quot; /outputDir:&quot;$(_MgcbOutput)&quot; /intermediateDir:&quot;$(_MgcbIntermediate)&quot;" />
+
+    <Exec WorkingDirectory="$(_ContentDir)"
+          Condition="!Exists('$(_MgcbTool)')"
+          Command="mgcb -q /@:&quot;Content.mgcb&quot; /outputDir:&quot;$(_MgcbOutput)&quot; /intermediateDir:&quot;$(_MgcbIntermediate)&quot;" />
   </Target>
 
 </Project>
