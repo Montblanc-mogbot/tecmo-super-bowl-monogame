@@ -55,6 +55,17 @@ public sealed class PlayScriptSystem
 
         Console.WriteLine($"[sim-arch] handoff from={fromEntityId} to={toEntityId}");
 
+        // Give HB a deterministic run target so the play is visibly alive even before input wiring.
+        var hb = new Entity(world, toEntityId);
+        if (hb.IsAlive() && hb.Has<Position>() && hb.Has<Behavior>())
+        {
+            var pos = hb.Get<Position>().Value;
+            var beh = hb.Get<Behavior>();
+            beh.State = BehaviorState.MovingToPosition;
+            beh.TargetPosition = pos + new Vector2(64, -8);
+            hb.Set(beh);
+        }
+
         // Switch defenders to pursue ballcarrier.
         var query = new QueryDescription().WithAll<Team, Behavior>();
         world.Query(in query, (Entity e, ref Team t, ref Behavior beh) =>
