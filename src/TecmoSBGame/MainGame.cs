@@ -130,6 +130,9 @@ public sealed class MainGame : Game
         // This is critical when debug logging is too verbose to paste from a terminal.
         GameLog.InstallConsoleTee();
 
+        // Ensure fatal exceptions are written to the same log file (stderr-only crashes are common).
+        CrashLogging.Install();
+
         // PHASE 1: Load YAML data (no GraphicsDevice required)
         LoadGameData();
 
