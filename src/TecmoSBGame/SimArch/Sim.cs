@@ -20,6 +20,8 @@ public sealed class Sim : IDisposable
 
     private PendingPlaySelection? _pendingSelection;
 
+    private readonly Systems.MovementSystem _movement = new();
+
     public Sim()
     {
         World = World.Create();
@@ -60,8 +62,11 @@ public sealed class Sim : IDisposable
             Console.WriteLine($"[sim-arch] apply play selection play_number={sel.PlayNumber} formation={sel.FormationId}");
         }
 
-        // TODO: run systems.
-        // TODO: update Snapshot from current world state.
+        // Run systems (minimal set for now).
+        _movement.Update(World, dtSeconds);
+
+        // Update snapshot.
+        Snapshot.Tick++;
     }
 
     public readonly record struct PendingPlaySelection(
