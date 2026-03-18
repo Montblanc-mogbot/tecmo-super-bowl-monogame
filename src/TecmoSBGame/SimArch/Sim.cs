@@ -1,16 +1,71 @@
 using System;
+using Arch.Core;
+using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch;
 
 /// <summary>
-/// Arch-based simulation entrypoint (future replacement for MonoGame.Extended.Entities world).
+/// Arch-based simulation entrypoint.
 ///
-/// This is a skeleton placeholder to establish folder structure + compilation.
-/// Do not add gameplay here until the Arch World + EventBus wiring TODOs are addressed.
+/// Owns the Arch World and provides a small API surface for game/UI code.
+///
+/// NOTE: Keep simulation deterministic: update via fixed timestep.
+/// UI should call ApplyPlaySelection which queues intent to be applied on the next Update tick.
 /// </summary>
-public sealed class Sim
+public sealed class Sim : IDisposable
 {
-    public void Reset() { }
+    public World World { get; }
 
-    public void Update(float dtSeconds) { }
+    public SimSnapshot Snapshot { get; } = new();
+
+    private PendingPlaySelection? _pendingSelection;
+
+    public Sim()
+    {
+        World = World.Create();
+    }
+
+    public void Dispose()
+    {
+        World.Dispose();
+    }
+
+    public void Reset()
+    {
+        // TODO: clear world and rebuild kickoff/scrimmage baseline.
+        // For now: recreate world (simple and deterministic for early refactor stage).
+        World.Dispose();
+        // Arch World.Create() returns a new world; we can't reassign readonly, so we keep reset as TODO.
+        throw new NotImplementedException("Sim.Reset not implemented yet");
+    }
+
+    public void ApplyPlaySelection(in PendingPlaySelection sel)
+    {
+        _pendingSelection = sel;
+
+        var e = new PlaySelectedEvent(sel.PlayNumber, sel.FormationId, sel.OffensivePlayName, sel.OffensivePlaySlot);
+        SimEventBus.Send(ref e);
+    }
+
+    public void Update(float dtSeconds)
+    {
+        // Apply queued selection at the start of a tick.
+        if (_pendingSelection is not null)
+        {
+            var sel = _pendingSelection.Value;
+            _pendingSelection = null;
+
+            // TODO: call SimArch spawners to attach scripts/routes based on selection.
+            Console.WriteLine($"[sim-arch] apply play selection play_number={sel.PlayNumber} formation={sel.FormationId}");
+        }
+
+        // TODO: run systems.
+        // TODO: update Snapshot from current world state.
+    }
+
+    public readonly record struct PendingPlaySelection(
+        int PlayNumber,
+        string FormationId,
+        string OffensivePlayName,
+        string OffensivePlaySlot);
 }
