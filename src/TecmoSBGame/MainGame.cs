@@ -242,21 +242,18 @@ public sealed class MainGame : Game
         // Create AI debug config (kept as a singleton instance so systems can read it without world scans)
         var aiDebugConfig = new TecmoSBGame.Components.AIDebugConfigComponent { Enabled = false };
 
+        // NOTE: MonoGame.Extended.Entities 3.8.0 has a hard 32-component-type limit.
+        // Keep the active system set minimal until we either reduce component types or upgrade ECS.
         _world = new WorldBuilder()
-            // Route runners
-            .AddSystem(new RouteFollowSystem())
-            .AddSystem(new ManCoverageSystem(_events, _playState))
+            // Camera
             .AddSystem(new CameraSystem(_camera!, worldBounds: new Rectangle(0, 0, 256, 224)))
-            .AddSystem(new ZoneCoverageSystem(_events, _playState))
             // Execute play scripts (PlayData YAML) to drive behavior.
             .AddSystem(new PlayScriptSystem(_playState, _matchState, _controlState))
             // Execute Tecmo-style formation scripts (YAML commands) to drive behavior.
             .AddSystem(_formationScriptSystem)
+            // Movement
             .AddSystem(new MovementSystem())
             .AddSystem(new SpeedModifierSystem())
-            .AddSystem(new AnimationSystem())
-            .AddSystem(new AIDebugSystem(aiDebugConfig))
-            .AddSystem(new ReplayRecorderSystem(_playState, _replay!))
             // Pre-snap
             .AddSystem(new PreSnapSystem(_loopState, _matchState, _playState))
             .AddSystem(new PreSnapBallPlacementSystem(_loopState, _matchState, _playState))
@@ -273,10 +270,8 @@ public sealed class MainGame : Game
             // Actions
             .AddSystem(new ActionResolutionSystem(_events, _matchState, _playState))
             .AddSystem(new SnapResolutionSystem(_events, _matchState, _playState))
-            .AddSystem(new PenaltySystem(_events, _matchState, _playState))
             // Blocking/Contact
             .AddSystem(new BlockerAISystem(_events, _loopState, _playState))
-            .AddSystem(new KickoffCoverageSystem(_playState, _matchState))
             .AddSystem(new PuntCoverageSystem(_playState))
             .AddSystem(new CollisionContactSystem(_events, _loopState, _playState))
             .AddSystem(new EngagementSystem(_events))

@@ -65,13 +65,23 @@ public sealed class GameContent
             Console.WriteLine("[GameContent] Loaded play data");
 
             // Cross-file YAML validation pass (references, ranges, missing ids, etc.)
+            // Dev reality: we often load a partial subset of Tecmo content while iterating.
+            // So by default we WARN+FILTER instead of hard-failing. Set TECMOSB_STRICT_YAML=1 to fail hard.
             var yamlIssues = ContentValidation.YamlContentValidator.Validate(FormationData, PlayList, PlayData);
             if (yamlIssues.Count > 0)
             {
                 Console.WriteLine($"[GameContent] YAML VALIDATION FAILED ({yamlIssues.Count} issue(s)):");
                 foreach (var issue in yamlIssues)
                     Console.WriteLine($"  - {issue}");
-                throw new InvalidDataException($"YAML validation failed with {yamlIssues.Count} issue(s). See log for details.");
+
+                var strict = string.Equals(Environment.GetEnvironmentVariable("TECMOSB_STRICT_YAML"), "1", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(Environment.GetEnvironmentVariable("TECMOSB_STRICT_YAML"), "true", StringComparison.OrdinalIgnoreCase);
+
+                if (strict)
+                    throw new InvalidDataException($"YAML validation failed with {yamlIssues.Count} issue(s). See log for details.");
+
+                Console.WriteLine("[GameContent] Continuing despite YAML issues (non-strict). Filtering invalid plays/formations.");
+                (FormationData, PlayList) = FilterInvalidReferences(FormationData, PlayList, PlayData);
             }
 
             DefensePlays = _repository.LoadDefensePlays();
@@ -118,5 +128,60 @@ public sealed class GameContent
             Console.WriteLine($"[GameContent] Stack trace: {ex.StackTrace}");
             throw;
         }
+    }
+
+    private static (FormationDataConfig formationData, PlayListConfig playList) FilterInvalidReferences(
+        FormationDataConfig formationData,
+        PlayListConfig playList,
+        PlayDataConfig playData)
+    {
+        var validFormationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in formationData.OffensiveFormations)
+            validFormationIds.Add(f.Id);
+
+        var validPlayNumbers = new HashSet<int>();
+        foreach (var p in playData.Plays)
+            validPlayNumbers.Add(p.PlayNumber);
+
+        // Filter playlist entries to only those with known formations and at least one known play_number.
+        var filteredEntries = new List<PlayEntry>();
+        foreach (var e in playList.PlayList)
+        {
+            if (!validFormationIds.Contains(e.Formation))
+                continue;
+
+            var keepNums = e.PlayNumbers.Where(validPlayNumbers.Contains).Distinct().ToArray();
+            if (keepNums.Length == 0)
+                continue;
+
+            filteredEntries.Add(new PlayEntry(
+                Name: e.Name,
+                Slot: e.Slot,
+                Formation: e.Formation,
+                PlayNumbers: keepNums,
+                Defense: e.Defense));
+        }
+
+        // Filter FormationTypes to known formation ids so playcall lists don't include missing formations.
+        var filteredTypes = new List<FormationType>();
+        foreach (var t in formationData.FormationTypes)
+        {
+            var ids = t.FormationIds.Where(validFormationIds.Contains).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            filteredTypes.Add(new FormationType(t.Id, ids));
+        }
+
+        var filteredFormationData = new FormationDataConfig(
+            OffensiveFormations: formationData.OffensiveFormations,
+            CommandReference: formationData.CommandReference,
+            FormationTypes: filteredTypes,
+            Notes: formationData.Notes);
+
+        var filteredPlayList = new PlayListConfig(
+            PlayList: filteredEntries,
+            Slots: playList.Slots,
+            Notes: playList.Notes);
+
+        Console.WriteLine($"[GameContent] Filtered playlist: {playList.PlayList.Count} -> {filteredEntries.Count} entries");
+        return (filteredFormationData, filteredPlayList);
     }
 }
