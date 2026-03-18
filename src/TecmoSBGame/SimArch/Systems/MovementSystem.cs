@@ -29,24 +29,42 @@ public sealed class MovementSystem
         // Later we will separate steering/desired direction from integration.
         var query = new QueryDescription().WithAll<Position, Velocity, Behavior>();
 
-        world.Query(in query, (ref Position pos, ref Velocity vel, ref Behavior b) =>
+        world.Query(in query, (Entity e, ref Position pos, ref Velocity vel, ref Behavior b) =>
         {
-            if (b.State != BehaviorState.TrackingEntity || b.TargetEntityId == 0)
+            Vector2 desiredDir;
+
+            if (b.State == BehaviorState.TrackingEntity && b.TargetEntityId != 0)
             {
-                pos.Value += vel.Value * tickScale;
-                return;
+                var te = new Entity(world, b.TargetEntityId);
+                if (te.IsAlive() && te.Has<Position>())
+                {
+                    var toTarget = te.Get<Position>().Value - pos.Value;
+                    desiredDir = SafeNormalize(toTarget);
+                }
+                else
+                {
+                    desiredDir = SafeNormalize(vel.Value);
+                }
+            }
+            else if (b.State == BehaviorState.MovingToPosition)
+            {
+                desiredDir = SafeNormalize(b.TargetPosition - pos.Value);
+            }
+            else
+            {
+                desiredDir = SafeNormalize(vel.Value);
             }
 
-            // We don't have a direct entity lookup by id in this skeleton yet, so just integrate.
-            // (Target tracking will be wired once we have an entity id map.)
-            pos.Value += vel.Value * tickScale;
-
-            // Apply turn limit to the current velocity direction toward a placeholder desired direction.
-            var desiredDir = SafeNormalize(vel.Value);
             var currentDir = SafeNormalize(vel.Value);
-
             var newDir = ApplyTurnLimit(currentDir, desiredDir, maxTurnRad);
-            vel.Value = newDir * MaxSpeedPerTick;
+
+            // For now: always drive toward desired direction when not idle.
+            if (b.State == BehaviorState.Idle)
+                vel.Value = Vector2.Zero;
+            else
+                vel.Value = newDir * MaxSpeedPerTick;
+
+            pos.Value += vel.Value * tickScale;
         });
     }
 
