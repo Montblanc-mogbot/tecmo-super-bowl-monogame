@@ -67,6 +67,14 @@ public sealed class Sim : IDisposable
 
         // Update snapshot.
         Snapshot.Tick++;
+        UpdateSnapshot();
+    }
+
+    private void UpdateSnapshot()
+    {
+        // Temporary: until we have real spawners, expose an empty snapshot.
+        Snapshot.Players = Array.Empty<SimSnapshot.PlayerSnapshot>();
+        Snapshot.Ball = default;
     }
 
     public readonly record struct PendingPlaySelection(

@@ -57,6 +57,8 @@ public sealed class MainGame : Game
     // Debug rendering toggles
     private bool _showEntityLabels = true;
     private RenderingSystem? _renderingSystem;
+    private TecmoSBGame.Rendering.SimRenderer? _simRenderer;
+    private TecmoSBGame.SimArch.Sim? _archSim;
     private TecmoSBGame.Rendering.Sprites.SpriteRegistry? _spriteRegistry;
 
     private TecmoSBGame.Audio.SoundService? _sound;
@@ -242,6 +244,11 @@ public sealed class MainGame : Game
             ShowLabels = _showEntityLabels,
         };
 
+        _simRenderer = new TecmoSBGame.Rendering.SimRenderer(_spriteBatch, _renderResources.Pixel, spriteRegistry);
+
+        if (_simMode == TecmoSBGame.SimArch.SimMode.Arch)
+            _archSim = new TecmoSBGame.SimArch.Sim();
+
         _formationScriptSystem = new FormationScriptSystem(_playState)
         {
             DebugLog = _debugScriptLog,
@@ -426,10 +433,19 @@ public sealed class MainGame : Game
         // Advance simulation only when we're in gameplay flow states.
         // This prevents the world from progressing (whistles, play-end, etc.) while the user is in menus.
         var simEnabled = _flow is not null && _flow.State is GameFlowState.Kickoff or GameFlowState.OnField or GameFlowState.PostPlay;
-        if (simEnabled && _fixed is not null && _events is not null && _world is not null)
+        if (simEnabled && _fixed is not null && _events is not null)
         {
             _fixed.Advance(gameTime.ElapsedGameTime, fixedGameTime =>
             {
+                if (_simMode == TecmoSBGame.SimArch.SimMode.Arch)
+                {
+                    _archSim?.Update((float)fixedGameTime.ElapsedGameTime.TotalSeconds);
+                    return;
+                }
+
+                if (_world is null)
+                    return;
+
                 _events.BeginTick();
                 _world.Update(fixedGameTime);
 
@@ -779,7 +795,16 @@ public sealed class MainGame : Game
             // In-game rendering
             if (_fieldRenderer is not null && _renderResources is not null)
                 _fieldRenderer.Draw(_spriteBatch, _renderResources.Pixel, _spriteRegistry);
-            _world?.Draw(gameTime);
+
+            if (_simMode == TecmoSBGame.SimArch.SimMode.Arch)
+            {
+                if (_archSim is not null && _simRenderer is not null)
+                    _simRenderer.Draw(_archSim.Snapshot);
+            }
+            else
+            {
+                _world?.Draw(gameTime);
+            }
 
             // HUD (scoreboard, down/distance)
             if (_matchState is not null)
