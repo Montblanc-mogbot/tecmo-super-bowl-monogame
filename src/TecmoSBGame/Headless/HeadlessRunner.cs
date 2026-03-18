@@ -116,8 +116,9 @@ public static class HeadlessRunner
 
         var qbPos = world.GetEntity(qbId).Get<PositionComponent>().Position;
         var ballId = BallEntityFactory.CreateBall(world, qbPos);
-        world.GetEntity(ballId).Get<BallStateComponent>().State = BallState.Held;
-        world.GetEntity(ballId).Get<BallOwnerComponent>().OwnerEntityId = qbId;
+        var b0 = world.GetEntity(ballId).Get<BallComponent>();
+        b0.State = BallState.Held;
+        b0.OwnerEntityId = qbId;
 
         play.BallState = BallState.Held;
         play.BallOwnerEntityId = qbId;
@@ -275,8 +276,9 @@ public static class HeadlessRunner
         var qbId = offense.Players.First(p => world.GetEntity(p.EntityId).Get<PlayerRoleComponent>().Role == PlayerRole.QB).EntityId;
         var qbPos = world.GetEntity(qbId).Get<PositionComponent>().Position;
         var ballId = BallEntityFactory.CreateBall(world, qbPos);
-        world.GetEntity(ballId).Get<BallStateComponent>().State = BallState.Held;
-        world.GetEntity(ballId).Get<BallOwnerComponent>().OwnerEntityId = qbId;
+        var b0 = world.GetEntity(ballId).Get<BallComponent>();
+        b0.State = BallState.Held;
+        b0.OwnerEntityId = qbId;
 
         // Start with QB owning ball; PlayData will handoff later.
         world.GetEntity(qbId).Get<BallCarrierComponent>().HasBall = true;

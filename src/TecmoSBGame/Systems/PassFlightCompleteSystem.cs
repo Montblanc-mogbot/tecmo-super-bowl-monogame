@@ -18,10 +18,7 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
     private readonly PlayState? _play;
     private readonly PassResolutionRuleset _ruleset;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
-    private ComponentMapper<BallFlightComponent> _flight = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
     private ComponentMapper<BallCarrierComponent> _carrier = null!;
     private ComponentMapper<TeamComponent> _team = null!;
@@ -46,10 +43,7 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
-        _flight = mapperService.GetMapper<BallFlightComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
         _carrier = mapperService.GetMapper<BallCarrierComponent>();
         _team = mapperService.GetMapper<TeamComponent>();
@@ -62,7 +56,7 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
         int? ballEntityId = null;
         foreach (var id in ActiveEntities)
         {
-            if (_ballTag.Has(id))
+            if (_ball.Has(id))
             {
                 ballEntityId = id;
                 break;
@@ -74,11 +68,8 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
 
         var ballId = ballEntityId.Value;
 
-        if (!_flight.Has(ballId))
-            return;
-
-        var f = _flight.Get(ballId);
-        if (f.Kind != BallFlightKind.Pass || !f.IsComplete)
+        var f = _ball.Get(ballId);
+        if (f.FlightKind != BallFlightKind.Pass || !f.IsComplete)
             return;
 
         // Safety: if no passer, treat as incomplete.
@@ -237,8 +228,12 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
         if (_carrier.Has(passerId))
             _carrier.Get(passerId).HasBall = false;
 
-        _ballState.Get(ballId).State = BallState.Held;
-        _ballOwner.Get(ballId).OwnerEntityId = receiverId;
+        var b = _ball.Get(ballId);
+        b.State = BallState.Held;
+        b.OwnerEntityId = receiverId;
+        b.FlightKind = BallFlightKind.None;
+        b.Height = 0f;
+        b.IsComplete = true;
 
         if (_play is not null)
         {
@@ -265,8 +260,12 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
         if (targetId is int tid && _carrier.Has(tid))
             _carrier.Get(tid).HasBall = false;
 
-        _ballState.Get(ballId).State = BallState.Held;
-        _ballOwner.Get(ballId).OwnerEntityId = defenderId;
+        var b = _ball.Get(ballId);
+        b.State = BallState.Held;
+        b.OwnerEntityId = defenderId;
+        b.FlightKind = BallFlightKind.None;
+        b.Height = 0f;
+        b.IsComplete = true;
 
         if (_play is not null)
         {
@@ -282,8 +281,12 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
 
     private void ResolveIncomplete(int ballId, int passerId, int? targetId, Vector2 ballPos)
     {
-        _ballState.Get(ballId).State = BallState.Dead;
-        _ballOwner.Get(ballId).OwnerEntityId = null;
+        var b = _ball.Get(ballId);
+        b.State = BallState.Dead;
+        b.OwnerEntityId = null;
+        b.FlightKind = BallFlightKind.None;
+        b.Height = 0f;
+        b.IsComplete = true;
 
         if (_play is not null)
         {
@@ -299,9 +302,9 @@ public sealed class PassFlightCompleteSystem : EntityUpdateSystem
         }
     }
 
-    private static void ClearPassFlight(BallFlightComponent f)
+    private static void ClearPassFlight(BallComponent f)
     {
-        f.Kind = BallFlightKind.None;
+        f.FlightKind = BallFlightKind.None;
         f.PasserId = null;
         f.TargetId = null;
         f.IsComplete = true;

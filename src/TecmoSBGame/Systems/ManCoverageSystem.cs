@@ -32,7 +32,7 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
     private ComponentMapper<TeamComponent> _team = null!;
 
     private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallFlightComponent> _flight = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
 
 
     // Field bounds (keep in sync with other systems).
@@ -61,7 +61,7 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
         _team = mapperService.GetMapper<TeamComponent>();
 
         _ballTag = mapperService.GetMapper<BallComponent>();
-        _flight = mapperService.GetMapper<BallFlightComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -83,8 +83,8 @@ public sealed class ManCoverageSystem : EntityUpdateSystem
             if (breakTargetEntityId is not null)
             {
                 var ballId = FindBallEntityId();
-                if (ballId is not null && _flight.Has(ballId.Value))
-                    breakTargetPoint = _flight.Get(ballId.Value).EndPos;
+                if (ballId is not null && _ball.Has(ballId.Value))
+                    breakTargetPoint = _ball.Get(ballId.Value).EndPos;
             }
         }
 

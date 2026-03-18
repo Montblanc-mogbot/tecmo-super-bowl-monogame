@@ -17,23 +17,17 @@ namespace TecmoSBGame.Systems;
 /// </summary>
 public sealed class BallPhysicsSystem : EntityUpdateSystem
 {
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _state = null!;
-    private ComponentMapper<BallOwnerComponent> _owner = null!;
-    private ComponentMapper<BallFlightComponent> _flight = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
     private ComponentMapper<VelocityComponent> _vel = null!;
 
-    public BallPhysicsSystem() : base(Aspect.All(typeof(BallComponent), typeof(PositionComponent), typeof(VelocityComponent), typeof(BallStateComponent), typeof(BallOwnerComponent)))
+    public BallPhysicsSystem() : base(Aspect.All(typeof(BallComponent), typeof(PositionComponent), typeof(VelocityComponent)))
     {
     }
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _state = mapperService.GetMapper<BallStateComponent>();
-        _owner = mapperService.GetMapper<BallOwnerComponent>();
-        _flight = mapperService.GetMapper<BallFlightComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
         _vel = mapperService.GetMapper<VelocityComponent>();
     }
@@ -48,44 +42,37 @@ public sealed class BallPhysicsSystem : EntityUpdateSystem
 
         foreach (var ballId in ActiveEntities)
         {
-            if (!_ballTag.Has(ballId))
-                continue;
-
-            var state = _state.Get(ballId);
-            var owner = _owner.Get(ballId);
+            var b = _ball.Get(ballId);
             var pos = _pos.Get(ballId);
             var vel = _vel.Get(ballId);
 
             // Held: glue to the owner.
-            if (state.State == BallState.Held && owner.OwnerEntityId is int ownerId && _pos.Has(ownerId))
+            if (b.State == BallState.Held && b.OwnerEntityId is int ownerId && _pos.Has(ownerId))
             {
                 pos.Position = _pos.Get(ownerId).Position;
                 vel.Velocity = Vector2.Zero;
-                if (_flight.Has(ballId))
-                {
-                    var f = _flight.Get(ballId);
-                    f.Height = 0f;
-                    f.IsComplete = true;
-                }
+
+                b.Height = 0f;
+                b.IsComplete = true;
+                b.FlightKind = BallFlightKind.None;
+                b.DurationSeconds = 0f;
+                b.ElapsedSeconds = 0f;
+
                 continue;
             }
 
             // In flight: override XY by parametric model.
-            if (_flight.Has(ballId))
+            if (b.FlightKind != BallFlightKind.None)
             {
-                var f = _flight.Get(ballId);
-                if (f.Kind == BallFlightKind.None)
-                    goto IntegrateLoose;
+                b.ElapsedSeconds = MathF.Min(b.DurationSeconds, b.ElapsedSeconds + dt);
 
-                f.ElapsedSeconds = MathF.Min(f.DurationSeconds, f.ElapsedSeconds + dt);
-
-                var s = f.DurationSeconds <= 0.0001f ? 1f : MathHelper.Clamp(f.ElapsedSeconds / f.DurationSeconds, 0f, 1f);
-                pos.Position = Vector2.Lerp(f.StartPos, f.EndPos, s);
+                var s = b.DurationSeconds <= 0.0001f ? 1f : MathHelper.Clamp(b.ElapsedSeconds / b.DurationSeconds, 0f, 1f);
+                pos.Position = Vector2.Lerp(b.StartPos, b.EndPos, s);
 
                 // Visual-only height parabola.
-                f.Height = 4f * f.ApexHeight * s * (1f - s);
+                b.Height = 4f * b.ApexHeight * s * (1f - s);
 
-                f.IsComplete = s >= 1f;
+                b.IsComplete = s >= 1f;
 
                 // While in flight we do not use the velocity integrator.
                 vel.Velocity = Vector2.Zero;
@@ -95,7 +82,7 @@ public sealed class BallPhysicsSystem : EntityUpdateSystem
 IntegrateLoose:
             // Loose or in-air without a flight component: constant velocity integration.
             // Velocity is in "units per 60Hz tick".
-            if (state.State is BallState.InAir or BallState.Loose)
+            if (b.State is BallState.InAir or BallState.Loose)
             {
                 pos.Position += vel.Velocity * tickScale;
             }

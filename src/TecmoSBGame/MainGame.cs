@@ -239,8 +239,6 @@ public sealed class MainGame : Game
             DebugLog = _debugScriptLog,
         };
 
-        // Create AI debug config (kept as a singleton instance so systems can read it without world scans)
-        var aiDebugConfig = new TecmoSBGame.Components.AIDebugConfigComponent { Enabled = false };
 
         // NOTE: MonoGame.Extended.Entities 3.8.0 has a hard 32-component-type limit.
         // Keep the active system set minimal until we either reduce component types or upgrade ECS.
@@ -303,14 +301,12 @@ public sealed class MainGame : Game
             .AddSystem(new FieldGoalBlockRushSystem(_playState))
             // HUD
             .AddSystem(new SoundSystem(_events, _sound!))
-            .AddSystem(new HudSystem(_matchState, _playState, _flow))
+            // HudSystem currently pushes us over the 32 component-type limit in MonoGame.Extended.Entities 3.8.0.
+            // Re-enable once we reduce component types or upgrade ECS.
+            // .AddSystem(new HudSystem(_matchState, _playState, _flow))
             // Rendering
             .AddSystem(_renderingSystem)
             .Build();
-
-        // Create AI debug config entity
-        var aiDebugEntity = _world.CreateEntity();
-        aiDebugEntity.Attach(aiDebugConfig);
 
         // Create playcall entity
         _playCallState = new PlayCallComponent();

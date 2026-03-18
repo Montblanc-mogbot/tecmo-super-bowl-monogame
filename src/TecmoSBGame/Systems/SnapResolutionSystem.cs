@@ -28,8 +28,7 @@ public sealed class SnapResolutionSystem : EntityUpdateSystem
     private ComponentMapper<PositionComponent> _pos;
     private ComponentMapper<BallCarrierComponent> _carrier;
 
-    private ComponentMapper<BallStateComponent> _ballState;
-    private ComponentMapper<BallOwnerComponent> _ballOwner;
+    private ComponentMapper<BallComponent> _ball;
 
     public SnapResolutionSystem(GameEvents? events = null, MatchState? matchState = null, PlayState? playState = null)
         : base(Aspect.All(typeof(PositionComponent)))
@@ -46,8 +45,7 @@ public sealed class SnapResolutionSystem : EntityUpdateSystem
         _pos = mapperService.GetMapper<PositionComponent>();
         _carrier = mapperService.GetMapper<BallCarrierComponent>();
 
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -105,11 +103,18 @@ public sealed class SnapResolutionSystem : EntityUpdateSystem
             foreach (var id in ActiveEntities)
             {
                 // ActiveEntities is position-based; ball has Position too so it participates.
-                if (!_ballState.Has(id) || !_ballOwner.Has(id))
+                if (!_ball.Has(id))
                     continue;
 
-                _ballState.Get(id).State = BallState.Held;
-                _ballOwner.Get(id).OwnerEntityId = qbId.Value;
+                var b = _ball.Get(id);
+                b.State = BallState.Held;
+                b.OwnerEntityId = qbId.Value;
+                b.FlightKind = BallFlightKind.None;
+                b.DurationSeconds = 0f;
+                b.ElapsedSeconds = 0f;
+                b.Height = 0f;
+                b.IsComplete = false;
+
                 _pos.Get(id).Position = qbPos;
                 break;
             }

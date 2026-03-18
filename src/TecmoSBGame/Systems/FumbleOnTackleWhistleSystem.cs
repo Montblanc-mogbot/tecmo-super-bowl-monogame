@@ -20,9 +20,7 @@ public sealed class FumbleOnTackleWhistleSystem : EntityUpdateSystem
     private readonly GameEvents _events;
     private readonly PlayState _play;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PlayerAttributesComponent> _attrs = null!;
 
     // Tuning constants (small + deterministic).
@@ -39,9 +37,7 @@ public sealed class FumbleOnTackleWhistleSystem : EntityUpdateSystem
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _attrs = mapperService.GetMapper<PlayerAttributesComponent>();
     }
 
@@ -67,10 +63,11 @@ public sealed class FumbleOnTackleWhistleSystem : EntityUpdateSystem
             return;
 
         var bid = ballId.Value;
-        if (_ballState.Get(bid).State != BallState.Held)
+        var b = _ball.Get(bid);
+        if (b.State != BallState.Held)
             return;
 
-        var carrierId = _ballOwner.Get(bid).OwnerEntityId;
+        var carrierId = b.OwnerEntityId;
         if (carrierId is null)
             return;
 
@@ -89,7 +86,7 @@ public sealed class FumbleOnTackleWhistleSystem : EntityUpdateSystem
     {
         foreach (var id in ActiveEntities)
         {
-            if (_ballTag.Has(id))
+            if (_ball.Has(id))
                 return id;
         }
 

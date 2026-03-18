@@ -23,10 +23,7 @@ public sealed class PassFlightStartSystem : EntityUpdateSystem
     private readonly GameEvents? _events;
     private readonly PlayState? _play;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
-    private ComponentMapper<BallFlightComponent> _flight = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
 
     private ComponentMapper<TeamComponent> _team = null!;
@@ -48,10 +45,7 @@ public sealed class PassFlightStartSystem : EntityUpdateSystem
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
-        _flight = mapperService.GetMapper<BallFlightComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
 
         _team = mapperService.GetMapper<TeamComponent>();
@@ -69,7 +63,7 @@ public sealed class PassFlightStartSystem : EntityUpdateSystem
         int? ballEntityId = null;
         foreach (var id in ActiveEntities)
         {
-            if (_ballTag.Has(id))
+            if (_ball.Has(id))
             {
                 ballEntityId = id;
                 break;
@@ -133,34 +127,25 @@ public sealed class PassFlightStartSystem : EntityUpdateSystem
                 _play.BallOwnerEntityId = null;
             }
 
-            _ballState.Get(ballId).State = BallState.InAir;
-            _ballOwner.Get(ballId).OwnerEntityId = null;
+            var b = _ball.Get(ballId);
+            b.State = BallState.InAir;
+            b.OwnerEntityId = null;
 
             // Place ball at the start now.
             _pos.Get(ballId).Position = start;
 
-            // Attach/overwrite flight component.
-            if (_flight.Has(ballId))
-            {
-                var f = _flight.Get(ballId);
-                f.Kind = BallFlightKind.Pass;
-                f.PasserId = passerId;
-                f.TargetId = chosenTarget;
-                f.PassType = passType;
-                f.StartPos = start;
-                f.EndPos = end;
-                f.DurationSeconds = duration;
-                f.ApexHeight = apex;
-                f.ElapsedSeconds = 0f;
-                f.Height = 0f;
-                f.IsComplete = false;
-            }
-            else
-            {
-                // If this happens, the ball entity was created without a BallFlightComponent.
-                // Keep it safe/deterministic: do nothing rather than attempting a runtime attach via World.
-                return;
-            }
+            // Overwrite flight model.
+            b.FlightKind = BallFlightKind.Pass;
+            b.PasserId = passerId;
+            b.TargetId = chosenTarget;
+            b.PassType = passType;
+            b.StartPos = start;
+            b.EndPos = end;
+            b.DurationSeconds = duration;
+            b.ApexHeight = apex;
+            b.ElapsedSeconds = 0f;
+            b.Height = 0f;
+            b.IsComplete = false;
         });
     }
 

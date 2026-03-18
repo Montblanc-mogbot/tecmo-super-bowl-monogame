@@ -28,9 +28,7 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
     private ComponentMapper<TeamComponent> _team = null!;
     private ComponentMapper<PlayerRoleComponent> _role = null!;
     private ComponentMapper<BallCarrierComponent> _carrier = null!;
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
 
     public bool DebugLog { get; set; }
 
@@ -50,9 +48,7 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
         _team = mapperService.GetMapper<TeamComponent>();
         _role = mapperService.GetMapper<PlayerRoleComponent>();
         _carrier = mapperService.GetMapper<BallCarrierComponent>();
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -319,11 +315,18 @@ public sealed class PlayScriptSystem : EntityUpdateSystem
         // Sync dedicated ball entity.
         foreach (var bid in ActiveEntities)
         {
-            if (!_ballTag.Has(bid) || !_ballState.Has(bid) || !_ballOwner.Has(bid) || !_pos.Has(bid))
+            if (!_ball.Has(bid) || !_pos.Has(bid))
                 continue;
 
-            _ballState.Get(bid).State = BallState.Held;
-            _ballOwner.Get(bid).OwnerEntityId = targetId.Value;
+            var b = _ball.Get(bid);
+            b.State = BallState.Held;
+            b.OwnerEntityId = targetId.Value;
+            b.FlightKind = BallFlightKind.None;
+            b.DurationSeconds = 0f;
+            b.ElapsedSeconds = 0f;
+            b.Height = 0f;
+            b.IsComplete = false;
+
             _pos.Get(bid).Position = _pos.Get(targetId.Value).Position;
             break;
         }

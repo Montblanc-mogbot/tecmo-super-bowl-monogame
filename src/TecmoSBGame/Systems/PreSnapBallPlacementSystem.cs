@@ -21,11 +21,10 @@ public sealed class PreSnapBallPlacementSystem : EntityUpdateSystem
     private readonly PlayState? _play;
 
     private ComponentMapper<PositionComponent> _pos;
-    private ComponentMapper<BallStateComponent> _ballState;
-    private ComponentMapper<BallOwnerComponent> _ballOwner;
+    private ComponentMapper<BallComponent> _ball;
 
     public PreSnapBallPlacementSystem(LoopState? loop = null, MatchState? matchState = null, PlayState? playState = null)
-        : base(Aspect.All(typeof(BallComponent), typeof(PositionComponent), typeof(BallStateComponent), typeof(BallOwnerComponent)))
+        : base(Aspect.All(typeof(BallComponent), typeof(PositionComponent)))
     {
         _loop = loop;
         _match = matchState;
@@ -35,8 +34,7 @@ public sealed class PreSnapBallPlacementSystem : EntityUpdateSystem
     public override void Initialize(IComponentMapperService mapperService)
     {
         _pos = mapperService.GetMapper<PositionComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -64,8 +62,14 @@ public sealed class PreSnapBallPlacementSystem : EntityUpdateSystem
             var p = _pos.Get(ballId);
             p.Position = new Vector2(losX, p.Position.Y);
 
-            _ballState.Get(ballId).State = BallState.Dead;
-            _ballOwner.Get(ballId).OwnerEntityId = null;
+            var b = _ball.Get(ballId);
+            b.State = BallState.Dead;
+            b.OwnerEntityId = null;
+            b.FlightKind = BallFlightKind.None;
+            b.DurationSeconds = 0f;
+            b.ElapsedSeconds = 0f;
+            b.Height = 0f;
+            b.IsComplete = false;
         }
     }
 

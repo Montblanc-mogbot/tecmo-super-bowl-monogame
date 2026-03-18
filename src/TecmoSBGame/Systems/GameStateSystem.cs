@@ -33,9 +33,7 @@ public partial class GameStateSystem : EntityUpdateSystem
     private ComponentMapper<BehaviorComponent> _behaviorMapper;
     private ComponentMapper<BallCarrierComponent> _ballMapper;
     private ComponentMapper<SpriteComponent> _spriteMapper;
-    private ComponentMapper<BallStateComponent> _ballStateMapper;
-    private ComponentMapper<BallOwnerComponent> _ballOwnerMapper;
-    private ComponentMapper<BallFlightComponent> _ballFlightMapper;
+    private ComponentMapper<BallComponent> _ball;
 
     public GamePhase CurrentPhase { get; private set; } = GamePhase.KickoffSetup;
     public float PhaseTimer { get; private set; } = 0f;
@@ -90,9 +88,7 @@ public partial class GameStateSystem : EntityUpdateSystem
         _behaviorMapper = mapperService.GetMapper<BehaviorComponent>();
         _ballMapper = mapperService.GetMapper<BallCarrierComponent>();
         _spriteMapper = mapperService.GetMapper<SpriteComponent>();
-        _ballStateMapper = mapperService.GetMapper<BallStateComponent>();
-        _ballOwnerMapper = mapperService.GetMapper<BallOwnerComponent>();
-        _ballFlightMapper = mapperService.GetMapper<BallFlightComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -234,11 +230,11 @@ public partial class GameStateSystem : EntityUpdateSystem
             // Place the ball at the kick origin immediately.
             _positionMapper.Get(_ballEntityId).Position = start;
 
-            // Attach/overwrite the flight component for deterministic parametric motion.
-            if (_ballFlightMapper.Has(_ballEntityId))
+            // Overwrite flight model for deterministic parametric motion.
+            if (_ball.Has(_ballEntityId))
             {
-                var f = _ballFlightMapper.Get(_ballEntityId);
-                f.Kind = BallFlightKind.Kickoff;
+                var f = _ball.Get(_ballEntityId);
+                f.FlightKind = BallFlightKind.Kickoff;
                 f.PasserId = null;
                 f.TargetId = null;
                 f.PassType = PassType.Bullet;
@@ -249,11 +245,10 @@ public partial class GameStateSystem : EntityUpdateSystem
                 f.ElapsedSeconds = 0f;
                 f.Height = 0f;
                 f.IsComplete = false;
-            }
-            else
-            {
-                _world?.GetEntity(_ballEntityId)
-                    .Attach(new BallFlightComponent(BallFlightKind.Kickoff, start, end, kickoffHangtimeSeconds, kickoffApexHeight));
+
+                // Kickoff is immediately "in air".
+                f.State = BallState.InAir;
+                f.OwnerEntityId = null;
             }
 
             // AI: Return team moves to catch position.
@@ -273,11 +268,11 @@ public partial class GameStateSystem : EntityUpdateSystem
     private void UpdateKickoffFlight()
     {
         // Kickoff flight completes when the parametric model reaches its end.
-        if (_ballEntityId == -1 || !_ballFlightMapper.Has(_ballEntityId))
+        if (_ballEntityId == -1 || !_ball.Has(_ballEntityId))
             return;
 
-        var flight = _ballFlightMapper.Get(_ballEntityId);
-        if (!flight.IsComplete)
+        var flight = _ball.Get(_ballEntityId);
+        if (flight.FlightKind != BallFlightKind.Kickoff || !flight.IsComplete)
             return;
 
         // Ball lands - check for catch.
@@ -490,13 +485,14 @@ public partial class GameStateSystem : EntityUpdateSystem
     {
         if (_ballEntityId == -1)
             return;
-        if (!_ballStateMapper.Has(_ballEntityId) || !_ballOwnerMapper.Has(_ballEntityId))
+        if (!_ball.Has(_ballEntityId))
             return;
 
-        // Mirror the pure PlayState model onto the ECS components.
+        // Mirror the pure PlayState model onto the ECS component.
         // Motion itself is handled by BallPhysicsSystem.
-        _ballStateMapper.Get(_ballEntityId).State = _playState.BallState;
-        _ballOwnerMapper.Get(_ballEntityId).OwnerEntityId = _playState.BallOwnerEntityId;
+        var b = _ball.Get(_ballEntityId);
+        b.State = _playState.BallState;
+        b.OwnerEntityId = _playState.BallOwnerEntityId;
     }
 
     private static int XToAbsoluteYard(float x)

@@ -40,10 +40,8 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
     private ComponentMapper<BehaviorComponent> _behavior = null!;
     private ComponentMapper<PlayScriptComponent> _script = null!;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
 
     private int _lastProcessedPlayId = -1;
 
@@ -69,10 +67,8 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
         _behavior = mapperService.GetMapper<BehaviorComponent>();
         _script = mapperService.GetMapper<PlayScriptComponent>();
 
-        _ballTag = mapperService.GetMapper<BallComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
     }
 
     public override void Update(GameTime gameTime)
@@ -213,7 +209,7 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
 
         foreach (var ballId in ActiveEntities)
         {
-            if (!_ballTag.Has(ballId))
+            if (!_ball.Has(ballId))
                 continue;
 
             if (_pos.Has(ballId))
@@ -222,11 +218,14 @@ public sealed class NextPlayResetSystem : EntityUpdateSystem
                 p.Position = new Vector2(losX, p.Position.Y);
             }
 
-            if (_ballState.Has(ballId))
-                _ballState.Get(ballId).State = BallState.Dead;
-
-            if (_ballOwner.Has(ballId))
-                _ballOwner.Get(ballId).OwnerEntityId = null;
+            var b = _ball.Get(ballId);
+            b.State = BallState.Dead;
+            b.OwnerEntityId = null;
+            b.FlightKind = BallFlightKind.None;
+            b.DurationSeconds = 0f;
+            b.ElapsedSeconds = 0f;
+            b.Height = 0f;
+            b.IsComplete = false;
         }
 
         _play.BallOwnerEntityId = null;

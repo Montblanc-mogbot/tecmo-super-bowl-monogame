@@ -18,9 +18,7 @@ public sealed class LooseBallPickupSystem : EntityUpdateSystem
     private readonly GameEvents _events;
     private readonly PlayState _play;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
     private ComponentMapper<VelocityComponent> _vel = null!;
     private ComponentMapper<TeamComponent> _team = null!;
@@ -36,9 +34,7 @@ public sealed class LooseBallPickupSystem : EntityUpdateSystem
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
         _vel = mapperService.GetMapper<VelocityComponent>();
         _team = mapperService.GetMapper<TeamComponent>();
@@ -52,10 +48,11 @@ public sealed class LooseBallPickupSystem : EntityUpdateSystem
             return;
 
         var bid = ballId.Value;
-        if (_ballState.Get(bid).State != BallState.Loose)
+        var b = _ball.Get(bid);
+        if (b.State != BallState.Loose)
             return;
 
-        if (_ballOwner.Get(bid).OwnerEntityId is not null)
+        if (b.OwnerEntityId is not null)
             return;
 
         var ballPos = _pos.Get(bid).Position;
@@ -90,8 +87,13 @@ public sealed class LooseBallPickupSystem : EntityUpdateSystem
 
         var pickerId = bestId.Value;
 
-        _ballOwner.Get(bid).OwnerEntityId = pickerId;
-        _ballState.Get(bid).State = BallState.Held;
+        b.OwnerEntityId = pickerId;
+        b.State = BallState.Held;
+        b.FlightKind = BallFlightKind.None;
+        b.DurationSeconds = 0f;
+        b.ElapsedSeconds = 0f;
+        b.Height = 0f;
+        b.IsComplete = false;
         if (_vel.Has(bid))
             _vel.Get(bid).Velocity = Vector2.Zero;
 
@@ -107,7 +109,7 @@ public sealed class LooseBallPickupSystem : EntityUpdateSystem
     {
         foreach (var id in ActiveEntities)
         {
-            if (_ballTag.Has(id))
+            if (_ball.Has(id))
                 return id;
         }
 

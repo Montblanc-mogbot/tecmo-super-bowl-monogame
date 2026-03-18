@@ -20,9 +20,7 @@ public sealed class FumbleResolutionSystem : EntityUpdateSystem
     private readonly GameEvents _events;
     private readonly PlayState _play;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<VelocityComponent> _vel = null!;
     private ComponentMapper<BallCarrierComponent> _carrier = null!;
 
@@ -37,9 +35,7 @@ public sealed class FumbleResolutionSystem : EntityUpdateSystem
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _vel = mapperService.GetMapper<VelocityComponent>();
         _carrier = mapperService.GetMapper<BallCarrierComponent>();
     }
@@ -58,19 +54,26 @@ public sealed class FumbleResolutionSystem : EntityUpdateSystem
 
         _events.Drain<FumbleEvent>(e =>
         {
+            var b = _ball.Get(bid);
+
             // Idempotence: only apply if the ball is currently held by this carrier.
-            if (_ballState.Get(bid).State != BallState.Held)
+            if (b.State != BallState.Held)
                 return;
 
-            var currentOwner = _ballOwner.Get(bid).OwnerEntityId;
+            var currentOwner = b.OwnerEntityId;
             if (currentOwner is null || currentOwner.Value != e.CarrierId)
                 return;
 
             if (_carrier.Has(e.CarrierId))
                 _carrier.Get(e.CarrierId).HasBall = false;
 
-            _ballOwner.Get(bid).OwnerEntityId = null;
-            _ballState.Get(bid).State = BallState.Loose;
+            b.OwnerEntityId = null;
+            b.State = BallState.Loose;
+            b.FlightKind = BallFlightKind.None;
+            b.DurationSeconds = 0f;
+            b.ElapsedSeconds = 0f;
+            b.Height = 0f;
+            b.IsComplete = false;
 
             // Deterministic scatter direction based on play + carrier.
             var v = GetScatterVelocity(_play.PlayId, e.CarrierId);
@@ -89,7 +92,7 @@ public sealed class FumbleResolutionSystem : EntityUpdateSystem
     {
         foreach (var id in ActiveEntities)
         {
-            if (_ballTag.Has(id))
+            if (_ball.Has(id))
                 return id;
         }
 

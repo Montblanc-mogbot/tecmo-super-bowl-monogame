@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.2.1105" />
-    <PackageReference Include="MonoGame.Extended.Entities" Version="3.8.0" />
+    <PackageReference Include="MonoGame.Extended.Entities" Version="3.9.0-prerelease.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,8 +25,7 @@
       <_MgcbOutput>$(TargetDir)Content</_MgcbOutput>
     </PropertyGroup>
 
-    <Exec WorkingDirectory="$(_ContentDir)"
-          Command="mgcb -q /@:&quot;Content.mgcb&quot; /outputDir:&quot;$(_MgcbOutput)&quot; /intermediateDir:&quot;$(_MgcbIntermediate)&quot;" />
+    <Exec WorkingDirectory="$(_ContentDir)" Command="mgcb -q /@:&quot;Content.mgcb&quot; /outputDir:&quot;$(_MgcbOutput)&quot; /intermediateDir:&quot;$(_MgcbIntermediate)&quot;" />
   </Target>
 
 </Project>

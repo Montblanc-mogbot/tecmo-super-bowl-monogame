@@ -20,14 +20,12 @@ public sealed class BallBoundsSystem : EntityUpdateSystem
     private readonly MatchState _match;
     private readonly PlayState _play;
 
-    private ComponentMapper<BallComponent> _ballTag = null!;
-    private ComponentMapper<BallStateComponent> _ballState = null!;
-    private ComponentMapper<BallOwnerComponent> _ballOwner = null!;
+    private ComponentMapper<BallComponent> _ball = null!;
     private ComponentMapper<PositionComponent> _pos = null!;
     private ComponentMapper<TeamComponent> _team = null!;
 
     public BallBoundsSystem(GameEvents? events, MatchState matchState, PlayState playState)
-        : base(Aspect.All(typeof(BallComponent), typeof(PositionComponent), typeof(BallStateComponent), typeof(BallOwnerComponent)))
+        : base(Aspect.All(typeof(BallComponent), typeof(PositionComponent)))
     {
         _events = events;
         _match = matchState;
@@ -36,9 +34,7 @@ public sealed class BallBoundsSystem : EntityUpdateSystem
 
     public override void Initialize(IComponentMapperService mapperService)
     {
-        _ballTag = mapperService.GetMapper<BallComponent>();
-        _ballState = mapperService.GetMapper<BallStateComponent>();
-        _ballOwner = mapperService.GetMapper<BallOwnerComponent>();
+        _ball = mapperService.GetMapper<BallComponent>();
         _pos = mapperService.GetMapper<PositionComponent>();
         _team = mapperService.GetMapper<TeamComponent>();
     }
@@ -50,11 +46,11 @@ public sealed class BallBoundsSystem : EntityUpdateSystem
 
         foreach (var ballId in ActiveEntities)
         {
-            if (!_ballTag.Has(ballId))
+            if (!_ball.Has(ballId))
                 continue;
 
-            var state = _ballState.Get(ballId).State;
-            if (state is not (BallState.InAir or BallState.Loose))
+            var b = _ball.Get(ballId);
+            if (b.State is not (BallState.InAir or BallState.Loose))
                 continue;
 
             var pos = _pos.Get(ballId).Position;
