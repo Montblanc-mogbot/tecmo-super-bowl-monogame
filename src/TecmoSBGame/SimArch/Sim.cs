@@ -14,7 +14,7 @@ namespace TecmoSBGame.SimArch;
 /// </summary>
 public sealed class Sim : IDisposable
 {
-    public World World { get; }
+    public World World { get; private set; }
 
     public SimSnapshot Snapshot { get; } = new();
 
@@ -32,11 +32,12 @@ public sealed class Sim : IDisposable
 
     public void Reset()
     {
-        // TODO: clear world and rebuild kickoff/scrimmage baseline.
+        // TODO: if Arch exposes a clear/reset pattern, prefer that.
         // For now: recreate world (simple and deterministic for early refactor stage).
         World.Dispose();
-        // Arch World.Create() returns a new world; we can't reassign readonly, so we keep reset as TODO.
-        throw new NotImplementedException("Sim.Reset not implemented yet");
+        World = World.Create();
+        Snapshot.Tick = 0;
+        _pendingSelection = null;
     }
 
     public void ApplyPlaySelection(in PendingPlaySelection sel)

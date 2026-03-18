@@ -1,10 +1,10 @@
-using Arch.EventBus;
-
 namespace TecmoSBGame.SimArch.Events;
 
 /// <summary>
-/// Thin wrapper around Arch.EventBus to keep call-sites consistent and allow us to swap
-/// implementation if the Arch docs recommend different patterns.
+/// Thin wrapper around Arch.EventBus.
+///
+/// Per Arch.EventBus docs, the source generator emits a global static EventBus type.
+/// We intentionally avoid hard-binding to a package-defined namespace/type.
 /// </summary>
 public static class SimEventBus
 {
