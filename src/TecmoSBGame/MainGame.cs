@@ -38,6 +38,7 @@ namespace TecmoSBGame;
 /// </summary>
 public sealed class MainGame : Game
 {
+    private readonly TecmoSBGame.SimArch.SimMode _simMode;
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch? _spriteBatch;
     private World? _world;
@@ -103,11 +104,15 @@ public sealed class MainGame : Game
     /// </summary>
     public GameContent GameContent { get; private set; } = null!;
 
-    public MainGame()
+    public MainGame(TecmoSBGame.SimArch.SimMode simMode = TecmoSBGame.SimArch.SimMode.Mge)
     {
+        _simMode = simMode;
+
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
+
+        Window.Title = $"TecmoSBGame (sim={_simMode})";
 
         // NES aspect ratio: 256x224 = 8:7, scaled up.
         _graphics.PreferredBackBufferWidth = 1280;

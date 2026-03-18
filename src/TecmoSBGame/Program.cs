@@ -58,5 +58,20 @@ if (args.Length > 0 && string.Equals(args[0], "--headless-nes-compare", StringCo
     return;
 }
 
-using var game = new MainGame();
+// Simulation mode flag (default: legacy MonoGame.Extended.Entities)
+var simMode = TecmoSBGame.SimArch.SimMode.Mge;
+for (var i = 0; i < args.Length; i++)
+{
+    var a = args[i];
+    if (a.StartsWith("--sim=", StringComparison.OrdinalIgnoreCase))
+    {
+        var v = a.Substring("--sim=".Length);
+        if (string.Equals(v, "arch", StringComparison.OrdinalIgnoreCase))
+            simMode = TecmoSBGame.SimArch.SimMode.Arch;
+        else if (string.Equals(v, "mge", StringComparison.OrdinalIgnoreCase))
+            simMode = TecmoSBGame.SimArch.SimMode.Mge;
+    }
+}
+
+using var game = new MainGame(simMode);
 game.Run();
