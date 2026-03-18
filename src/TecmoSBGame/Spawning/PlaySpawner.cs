@@ -273,14 +273,10 @@ public sealed class PlaySpawner
 
     private static void AttachOrUpdatePlayCall(MonoGame.Extended.Entities.Entity e, PlayEntry offense, string defenseId)
     {
-        if (!e.Has<PlayCallInfoComponent>())
-            e.Attach(new PlayCallInfoComponent());
-
-        var pc = e.Get<PlayCallInfoComponent>();
-        pc.OffensivePlayName = offense.Name;
-        pc.OffensivePlaySlot = offense.Slot;
-        pc.OffensiveFormationId = offense.Formation;
-        pc.DefensiveCallId = defenseId;
+        // IMPORTANT: MonoGame.Extended.Entities 3.8.0 has a hard 32 component-type limit.
+        // Attaching new component types at runtime can crash with "Bit vector is full".
+        // Until we migrate ECS or further consolidate components, do NOT attach PlayCallInfoComponent.
+        // (Play identity should live in PlayState/logging for now.)
     }
 
     private static void FillOffensiveAssignment(World world, int entityId, PlayerRole role, string slot, OffensiveAssignmentComponent oa)
