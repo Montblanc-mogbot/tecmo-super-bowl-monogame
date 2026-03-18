@@ -1,5 +1,6 @@
 using System;
 using Arch.Core;
+using Arch.Core.Extensions;
 
 namespace TecmoSBGame.SimArch;
 
@@ -16,27 +17,23 @@ public static class ArchEntityExtensions
     public static void Ensure<T>(this Entity e) where T : unmanaged
     {
         if (!e.Has<T>())
-            e.Add<T>();
+            e.Add(default(T));
     }
 
     public static void Upsert<T>(this Entity e, in T value) where T : unmanaged
     {
         if (e.Has<T>())
-        {
-            e.Set(value);
-        }
+            e.Set(in value);
         else
-        {
-            e.Add(value);
-        }
+            e.Add(in value);
     }
 
-    public static ref T GetOrAdd<T>(this Entity e) where T : unmanaged
+    public static T GetOrAdd<T>(this Entity e) where T : unmanaged
     {
         if (!e.Has<T>())
-            e.Add<T>();
+            e.Add(default(T));
 
-        return ref e.Get<T>();
+        return e.Get<T>();
     }
 
     public static void RemoveIfPresent<T>(this Entity e) where T : unmanaged
