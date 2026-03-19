@@ -1,6 +1,7 @@
 using System;
 using Arch.Core;
 using Arch.Core.Extensions;
+using TecmoSB;
 using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch;
@@ -20,6 +21,9 @@ public sealed class Sim : IDisposable
     public SimSnapshot Snapshot { get; } = new();
 
     private PendingPlaySelection? _pendingSelection;
+
+    private TecmoSB.PlayListConfig? _playList;
+    private TecmoSB.PlayDataConfig? _playData;
 
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
@@ -85,7 +89,10 @@ public sealed class Sim : IDisposable
             _pendingSelection = null;
 
             // Apply play selection.
-            Spawning.PlaySpawner.ApplyPlay(World, _offense, _defense, _ballEntityId, sel.PlayNumber);
+            if (_playData is null)
+                throw new InvalidOperationException("SimArch PlayData not loaded");
+
+            Spawning.PlaySpawner.ApplyPlay(World, _playData, _offense, _defense, _ballEntityId, sel.PlayNumber);
         }
 
         // Run systems (minimal set for now).
@@ -119,6 +126,19 @@ public sealed class Sim : IDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"[sim-arch] WARN: could not load formation_data.yaml; using demo roster. err={ex.Message}");
+        }
+
+        // Playbook YAML
+        try
+        {
+            _playList = PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml"));
+            _playData = PlayDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playdata", "bank5_6_play_data.yaml"));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[sim-arch] WARN: could not load playbook YAML; play selection will be limited. err={ex.Message}");
+            _playList = null;
+            _playData = null;
         }
 
         var (off, def, ball) = formationData is null
