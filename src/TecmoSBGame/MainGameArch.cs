@@ -39,7 +39,6 @@ public sealed class MainGameArch : Game
     private const float Dt = 1f / Hz;
     private float _accumulatorSeconds;
 
-    private bool _appliedInitialPlaySelection;
 
     public GameContent GameContent { get; private set; } = null!;
 

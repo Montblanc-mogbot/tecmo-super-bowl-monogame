@@ -211,7 +211,7 @@ public sealed class Sim : IDisposable
             _downDistance.ApplyPlayEnd(_match, _play);
         }
 
-        // Lifecycle transitions (auto-snap + auto-advance for now).
+        // Lifecycle transitions (event-driven; no auto-snap/auto-advance shortcuts).
         _lifecycle.Update(World);
 
         // Play time/clock tick (after lifecycle transitions).
