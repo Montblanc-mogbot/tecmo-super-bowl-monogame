@@ -1,86 +1,114 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Arch.Core;
 using Arch.Core.Extensions;
 using Microsoft.Xna.Framework;
+using TecmoSB;
 using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Spawning;
 
 /// <summary>
-/// Spawns a baseline scrimmage roster into the Arch world.
+/// Formation-driven roster spawning for SimArch.
 ///
-/// NOTE: Initial implementation is a deterministic demo roster. We'll later drive this from
-/// formation YAML once the Arch sim has parity.
+/// Current scope:
+/// - Uses FormationDataConfig (YAML) offensive formations to place the 11 offensive players.
+/// - Uses the first SetPosFromKick/SetPosFromHike/SetPosFromMid occurrence in the command string
+///   to derive an initial position.
+/// - Spawns a simple placeholder defense (until defensive formation YAML is added).
 /// </summary>
 public static class FormationSpawner
 {
-    public static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnDemoScrimmage(World world)
+    // NES-ish coordinate anchor defaults.
+    private static readonly Vector2 DefaultKickoffAnchor = new(56, 112);
+    private static readonly Vector2 DefaultHikeAnchor = new(128, 112);
+    private static readonly Vector2 DefaultMidAnchor = new(128, 112);
+
+    public static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnScrimmage(
+        World world,
+        FormationDataConfig formationData,
+        string? offenseFormationId = null,
+        int offenseTeamIndex = 1,
+        int defenseTeamIndex = 0)
     {
-        // Offense: basic formation aligned around the middle of the field.
-        var offense = new List<int>(11);
-        var defense = new List<int>(11);
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (formationData is null) throw new ArgumentNullException(nameof(formationData));
 
-        var origin = new Vector2(128, 112);
-        var losY = origin.Y;
+        if (formationData.OffensiveFormations is null || formationData.OffensiveFormations.Count == 0)
+            return SpawnLegacyDemoScrimmage(world, offenseTeamIndex, defenseTeamIndex);
 
-        int SpawnPlayer(RoleId role, Vector2 offset, bool isOffense, int teamIndex)
+        var formationId = PickOffensiveFormationId(formationData, offenseFormationId);
+        var formation = formationData.OffensiveFormations.First(f => f.Id == formationId);
+
+        var offense = new List<int>(capacity: 11);
+        var defense = new List<int>(capacity: 11);
+
+        int SpawnPlayer(RoleId role, Vector2 pos, bool isOffense, int teamIndex, bool isPlayerControlled)
         {
             var e = world.Create();
 
-            e.Add(new Position { Value = origin + offset });
+            e.Add(new Position { Value = pos });
             e.Add(new Velocity { Value = Vector2.Zero });
-            e.Add(new Team { TeamIndex = teamIndex, IsOffense = isOffense, IsPlayerControlled = isOffense });
+            e.Add(new Team { TeamIndex = teamIndex, IsOffense = isOffense, IsPlayerControlled = isPlayerControlled });
             e.Add(new Role { Id = role });
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
             return e.Id;
         }
 
-        // Offense team=1, defense team=0 (matches current scrimmage log output).
-        const int offTeam = 1;
-        const int defTeam = 0;
+        // Offense: spawn from YAML positions.
+        var qbId = -1;
+        var qbPos = DefaultHikeAnchor;
 
-        // QB/HB/FB
-        offense.Add(SpawnPlayer(RoleId.QB, new Vector2(0, -12), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.HB, new Vector2(16, -4), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.FB, new Vector2(-16, -4), isOffense: true, teamIndex: offTeam));
+        foreach (var slot in formation.Players)
+        {
+            var role = MapPositionToRoleId(slot.Position);
+            var pos = TryParseInitialPosition(slot.Commands, DefaultKickoffAnchor, DefaultHikeAnchor, DefaultMidAnchor)
+                ?? FallbackPosition(role);
 
-        // WR/TE
-        offense.Add(SpawnPlayer(RoleId.WR1, new Vector2(-64, -20), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.WR2, new Vector2(64, -20), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.TE, new Vector2(24, -8), isOffense: true, teamIndex: offTeam));
+            var id = SpawnPlayer(role, pos, isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true);
+            offense.Add(id);
 
-        // OL
-        offense.Add(SpawnPlayer(RoleId.OC, new Vector2(0, 0), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.LG, new Vector2(-16, 0), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.RG, new Vector2(16, 0), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.LT, new Vector2(-32, 0), isOffense: true, teamIndex: offTeam));
-        offense.Add(SpawnPlayer(RoleId.RT, new Vector2(32, 0), isOffense: true, teamIndex: offTeam));
+            if (role == RoleId.QB)
+            {
+                qbId = id;
+                qbPos = pos;
+            }
+        }
 
-        // Defense (simple front 4 / LB 4 / DB 3)
-        defense.Add(SpawnPlayer(RoleId.DL1, new Vector2(-24, 16), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.DL2, new Vector2(-8, 16), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.DL3, new Vector2(8, 16), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.DL4, new Vector2(24, 16), isOffense: false, teamIndex: defTeam));
+        // Defense: placeholder front 4 / LB 4 / DB 3.
+        // (Uses offsets anchored around hike centerline so it looks reasonable versus scrimmage offense.)
+        var origin = DefaultHikeAnchor;
+        defense.Add(SpawnPlayer(RoleId.DL1, origin + new Vector2(-24, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.DL2, origin + new Vector2(-8, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.DL3, origin + new Vector2(8, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.DL4, origin + new Vector2(24, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
 
-        defense.Add(SpawnPlayer(RoleId.LB1, new Vector2(-40, 32), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.LB2, new Vector2(-16, 32), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.LB3, new Vector2(16, 32), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.LB4, new Vector2(40, 32), isOffense: false, teamIndex: defTeam));
+        defense.Add(SpawnPlayer(RoleId.LB1, origin + new Vector2(-40, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.LB2, origin + new Vector2(-16, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.LB3, origin + new Vector2(16, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.LB4, origin + new Vector2(40, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
 
-        defense.Add(SpawnPlayer(RoleId.CB1, new Vector2(-56, 56), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.CB2, new Vector2(56, 56), isOffense: false, teamIndex: defTeam));
-        defense.Add(SpawnPlayer(RoleId.S1, new Vector2(0, 72), isOffense: false, teamIndex: defTeam));
+        defense.Add(SpawnPlayer(RoleId.CB1, origin + new Vector2(-56, 56), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.CB2, origin + new Vector2(56, 56), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.S1, origin + new Vector2(0, 72), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
 
-        // Ball entity: start held by QB
-        var qbId = offense[0];
+        // Ball entity: start held by QB.
+        if (qbId < 0)
+        {
+            qbId = offense.FirstOrDefault();
+            qbPos = DefaultHikeAnchor;
+        }
+
         var ball = world.Create();
-        ball.Add(new Position { Value = origin + new Vector2(0, -12) });
+        ball.Add(new Position { Value = qbPos });
         ball.Add(new Velocity { Value = Vector2.Zero });
         ball.Add(new Ball
         {
-            State = TecmoSBGame.SimArch.Components.BallState.Held,
+            State = Components.BallState.Held,
             OwnerEntityId = qbId,
             FlightKind = BallFlightKind.None,
             StartPos = Vector2.Zero,
@@ -92,7 +120,194 @@ public static class FormationSpawner
             IsComplete = true,
         });
 
-        Console.WriteLine($"[sim-arch] spawned demo scrimmage roster off={offense.Count} def={defense.Count} ballOwner={qbId} losY={losY}");
+        Console.WriteLine($"[sim-arch] spawned formation scrimmage roster formation={formationId} off={offense.Count} def={defense.Count} ballOwner={qbId}");
         return (offense, defense, ball.Id);
+    }
+
+    /// <summary>
+    /// Legacy deterministic demo roster. Prefer <see cref="SpawnScrimmage"/>.
+    /// </summary>
+    public static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnDemoScrimmage(World world)
+        => SpawnLegacyDemoScrimmage(world, offenseTeamIndex: 1, defenseTeamIndex: 0);
+
+    private static string PickOffensiveFormationId(FormationDataConfig data, string? requested)
+    {
+        // Precondition: data has at least one formation (checked by caller).
+
+        if (!string.IsNullOrWhiteSpace(requested) && data.OffensiveFormations.Any(f => f.Id == requested))
+            return requested;
+
+        // Prefer a "normal" scrimmage-ish formation if present; otherwise first.
+        if (data.OffensiveFormations.Any(f => f.Id == "03"))
+            return "03";
+        if (data.OffensiveFormations.Any(f => f.Id == "01"))
+            return "01";
+
+        return data.OffensiveFormations.First().Id;
+    }
+
+    private static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnLegacyDemoScrimmage(
+        World world,
+        int offenseTeamIndex,
+        int defenseTeamIndex)
+    {
+        var offense = new List<int>(11);
+        var defense = new List<int>(11);
+
+        var origin = DefaultHikeAnchor;
+
+        int SpawnPlayer(RoleId role, Vector2 offset, bool isOffense, int teamIndex, bool isPlayerControlled)
+        {
+            var e = world.Create();
+
+            e.Add(new Position { Value = origin + offset });
+            e.Add(new Velocity { Value = Vector2.Zero });
+            e.Add(new Team { TeamIndex = teamIndex, IsOffense = isOffense, IsPlayerControlled = isPlayerControlled });
+            e.Add(new Role { Id = role });
+            e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
+
+            return e.Id;
+        }
+
+        // QB/HB/FB
+        offense.Add(SpawnPlayer(RoleId.QB, new Vector2(0, -12), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.HB, new Vector2(16, -4), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.FB, new Vector2(-16, -4), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+
+        // WR/TE
+        offense.Add(SpawnPlayer(RoleId.WR1, new Vector2(-64, -20), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.WR2, new Vector2(64, -20), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.TE, new Vector2(24, -8), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+
+        // OL
+        offense.Add(SpawnPlayer(RoleId.OC, new Vector2(0, 0), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.LG, new Vector2(-16, 0), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.RG, new Vector2(16, 0), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.LT, new Vector2(-32, 0), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+        offense.Add(SpawnPlayer(RoleId.RT, new Vector2(32, 0), isOffense: true, teamIndex: offenseTeamIndex, isPlayerControlled: true));
+
+        // Defense (simple front 4 / LB 4 / DB 3)
+        defense.Add(SpawnPlayer(RoleId.DL1, new Vector2(-24, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.DL2, new Vector2(-8, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.DL3, new Vector2(8, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.DL4, new Vector2(24, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+
+        defense.Add(SpawnPlayer(RoleId.LB1, new Vector2(-40, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.LB2, new Vector2(-16, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.LB3, new Vector2(16, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.LB4, new Vector2(40, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+
+        defense.Add(SpawnPlayer(RoleId.CB1, new Vector2(-56, 56), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.CB2, new Vector2(56, 56), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        defense.Add(SpawnPlayer(RoleId.S1, new Vector2(0, 72), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+
+        // Ball entity: start held by QB
+        var qbId = offense[0];
+        var ball = world.Create();
+        ball.Add(new Position { Value = origin + new Vector2(0, -12) });
+        ball.Add(new Velocity { Value = Vector2.Zero });
+        ball.Add(new Ball
+        {
+            State = Components.BallState.Held,
+            OwnerEntityId = qbId,
+            FlightKind = BallFlightKind.None,
+            StartPos = Vector2.Zero,
+            EndPos = Vector2.Zero,
+            ElapsedSeconds = 0f,
+            DurationSeconds = 0f,
+            ApexHeight = 0f,
+            Height = 0f,
+            IsComplete = true,
+        });
+
+        Console.WriteLine($"[sim-arch] spawned legacy demo scrimmage roster off={offense.Count} def={defense.Count} ballOwner={qbId}");
+        return (offense, defense, ball.Id);
+    }
+
+    private static RoleId MapPositionToRoleId(string position)
+    {
+        var p = (position ?? string.Empty).Trim().ToUpperInvariant();
+        return p switch
+        {
+            "QB" => RoleId.QB,
+            "HB" => RoleId.HB,
+            "FB" => RoleId.FB,
+            "WR1" => RoleId.WR1,
+            "WR2" => RoleId.WR2,
+            "TE" => RoleId.TE,
+            "OC" => RoleId.OC,
+            "LG" => RoleId.LG,
+            "RG" => RoleId.RG,
+            "LT" => RoleId.LT,
+            "RT" => RoleId.RT,
+            _ => RoleId.Unknown,
+        };
+    }
+
+    private static Vector2 FallbackPosition(RoleId role)
+    {
+        // Rough fallback around hike anchor.
+        var o = DefaultHikeAnchor;
+        return role switch
+        {
+            RoleId.QB => o + new Vector2(0, -12),
+            RoleId.HB => o + new Vector2(16, -4),
+            RoleId.FB => o + new Vector2(-16, -4),
+            RoleId.WR1 => o + new Vector2(-64, -20),
+            RoleId.WR2 => o + new Vector2(64, -20),
+            RoleId.TE => o + new Vector2(24, -8),
+            RoleId.OC => o + new Vector2(0, 0),
+            RoleId.LG => o + new Vector2(-16, 0),
+            RoleId.RG => o + new Vector2(16, 0),
+            RoleId.LT => o + new Vector2(-32, 0),
+            RoleId.RT => o + new Vector2(32, 0),
+            _ => o,
+        };
+    }
+
+    private static Vector2? TryParseInitialPosition(string commands, Vector2 kickoffAnchor, Vector2 hikeAnchor, Vector2 midAnchor)
+    {
+        if (string.IsNullOrWhiteSpace(commands))
+            return null;
+
+        // Example: "B0-SetPosFromKick(F0 80);" or "SetPosFromHike(F0 48);"
+        if (TryParseCommandBytes(commands, "SetPosFromKick", out var xKick, out var yKick))
+            return DecodePosition(xKick, yKick, kickoffAnchor);
+
+        if (TryParseCommandBytes(commands, "SetPosFromHike", out var xHike, out var yHike))
+            return DecodePosition(xHike, yHike, hikeAnchor);
+
+        if (TryParseCommandBytes(commands, "SetPosFromMid", out var xMid, out var yMid))
+            return DecodePosition(xMid, yMid, midAnchor);
+
+        return null;
+    }
+
+    private static Vector2 DecodePosition(byte xByte, byte yByte, Vector2 anchor)
+    {
+        // Heuristic decoding:
+        // - X is treated as a signed byte offset from the anchor.
+        // - Y is treated as an unsigned byte with 0x80 meaning "center line".
+        var x = anchor.X + unchecked((sbyte)xByte);
+        var y = anchor.Y + (yByte - 0x80);
+        return new Vector2(x, y);
+    }
+
+    private static bool TryParseCommandBytes(string commands, string commandName, out byte x, out byte y)
+    {
+        x = 0;
+        y = 0;
+
+        var pattern = $@"{Regex.Escape(commandName)}\((?<x>[0-9A-Fa-f]{{2}})\s+(?<y>[0-9A-Fa-f]{{2}})\)";
+        var m = Regex.Match(commands, pattern);
+        if (!m.Success)
+            return false;
+
+        if (!byte.TryParse(m.Groups["x"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out x))
+            return false;
+        if (!byte.TryParse(m.Groups["y"].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out y))
+            return false;
+
+        return true;
     }
 }

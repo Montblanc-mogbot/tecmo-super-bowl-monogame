@@ -110,7 +110,20 @@ public sealed class Sim : IDisposable
         // Ensure demo roster ids start at 1+.
         _ = World.Create();
 
-        var (off, def, ball) = Spawning.FormationSpawner.SpawnDemoScrimmage(World);
+        // Formation YAML driven spawn (fallbacks to legacy demo roster if YAML not available).
+        TecmoSB.FormationDataConfig? formationData = null;
+        try
+        {
+            formationData = TecmoSB.FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[sim-arch] WARN: could not load formation_data.yaml; using demo roster. err={ex.Message}");
+        }
+
+        var (off, def, ball) = formationData is null
+            ? Spawning.FormationSpawner.SpawnDemoScrimmage(World)
+            : Spawning.FormationSpawner.SpawnScrimmage(World, formationData);
         _offense.AddRange(off);
         _defense.AddRange(def);
         _ballEntityId = ball;
