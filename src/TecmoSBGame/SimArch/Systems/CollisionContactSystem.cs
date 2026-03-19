@@ -8,6 +8,8 @@ using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/CollisionContactSystem.cs
+
 /// <summary>
 /// Discrete, distance-based collision/contact checks (SimArch).
 ///

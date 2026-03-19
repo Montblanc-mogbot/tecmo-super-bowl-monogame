@@ -8,6 +8,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/BlockerAISystem.cs
+
 /// <summary>
 /// Assignment-based blocking AI (SimArch scaffold).
 ///

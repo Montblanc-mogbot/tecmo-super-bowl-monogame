@@ -5,6 +5,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/BehaviorStackSystem.cs
+
 /// <summary>
 /// Decrements the active interrupt timer (top of stack) and restores the prior behavior when it expires.
 /// </summary>

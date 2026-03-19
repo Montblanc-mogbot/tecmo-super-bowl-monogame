@@ -6,6 +6,9 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/BallBoundsSystem.cs
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/BallPhysicsSystem.cs
+
 /// <summary>
 /// Arch-sim port of <c>TecmoSBGame.Systems.BallPhysicsSystem</c>.
 ///

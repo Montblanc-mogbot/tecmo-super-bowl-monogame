@@ -3,6 +3,8 @@ using TecmoSBGame.SimArch.State;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/DownDistanceSystem.cs
+
 /// <summary>
 /// Down & distance progression + ball spotting (SimArch scaffold).
 ///

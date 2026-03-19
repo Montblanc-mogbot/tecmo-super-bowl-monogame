@@ -7,6 +7,8 @@ using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/EngagementSystem.cs
+
 /// <summary>
 /// Consumes <see cref="BlockContactEvent"/> and temporarily interrupts both entities into an Engaged state.
 ///
