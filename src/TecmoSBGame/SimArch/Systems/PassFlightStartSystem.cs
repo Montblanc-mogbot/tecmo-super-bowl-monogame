@@ -5,6 +5,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/PassFlightStartSystem.cs
+
 /// <summary>
 /// SimArch equivalent of <c>TecmoSBGame.Systems.PassFlightStartSystem</c>.
 ///

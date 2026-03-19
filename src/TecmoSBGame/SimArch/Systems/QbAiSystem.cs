@@ -7,6 +7,9 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/QbDropbackSystem.cs
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/ReadProgressionSystem.cs
+
 /// <summary>
 /// QB dropback + read progression + pass decision (SimArch).
 ///

@@ -8,6 +8,8 @@ using TecmoSBGame.SimArch.PlayScripts;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/PlayScriptSystem.cs
+
 /// <summary>
 /// Executes compiled PlayScriptOps from the <see cref="PlayScriptRegistry"/>.
 ///
