@@ -17,18 +17,25 @@ namespace TecmoSBGame.SimArch.Systems;
 /// </summary>
 public sealed class MovementSystem
 {
-    public float MaxTurnDegreesPerTick = 9f;
-    public float MaxSpeedPerTick = 1.5f;
+    // Defaults used if an entity has no MovementTuning component.
+    public float DefaultMaxTurnDegreesPerTick = 9f;
+    public float DefaultMaxSpeedPerTick = 1.5f;
 
     public void Update(World world, float dtSeconds, int controlledEntityId, Vector2 inputDir)
     {
         // Tick scale assumes 60Hz sim. We'll unify this later.
         var tickScale = dtSeconds * 60f;
-        var maxTurnRad = MathHelper.ToRadians(MaxTurnDegreesPerTick * tickScale);
 
         // For now: if Behavior says TrackingEntity, steer velocity toward target.
         // Later we will separate steering/desired direction from integration.
         var query = new QueryDescription().WithAll<Position, Velocity, Behavior>();
+
+        var qTuning = new QueryDescription().WithAll<MovementTuning>();
+        var tuningById = new System.Collections.Generic.Dictionary<int, MovementTuning>();
+        world.Query(in qTuning, (Entity e, ref MovementTuning t) =>
+        {
+            tuningById[e.Id] = t;
+        });
 
         var inputNorm = SafeNormalize(inputDir);
 
@@ -62,6 +69,18 @@ public sealed class MovementSystem
                 desiredDir = SafeNormalize(vel.Value);
             }
 
+            var tuning = tuningById.TryGetValue(e.Id, out var t)
+                ? t
+                : new MovementTuning
+                {
+                    MaxSpeedPerTick = DefaultMaxSpeedPerTick,
+                    MaxTurnDegreesPerTick = DefaultMaxTurnDegreesPerTick,
+                    AccelPerTick = 0f,
+                    DecelPerTick = 0f,
+                };
+
+            var maxTurnRad = MathHelper.ToRadians(tuning.MaxTurnDegreesPerTick * tickScale);
+
             var currentDir = SafeNormalize(vel.Value);
             var newDir = ApplyTurnLimit(currentDir, desiredDir, maxTurnRad);
 
@@ -69,7 +88,7 @@ public sealed class MovementSystem
             if (b.State == BehaviorState.Idle)
                 vel.Value = Vector2.Zero;
             else
-                vel.Value = newDir * MaxSpeedPerTick;
+                vel.Value = newDir * tuning.MaxSpeedPerTick;
 
             pos.Value += vel.Value * tickScale;
         });
