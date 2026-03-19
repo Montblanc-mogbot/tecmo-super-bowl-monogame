@@ -351,6 +351,89 @@ public static class HeadlessRunner
         });
     }
 
+    public static int RunTwoPlaysScenarioArch(int ticks = 240)
+    {
+        // Run the Arch simulation in-process (no MonoGame.Extended.Entities).
+        var sim = new SimArch.Sim();
+
+        // Apply the demo play selection (play 10). This will attach PlayScript state in SimArch.
+        sim.ApplyPlaySelection(new SimArch.Sim.PendingPlaySelection(
+            PlayNumber: 10,
+            FormationId: "04",
+            OffensivePlayName: "T FAKE SWEEP R",
+            OffensivePlaySlot: "Run 1"));
+
+        var sawHandoff = false;
+        var sawPursuit = false;
+        var sawPlayAdvance = false; // placeholder until play-end/reset is ported
+
+        int? hbId = null;
+        int? ballEntityId = null;
+
+        // Locate HB and ball entities via Arch queries.
+        var qRole = new Arch.Core.QueryDescription().WithAll<SimArch.Components.Role>();
+        sim.World.Query(in qRole, (Arch.Core.Entity e, ref SimArch.Components.Role r) =>
+        {
+            if (r.Id == SimArch.Components.RoleId.HB)
+                hbId = e.Id;
+        });
+
+        var qBall = new Arch.Core.QueryDescription().WithAll<SimArch.Components.Ball>();
+        sim.World.Query(in qBall, (Arch.Core.Entity e, ref SimArch.Components.Ball b) =>
+        {
+            ballEntityId = e.Id;
+        });
+
+        if (hbId is null || ballEntityId is null)
+        {
+            Console.WriteLine($"[headless-2plays-arch] FAIL: hbId={hbId} ballEntityId={ballEntityId}");
+            return 2;
+        }
+
+        for (var i = 0; i < ticks; i++)
+        {
+            sim.Update(1f / 60f);
+
+            // (a) HB becomes owner after delay.
+            if (!sawHandoff)
+            {
+                var ball = new Arch.Core.Entity(sim.World, ballEntityId.Value);
+                var b = ball.Get<SimArch.Components.Ball>();
+                if (b.OwnerEntityId == hbId.Value)
+                {
+                    sawHandoff = true;
+                    Console.WriteLine($"[headless-2plays-arch] observed handoff at t={i} to HB entity={hbId}");
+                }
+            }
+
+            // (b) at least one defender tracks ballcarrier.
+            if (!sawPursuit)
+            {
+                var qDef = new Arch.Core.QueryDescription().WithAll<SimArch.Components.Team, SimArch.Components.Behavior>();
+                sim.World.Query(in qDef, (Arch.Core.Entity e, ref SimArch.Components.Team t, ref SimArch.Components.Behavior beh) =>
+                {
+                    if (sawPursuit)
+                        return;
+                    if (t.IsOffense)
+                        return;
+                    if (beh.State == SimArch.Components.BehaviorState.TrackingEntity && beh.TargetEntityId != 0)
+                        sawPursuit = true;
+                });
+            }
+        }
+
+        // NOTE: play-end/reset loop isn't ported to Arch yet, so we only assert handoff+pursuit.
+        var ok = sawHandoff && sawPursuit;
+        if (!ok)
+        {
+            Console.WriteLine($"[headless-2plays-arch] FAIL: sawHandoff={sawHandoff} sawPursuit={sawPursuit} sawPlayAdvance={sawPlayAdvance}");
+            return 1;
+        }
+
+        Console.WriteLine($"[headless-2plays-arch] PASS ticks={ticks} sawHandoff={sawHandoff} sawPursuit={sawPursuit}");
+        return 0;
+    }
+
     private static void AttachPlayDataScripts(World world, PlayDataConfig playData, int offensivePlayNumber, IReadOnlyList<int> offenseEntityIds, IReadOnlyList<int> defenseEntityIds)
     {
         var def = playData.Plays.FirstOrDefault(p => p.PlayNumber == offensivePlayNumber);
