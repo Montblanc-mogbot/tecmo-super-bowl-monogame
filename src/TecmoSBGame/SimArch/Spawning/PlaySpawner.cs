@@ -7,6 +7,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Spawning;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Spawning/PlaySpawner.cs
+
 /// <summary>
 /// Applies play selection to an existing scrimmage roster.
 ///

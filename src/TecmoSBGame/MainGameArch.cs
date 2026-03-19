@@ -20,6 +20,7 @@ namespace TecmoSBGame;
 public sealed class MainGameArch : Game
 {
     // Ported from: ArchiveMge/MainGame.cs
+    // Ported from: src/TecmoSBGame/ArchiveMge/MainGame.cs
 
     private readonly GraphicsDeviceManager _graphics;
 

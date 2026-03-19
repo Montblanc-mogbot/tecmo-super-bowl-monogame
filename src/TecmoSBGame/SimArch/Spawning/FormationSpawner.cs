@@ -11,6 +11,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Spawning;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Spawning/FormationSpawner.cs
+
 /// <summary>
 /// Formation-driven roster spawning for SimArch.
 ///
