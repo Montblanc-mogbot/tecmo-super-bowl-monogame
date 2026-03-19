@@ -36,6 +36,8 @@ public sealed class PlayScriptRegistry
         foreach (var c in reaction.Commands)
         {
             var cmd = (c.Cmd ?? string.Empty).Trim();
+            if (cmd.Length == 0)
+                continue;
 
             if (cmd.Equals("loop", StringComparison.OrdinalIgnoreCase))
             {
@@ -77,6 +79,18 @@ public sealed class PlayScriptRegistry
                 continue;
             }
 
+            if (cmd.Equals("rush_qb", StringComparison.OrdinalIgnoreCase))
+            {
+                ops.Add(new PlayScriptOp(PlayScriptOpKind.TrackQuarterback));
+                continue;
+            }
+
+            if (cmd.Equals("pursue_ballcarrier", StringComparison.OrdinalIgnoreCase))
+            {
+                ops.Add(new PlayScriptOp(PlayScriptOpKind.PursueBallCarrier));
+                continue;
+            }
+
             if (cmd.Equals("setMS", StringComparison.OrdinalIgnoreCase))
             {
                 var v = c.Params is { Count: > 0 } ? ParseFloat(c.Params[0]) : 0f;
@@ -98,6 +112,33 @@ public sealed class PlayScriptRegistry
         return ops.ToArray();
     }
 
+    /// <summary>
+    /// Validates that all commands in the given reaction are supported by <see cref="CompileReaction"/>.
+    /// Throws an exception on the first unknown command.
+    /// </summary>
+    public static void ValidateSupported(PlayerReactionScript reaction)
+    {
+        foreach (var c in reaction.Commands)
+        {
+            var cmd = (c.Cmd ?? string.Empty).Trim();
+            if (cmd.Length == 0)
+                continue;
+
+            var ok = cmd.Equals("loop", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("wait", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("wait_until_snap", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("move_by", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("handoff_to", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("setMS", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("boostRS", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("rush_qb", StringComparison.OrdinalIgnoreCase)
+                || cmd.Equals("pursue_ballcarrier", StringComparison.OrdinalIgnoreCase);
+
+            if (!ok)
+                throw new InvalidOperationException($"Unsupported PlayData command '{cmd}' in reaction '{reaction.Id}'");
+        }
+    }
+
     public void AttachSlotScripts(
         World world,
         PlayDataConfig playData,
@@ -116,6 +157,7 @@ public sealed class PlayScriptRegistry
             if (reaction is null)
                 continue;
 
+            ValidateSupported(reaction);
             var ops = CompileReaction(reaction);
             var index = Add(ops);
 

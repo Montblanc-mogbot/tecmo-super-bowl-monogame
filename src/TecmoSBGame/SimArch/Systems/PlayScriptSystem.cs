@@ -33,8 +33,9 @@ public sealed class PlayScriptSystem
         // We can't capture a ref parameter inside the query lambda, so we hop through a local.
         var controlLocal = control;
 
-        // Build offense slot lookup once (used for handoff_to).
+        // Build offense slot lookup once (used for handoff_to and QB lookup).
         var offenseSlots = BuildOffenseSlotLookup(world, offenseEntityIds);
+        offenseSlots.TryGetValue("QB", out var qbEntityId);
 
         var query = new QueryDescription().WithAll<PlayScript>();
         world.Query(in query, (Entity e, ref PlayScript s) =>
@@ -87,6 +88,19 @@ public sealed class PlayScriptSystem
                             return;
                         }
                         break;
+
+                    case PlayScriptOpKind.TrackQuarterback:
+                        if (qbEntityId > 0)
+                            ApplyTrackEntity(world, e.Id, qbEntityId);
+                        break;
+
+                    case PlayScriptOpKind.PursueBallCarrier:
+                    {
+                        var owner = GetBallOwner(world, ballEntityId);
+                        if (owner > 0)
+                            ApplyTrackEntity(world, e.Id, owner);
+                        break;
+                    }
 
                     case PlayScriptOpKind.SetMs:
                     case PlayScriptOpKind.BoostRs:
@@ -165,6 +179,32 @@ public sealed class PlayScriptSystem
             beh.TargetPosition = pos.Value + delta;
             beh.StateTimer = 0f;
         });
+    }
+
+    private static void ApplyTrackEntity(World world, int entityId, int targetEntityId)
+    {
+        var q = new QueryDescription().WithAll<Behavior>();
+        world.Query(in q, (Entity e, ref Behavior beh) =>
+        {
+            if (e.Id != entityId)
+                return;
+
+            beh.State = BehaviorState.TrackingEntity;
+            beh.TargetEntityId = targetEntityId;
+        });
+    }
+
+    private static int GetBallOwner(World world, int ballEntityId)
+    {
+        var owner = -1;
+        var q = new QueryDescription().WithAll<Ball>();
+        world.Query(in q, (Entity e, ref Ball b) =>
+        {
+            if (e.Id != ballEntityId)
+                return;
+            owner = b.OwnerEntityId;
+        });
+        return owner;
     }
 
     private static void ExecuteHandoff(World world, int ballEntityId, int fromEntityId, int toEntityId, ref Control control)

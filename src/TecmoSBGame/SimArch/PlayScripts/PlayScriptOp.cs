@@ -10,6 +10,10 @@ public enum PlayScriptOpKind
     HandoffToSlotAfterSeconds = 3,
     SetMs = 4,
     BoostRs = 5,
+
+    // Defense AI intents
+    TrackQuarterback = 10,
+    PursueBallCarrier = 11,
 }
 
 public readonly record struct PlayScriptOp(
