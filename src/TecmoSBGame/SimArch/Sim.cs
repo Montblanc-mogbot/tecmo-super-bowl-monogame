@@ -56,6 +56,8 @@ public sealed class Sim : IDisposable
     private readonly Systems.BallSystem _ball = new();
     private readonly Systems.PassFlightCompleteSystem _passComplete = new();
     private readonly Systems.KickoffFlightCompleteSystem _kickoffComplete = new();
+    private readonly Systems.PlayEndSystem _playEnd = new();
+    private readonly Systems.NextPlayResetSystem _nextPlayReset = new();
     private readonly Systems.TackleAndPlayEndSystems _tackleAndEnd = new(); // legacy fallback; no longer detects tackles
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
@@ -241,6 +243,9 @@ public sealed class Sim : IDisposable
         }
         _passComplete.Update(World);
         _kickoffComplete.Update(World);
+
+        _playEnd.Update(World, _ballEntityId, _match, _play);
+        _nextPlayReset.Update(World, _ballEntityId, _match, _play);
         // NOTE: tackle detection is now handled by CollisionContactSystem + TackleResolutionSystem.
         // Keep this system wired only for any remaining play-end/reset scaffolding.
         // _tackleAndEnd.Update(World, _ballEntityId, ref _control);
