@@ -131,6 +131,10 @@ public static class FormationSpawner
             var pos = origin + ParseOffset(p.Offset);
             var role = MapDefensiveSlotToRoleId(p.Slot);
             var ent = SpawnPlayer(role, pos, isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false);
+
+            // Attach explicit slot key for PlayData defense script lookup.
+            ent.Add(PlayerRole.Create(RoleKindFromDefensiveSlot(p.Slot), slot: p.Slot));
+
             defense.Add(ent.Id);
         }
 
@@ -232,6 +236,15 @@ public static class FormationSpawner
 
             _ => RoleId.Unknown,
         };
+    }
+
+    private static PlayerRoleKind RoleKindFromDefensiveSlot(string slot)
+    {
+        var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+        if (s.StartsWith("D")) return PlayerRoleKind.DL;
+        if (s.StartsWith("LB") || s == "MLB") return PlayerRoleKind.LB;
+        if (s.StartsWith("CB") || s.StartsWith("S")) return PlayerRoleKind.DB;
+        return PlayerRoleKind.Unknown;
     }
 
     private static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnLegacyDemoScrimmage(

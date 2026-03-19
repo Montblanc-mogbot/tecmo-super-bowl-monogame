@@ -46,30 +46,25 @@ public static partial class PlaySpawner
     }
 
     // Defensive slots in PlayData are authored like: DE-L / DT-L / DT-R / DE-R / LB-L / MLB / LB-R / CB-L / CB-R / S-L / S-R
-    // Our current SimArch defense is a placeholder; we map it deterministically to these keys.
+    // In SimArch, defenders are tagged with PlayerRole.Slot during formation spawn.
     private static IReadOnlyDictionary<string, int> BuildDefensiveSlotLookup(World world, IReadOnlyList<int> defenseEntityIds)
     {
+        var allow = new HashSet<int>(defenseEntityIds);
         var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        // Deterministic assignment by spawn order.
-        // FormationSpawner currently spawns: DL1..DL4, LB1..LB4, CB1..CB2, S1.
-        if (defenseEntityIds.Count >= 11)
+        var q = new QueryDescription().WithAll<PlayerRole>();
+        world.Query(in q, (Entity e, ref PlayerRole pr) =>
         {
-            map["DE-L"] = defenseEntityIds[0];
-            map["DT-L"] = defenseEntityIds[1];
-            map["DT-R"] = defenseEntityIds[2];
-            map["DE-R"] = defenseEntityIds[3];
+            if (!allow.Contains(e.Id))
+                return;
 
-            map["LB-L"] = defenseEntityIds[4];
-            map["MLB"] = defenseEntityIds[5];
-            map["LB-R"] = defenseEntityIds[6];
+            var slot = (pr.Slot ?? string.Empty).Trim();
+            if (slot.Length == 0)
+                return;
 
-            map["CB-L"] = defenseEntityIds[8];
-            map["CB-R"] = defenseEntityIds[9];
-
-            map["S-L"] = defenseEntityIds[10];
-            map["S-R"] = defenseEntityIds[10];
-        }
+            if (!map.ContainsKey(slot))
+                map[slot] = e.Id;
+        });
 
         return map;
     }
