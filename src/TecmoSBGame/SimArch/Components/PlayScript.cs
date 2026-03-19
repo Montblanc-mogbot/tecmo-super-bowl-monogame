@@ -8,11 +8,14 @@ namespace TecmoSBGame.SimArch.Components;
 /// </summary>
 public struct PlayScript
 {
-    public int ScriptId; // index into a script registry (TBD)
+    public int ScriptId; // index into a script registry
     public int Ip;
 
     public float WaitSeconds;
 
     // Handoff delay bookkeeping
     public int PendingHandoffToEntityId;
+
+    // Script anchor state
+    public PlayAnchor Anchor;
 }
