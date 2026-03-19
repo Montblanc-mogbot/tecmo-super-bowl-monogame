@@ -26,6 +26,7 @@ public sealed class Sim : IDisposable
     private TecmoSB.PlayDataConfig? _playData;
 
     private readonly Systems.MovementSystem _movement = new();
+    private readonly Systems.CollisionContactSystem _contacts = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
@@ -101,6 +102,7 @@ public sealed class Sim : IDisposable
 
         _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
+        _contacts.Update(World, _offense, _defense);
         _ball.Update(World, dtSeconds);
         _passComplete.Update(World);
         _kickoffComplete.Update(World);
