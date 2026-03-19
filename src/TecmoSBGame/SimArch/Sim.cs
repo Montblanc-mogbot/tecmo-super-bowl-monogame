@@ -34,6 +34,7 @@ public sealed class Sim : IDisposable
     private readonly Systems.RouteFollowSystem _routes = new();
     private readonly Systems.BlockerAiSystem _blockerAi = new();
     private readonly Systems.DefensiveRushSystem _rush = new();
+    private readonly Systems.CoverageSystem _coverage = new();
     private readonly Systems.QbAiSystem _qbAi = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
@@ -122,6 +123,7 @@ public sealed class Sim : IDisposable
         _routes.Update(World, dtSeconds, _routeRegistry);
         _blockerAi.Update(World, dtSeconds, _offense, _defense, _ballEntityId);
         _rush.Update(World, dtSeconds, _defense);
+        _coverage.Update(World, dtSeconds, _ballEntityId, _defense);
         _qbAi.Update(World, dtSeconds, _ballEntityId);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);

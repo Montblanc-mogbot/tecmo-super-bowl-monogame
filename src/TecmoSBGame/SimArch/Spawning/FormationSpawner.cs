@@ -66,8 +66,20 @@ public static class FormationSpawner
             }
             else
             {
-                // Default defensive rush assignment; can be overridden later via YAML.
+                // Default defensive rush assignment + coverage (can be overridden later via YAML).
                 e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
+                e.Add(new Coverage
+                {
+                    Type = CoverageType.ZoneHook,
+                    AssignmentTargetId = -1,
+                    Zone = ZoneLandmark.HookLeft,
+                    LandmarkPosition = Vector2.Zero,
+                    InPursuit = false,
+                    PursuitTargetId = -1,
+                    ReactionDelay = 0,
+                    ReactionTimer = 0,
+                    HasReacted = false,
+                });
             }
 
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
@@ -192,6 +204,18 @@ public static class FormationSpawner
             else
             {
                 e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
+                e.Add(new Coverage
+                {
+                    Type = CoverageType.ZoneHook,
+                    AssignmentTargetId = -1,
+                    Zone = ZoneLandmark.HookLeft,
+                    LandmarkPosition = Vector2.Zero,
+                    InPursuit = false,
+                    PursuitTargetId = -1,
+                    ReactionDelay = 0,
+                    ReactionTimer = 0,
+                    HasReacted = false,
+                });
             }
 
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
