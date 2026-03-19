@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using TecmoSB;
 using TecmoSBGame.Components;
 
+// Intentionally "pure": this compiler should remain reusable by both the legacy
+// MonoGame.Extended ECS and the Arch Sim.
+// Keep dependencies limited to:
+// - TecmoSB YAML DTOs (PlayerReactionScript)
+// - TecmoSBGame.Components (PlayScriptOp types)
+
 namespace TecmoSBGame.Spawning;
 
 /// <summary>
