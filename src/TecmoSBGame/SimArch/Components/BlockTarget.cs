@@ -17,6 +17,16 @@ public struct BlockTarget
     public int EngagementFrame;
 
     public bool IsDoubleTeam;
+
+    public static BlockTarget Default => new()
+    {
+        TargetEntityId = -1,
+        Assignment = BlockAssignmentType.ManOn,
+        IsEngaged = false,
+        EngagedEntityId = -1,
+        EngagementFrame = 0,
+        IsDoubleTeam = false,
+    };
 }
 
 public enum BlockAssignmentType
