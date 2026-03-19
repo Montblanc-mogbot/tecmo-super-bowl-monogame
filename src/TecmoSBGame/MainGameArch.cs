@@ -39,10 +39,7 @@ public sealed class MainGameArch : Game
     private const float Dt = 1f / Hz;
     private float _accumulatorSeconds;
 
-    // Temporary Arch-native flow scaffold (headless-friendly):
-    // - Enter starts a play (auto-pick play 10)
-    // - After tackle whistle, Enter advances to next play (pre-snap)
-    private bool _playAppliedThisDown;
+    private bool _appliedInitialPlaySelection;
 
     public GameContent GameContent { get; private set; } = null!;
 
@@ -114,35 +111,7 @@ public sealed class MainGameArch : Game
 
         _sim.SetInput(dir);
 
-        // Arch-native flow scaffold:
-        // - PreSnap: press Enter to apply a play (auto-pick play 10 for now)
-        // - PostPlay: press Enter to advance to next play
-        if (_sim.PlayState.Phase == SimArch.State.PlayPhase.PreSnap)
-        {
-            if (kb.IsKeyDown(Keys.Enter) && !_playAppliedThisDown)
-            {
-                _playAppliedThisDown = true;
-                _sim.ApplyPlaySelection(new Sim.PendingPlaySelection(
-                    PlayNumber: 10,
-                    FormationId: "00",
-                    OffensivePlayName: "AUTO",
-                    OffensivePlaySlot: "AUTO"));
-            }
-        }
-        else if (_sim.PlayState.Phase == SimArch.State.PlayPhase.PostPlay)
-        {
-            if (kb.IsKeyDown(Keys.Enter))
-            {
-                _playAppliedThisDown = false;
-                _sim.AdvanceToNextPlay();
-            }
-        }
-        else
-        {
-            // InPlay
-            if (!kb.IsKeyDown(Keys.Enter))
-                _playAppliedThisDown = false;
-        }
+        // Play selection/snap/advance are driven by SimArch systems + input (not hardcoded here).
 
         // Fixed-step update.
         _accumulatorSeconds += (float)gameTime.ElapsedGameTime.TotalSeconds;

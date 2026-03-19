@@ -45,6 +45,7 @@ public sealed class Sim : IDisposable
     public SimArch.State.PlayState PlayState => _play;
     private readonly Systems.GameClockSystem _clock = new();
     private readonly Systems.DownDistanceSystem _downDistance = new();
+    private readonly Systems.PlayLifecycleSystem _lifecycle;
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
     private readonly Systems.PassFlightCompleteSystem _passComplete = new();
@@ -65,6 +66,8 @@ public sealed class Sim : IDisposable
     {
         _formationData = formationData;
         _playData = playData;
+
+        _lifecycle = new Systems.PlayLifecycleSystem(_match, _play);
 
         World = World.Create();
         BootstrapWorld();
@@ -133,6 +136,7 @@ public sealed class Sim : IDisposable
     /// </summary>
     public void AdvanceToNextPlay()
     {
+        // Deprecated: lifecycle system now auto-advances; keep for transitional callers.
         _play.ResetForNewPlay(
             playId: _match.PlayNumber + 1,
             startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
@@ -177,16 +181,10 @@ public sealed class Sim : IDisposable
         _behaviorStack.Update(World, dtSeconds);
         _ball.Update(World, dtSeconds);
 
-        // Rules/clock model: keep phase simple for now.
-        _play.Phase = TecmoSBGame.SimArch.State.PlayPhase.InPlay;
-        _play.PlayElapsedSeconds += dtSeconds;
-        _clock.Update(_match, _play);
 
-        // Down/distance updates: on whistle, finalize play + apply match rules.
+        // Convert sim whistle into lifecycle events.
         if (_tackleResolution.WhistledThisTick)
         {
-            _play.WhistleReason = TecmoSBGame.SimArch.State.WhistleReason.Tackle;
-
             // TODO: compute absolute yards from world positions + ball spot.
             // For now, keep it conservative (0 yards) to avoid bad state jumps.
             _play.EndAbsoluteYard = _play.StartAbsoluteYard;
@@ -196,10 +194,31 @@ public sealed class Sim : IDisposable
                 Touchdown: false,
                 Safety: false);
 
-            _downDistance.ApplyPlayEnd(_match, _play);
+            var w = new TecmoSBGame.SimArch.Events.WhistleEvent("tackle");
+            SimEventBus.Send(ref w);
 
-            // Enter post-play phase; host decides when to advance.
-            _play.Phase = TecmoSBGame.SimArch.State.PlayPhase.PostPlay;
+            var ended = new TecmoSBGame.SimArch.Events.PlayEndedEvent(
+                PlayId: _play.PlayId,
+                Reason: (int)TecmoSBGame.SimArch.State.WhistleReason.Tackle,
+                EndAbsoluteYard: _play.EndAbsoluteYard,
+                YardsGained: _play.Result.YardsGained,
+                Turnover: _play.Result.Turnover,
+                Touchdown: _play.Result.Touchdown,
+                Safety: _play.Result.Safety);
+            SimEventBus.Send(ref ended);
+
+            // Apply match rules immediately (still deterministic) using the play model.
+            _downDistance.ApplyPlayEnd(_match, _play);
+        }
+
+        // Lifecycle transitions (auto-snap + auto-advance for now).
+        _lifecycle.Update(World);
+
+        // Play time/clock tick (after lifecycle transitions).
+        if (_play.Phase == TecmoSBGame.SimArch.State.PlayPhase.InPlay)
+        {
+            _play.PlayElapsedSeconds += dtSeconds;
+            _clock.Update(_match, _play);
         }
         _passComplete.Update(World);
         _kickoffComplete.Update(World);
