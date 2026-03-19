@@ -56,6 +56,13 @@ public static partial class PlaySpawner
 
         // NOTE: handoff_to is handled by the generic SimArch playscript runner (compiled into the registry).
 
+        // QB AI (dropback/read/progression scaffold):
+        // - If the QB reaction contains a handoff_to, treat it as a run play and disable QB pass AI.
+        // - Otherwise, enable QB pass AI so we can test pass flight in SimArch.
+        var qbReactionId = def.Offense.TryGetValue("QB", out var qbRid) ? qbRid : null;
+        var qbIsRunPlay = qbReactionId is not null && ReactionContainsHandoffTo(playData, qbReactionId);
+        SetOrAddQbBrain(world, qbId, enabled: !qbIsRunPlay);
+
         // Defense default fallback: if a defender has no movement intent, track QB.
         var defenseSet = new HashSet<int>(defenseEntityIds);
         var defQuery = new QueryDescription().WithAll<Behavior>();
@@ -85,6 +92,52 @@ public static partial class PlaySpawner
             b.State = Components.BallState.Held;
             b.OwnerEntityId = ownerEntityId;
         });
+    }
+
+    private static void SetOrAddQbBrain(World world, int qbEntityId, bool enabled)
+    {
+        var q = new QueryDescription().WithAll<Role>();
+        world.Query(in q, (Entity e, ref Role _) =>
+        {
+            if (e.Id != qbEntityId)
+                return;
+
+            if (!enabled)
+            {
+                if (e.Has<QbBrain>())
+                    e.Remove<QbBrain>();
+                return;
+            }
+
+            var brain = new QbBrain
+            {
+                DropbackFramesRemaining = 30,
+                ReadIndex = 0,
+                PassRequested = false,
+                PassType = TecmoSBGame.SimArch.PassType.Bullet,
+            };
+
+            if (!e.Has<QbBrain>())
+                e.Add(brain);
+            else
+                e.Set(brain);
+        });
+    }
+
+    private static bool ReactionContainsHandoffTo(TecmoSB.PlayDataConfig playData, string reactionId)
+    {
+        var reaction = playData.PlayerReactions.FirstOrDefault(r => string.Equals(r.Id, reactionId, StringComparison.OrdinalIgnoreCase));
+        if (reaction is null)
+            return false;
+
+        foreach (var c in reaction.Commands)
+        {
+            var cmd = (c.Cmd ?? string.Empty).Trim();
+            if (cmd.Equals("handoff_to", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private static int FindRole(World world, IReadOnlyList<int> entityIds, RoleId role)

@@ -30,6 +30,7 @@ public sealed class Sim : IDisposable
     private readonly Systems.BehaviorStackSystem _behaviorStack = new();
     private readonly PlayScripts.PlayScriptRegistry _scriptRegistry = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
+    private readonly Systems.QbAiSystem _qbAi = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
     private readonly Systems.PassFlightCompleteSystem _passComplete = new();
@@ -110,6 +111,7 @@ public sealed class Sim : IDisposable
         _preSnap.Update(World, _offense, _defense, _ballEntityId, offenseDirSign: 1f);
 
         _playScripts.Update(World, dtSeconds, _ballEntityId, _offense, _defense, _scriptRegistry, ref _control);
+        _qbAi.Update(World, dtSeconds, _ballEntityId);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);
         _engagement.Update(World, dtSeconds);
