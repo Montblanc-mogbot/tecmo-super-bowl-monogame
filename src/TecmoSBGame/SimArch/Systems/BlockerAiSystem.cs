@@ -15,12 +15,6 @@ namespace TecmoSBGame.SimArch.Systems;
 /// - For each offensive non-carrier entity with <see cref="BlockTarget"/>, pick a defender to block.
 /// - Drive Behavior toward that defender (EngagementSystem turns contact into Engaged interrupts).
 /// - Basic second-level release after engagement frames threshold.
-///
-/// Parity items (future):
-/// - snap event gating
-/// - cut blocks
-/// - double teams (speed penalty)
-/// - more accurate lane selection
 /// </summary>
 public sealed class BlockerAiSystem
 {
@@ -28,15 +22,11 @@ public sealed class BlockerAiSystem
 
     public void Update(World world, float dtSeconds, IReadOnlyList<int> offenseEntityIds, IReadOnlyList<int> defenseEntityIds, int ballEntityId)
     {
-        // Identify ball carrier.
         var carrierId = FindBallOwner(world, ballEntityId);
-
-        // Build defender set.
         var defenders = new HashSet<int>(defenseEntityIds);
         if (defenders.Count == 0)
             return;
 
-        // Tick engagement bookkeeping based on Behavior state.
         var frames = Math.Max(1, (int)MathF.Round(dtSeconds * 60f));
 
         foreach (var blockerId in offenseEntityIds.OrderBy(i => i))
@@ -49,14 +39,9 @@ public sealed class BlockerAiSystem
 
             SyncEngagementFlags(ref bt, in beh, frames);
 
-            // If engaged, don't steer.
             if (bt.IsEngaged)
-            {
-                // components are by-ref in Arch queries; no explicit Set needed.
                 continue;
-            }
 
-            // Release to second level after some engagement window.
             if (bt.EngagementFrame >= RELEASE_TO_SECOND_LEVEL_AFTER_FRAMES)
             {
                 bt.Assignment = BlockAssignmentType.SecondLevel;
@@ -64,7 +49,7 @@ public sealed class BlockerAiSystem
             }
 
             if (bt.TargetEntityId == -1 || !defenders.Contains(bt.TargetEntityId))
-                bt.TargetEntityId = ChooseTargetDefender(world, blockerId, pos.Value, role.Id, bt.Assignment, defenders);
+                bt.TargetEntityId = ChooseTargetDefender(world, pos.Value, role.Id, bt.Assignment, defenders);
 
             if (bt.TargetEntityId == -1)
             {
@@ -72,14 +57,12 @@ public sealed class BlockerAiSystem
                 continue;
             }
 
-            // Drive movement toward target.
             if (TryGetPosition(world, bt.TargetEntityId, out var targetPos))
             {
                 beh.State = BehaviorState.MovingToPosition;
                 beh.TargetEntityId = bt.TargetEntityId;
                 beh.TargetPosition = targetPos;
             }
-
         }
     }
 
@@ -110,9 +93,8 @@ public sealed class BlockerAiSystem
         }
     }
 
-    private static int ChooseTargetDefender(World world, int blockerId, Vector2 blockerPos, RoleId roleId, BlockAssignmentType assignment, HashSet<int> defenders)
+    private static int ChooseTargetDefender(World world, Vector2 blockerPos, RoleId roleId, BlockAssignmentType assignment, HashSet<int> defenders)
     {
-        // Lane preference based on blocker role (LG/LT left, RG/RT right, OC middle).
         var laneBiasY = roleId switch
         {
             RoleId.LG or RoleId.LT => -12f,
@@ -142,9 +124,8 @@ public sealed class BlockerAiSystem
 
             var d = defPos - desired;
             var distSq = d.LengthSquared();
-
-            // Tie-break deterministically.
             var score = distSq + (defId * 0.0001f);
+
             if (score < bestScore)
             {
                 bestScore = score;

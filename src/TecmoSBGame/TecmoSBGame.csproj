@@ -23,6 +23,8 @@
     We keep the files in git history/branches, but exclude them from compilation.
   -->
   <ItemGroup>
+    <Compile Remove="ArchiveMge/**" />
+
     <Compile Remove="Components/**" />
     <Compile Remove="Factories/**" />
     <Compile Remove="Flow/**" />
