@@ -28,6 +28,7 @@ public sealed class Sim : IDisposable
     private readonly Systems.EngagementSystem _engagement = new();
     private readonly Systems.TackleResolutionSystem _tackleResolution = new();
     private readonly Systems.BehaviorStackSystem _behaviorStack = new();
+    private readonly PlayScripts.PlayScriptRegistry _scriptRegistry = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
@@ -100,14 +101,15 @@ public sealed class Sim : IDisposable
             if (_playData is null)
                 throw new InvalidOperationException("SimArch PlayData not loaded");
 
-            Spawning.PlaySpawner.ApplyPlay(World, _playData, _offense, _defense, _ballEntityId, sel.PlayNumber);
+            _scriptRegistry.Clear();
+            Spawning.PlaySpawner.ApplyPlay(World, _playData, _offense, _defense, _ballEntityId, sel.PlayNumber, _scriptRegistry);
         }
 
         // Run systems (minimal set for now).
         // Pre-snap placement runs opportunistically when the ball is Dead.
         _preSnap.Update(World, _offense, _defense, _ballEntityId, offenseDirSign: 1f);
 
-        _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
+        _playScripts.Update(World, dtSeconds, _ballEntityId, _offense, _defense, _scriptRegistry, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);
         _engagement.Update(World, dtSeconds);

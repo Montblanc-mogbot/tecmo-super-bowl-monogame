@@ -23,7 +23,8 @@ public static partial class PlaySpawner
         IReadOnlyList<int> offenseEntityIds,
         IReadOnlyList<int> defenseEntityIds,
         int ballEntityId,
-        int playNumber)
+        int playNumber,
+        SimArch.PlayScripts.PlayScriptRegistry scriptRegistry)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (playData is null) throw new ArgumentNullException(nameof(playData));
@@ -49,41 +50,11 @@ public static partial class PlaySpawner
         // Default: ball held by QB at snap.
         SetBallOwner(world, ballEntityId, qbId);
 
-        // Apply per-slot scripted movement intents from YAML (minimal: move_by).
-        ApplyMovementIntents(world, playData, def.Offense, slotToEntityId);
-        ApplyMovementIntents(world, playData, def.Defense, defSlotToEntityId);
+        // Attach per-slot scripts from YAML into the registry and PlayScript components.
+        scriptRegistry.AttachSlotScripts(world, playData, def.Offense, slotToEntityId);
+        scriptRegistry.AttachSlotScripts(world, playData, def.Defense, defSlotToEntityId);
 
-        // QB playscript: detect a handoff_to slot+delayFrames from YAML.
-        var qbScriptId = def.Offense.TryGetValue("QB", out var qbReactionId) ? qbReactionId : null;
-        var qbReaction = qbScriptId is not null
-            ? playData.PlayerReactions.FirstOrDefault(r => r.Id == qbScriptId)
-            : null;
-
-        if (qbReaction is not null && TryGetHandoff(qbReaction, out var handoffSlot, out var delayFrames))
-        {
-            var toEntityId = MapSlotToEntityId(world, offenseEntityIds, handoffSlot);
-            if (toEntityId < 0)
-            {
-                Console.WriteLine($"[sim-arch] WARN: handoff_to slot '{handoffSlot}' not found in offense roster");
-            }
-            else
-            {
-                var qbScript = new PlayScript
-                {
-                    ScriptId = playNumber,
-                    Ip = 0,
-                    WaitSeconds = delayFrames / 60f,
-                    PendingHandoffToEntityId = toEntityId,
-                };
-
-                SetOrAddPlayScript(world, qbId, qbScript);
-            }
-        }
-        else
-        {
-            // Ensure QB has no stale handoff from prior play selection.
-            SetOrAddPlayScript(world, qbId, new PlayScript { ScriptId = playNumber, Ip = 0, WaitSeconds = 0f, PendingHandoffToEntityId = -1 });
-        }
+        // NOTE: handoff_to is handled by the generic SimArch playscript runner (compiled into the registry).
 
         // Defense default fallback: if a defender has no movement intent, track QB.
         var defenseSet = new HashSet<int>(defenseEntityIds);
@@ -103,21 +74,6 @@ public static partial class PlaySpawner
         Console.WriteLine($"[sim-arch] ApplyPlay play_number={playNumber} qb={qbId} hb={hbId} yaml={def.Description}");
     }
 
-    private static void SetOrAddPlayScript(World world, int entityId, PlayScript script)
-    {
-        var q = new QueryDescription().WithAll<Role>();
-        world.Query(in q, (Entity e, ref Role r) =>
-        {
-            if (e.Id != entityId)
-                return;
-
-            if (!e.Has<PlayScript>())
-                e.Add(script);
-            else
-                e.Set(script);
-        });
-    }
-
     private static void SetBallOwner(World world, int ballEntityId, int ownerEntityId)
     {
         var q = new QueryDescription().WithAll<Ball>();
@@ -129,67 +85,6 @@ public static partial class PlaySpawner
             b.State = Components.BallState.Held;
             b.OwnerEntityId = ownerEntityId;
         });
-    }
-
-    private static bool TryGetHandoff(TecmoSB.PlayerReactionScript qbReaction, out string slot, out float delayFrames)
-    {
-        slot = string.Empty;
-        delayFrames = 0f;
-
-        foreach (var c in qbReaction.Commands)
-        {
-            var cmd = (c.Cmd ?? string.Empty).Trim();
-            if (!cmd.Equals("handoff_to", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var toSlot = c.Params is { Count: > 0 } ? c.Params[0]?.ToString() : null;
-            if (string.IsNullOrWhiteSpace(toSlot))
-                continue;
-
-            slot = toSlot.Trim();
-            delayFrames = c.Params is { Count: > 1 } ? ParseFloat(c.Params[1]) : 0f;
-            return true;
-        }
-
-        return false;
-    }
-
-    private static float ParseFloat(object? o)
-    {
-        return o switch
-        {
-            null => 0f,
-            float f => f,
-            double d => (float)d,
-            int i => i,
-            long l => l,
-            string s => float.TryParse(s, out var n) ? n : 0f,
-            _ => 0f,
-        };
-    }
-
-    private static int MapSlotToEntityId(World world, IReadOnlyList<int> offenseEntityIds, string slot)
-    {
-        var wantRole = slot.Trim().ToUpperInvariant() switch
-        {
-            "QB" => RoleId.QB,
-            "HB" => RoleId.HB,
-            "FB" => RoleId.FB,
-            "WR1" => RoleId.WR1,
-            "WR2" => RoleId.WR2,
-            "TE" => RoleId.TE,
-            "OC" => RoleId.OC,
-            "LG" => RoleId.LG,
-            "RG" => RoleId.RG,
-            "LT" => RoleId.LT,
-            "RT" => RoleId.RT,
-            _ => RoleId.Unknown,
-        };
-
-        if (wantRole == RoleId.Unknown)
-            return -1;
-
-        return FindRole(world, offenseEntityIds, wantRole);
     }
 
     private static int FindRole(World world, IReadOnlyList<int> entityIds, RoleId role)
