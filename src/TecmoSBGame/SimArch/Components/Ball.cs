@@ -2,14 +2,6 @@ using Microsoft.Xna.Framework;
 
 namespace TecmoSBGame.SimArch.Components;
 
-public enum BallFlightKind
-{
-    None = 0,
-    Kickoff = 1,
-    Punt = 2,
-    Pass = 3,
-}
-
 public struct Ball
 {
     public BallState State;
