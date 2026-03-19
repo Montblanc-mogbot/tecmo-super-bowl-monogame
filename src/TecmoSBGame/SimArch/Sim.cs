@@ -110,7 +110,12 @@ public sealed class Sim : IDisposable
     {
         _pendingSelection = sel;
 
-        var e = new PlaySelectedEvent(sel.PlayNumber, sel.FormationId, sel.OffensivePlayName, sel.OffensivePlaySlot);
+        var e = new PlaySelectedEvent(
+            OffensiveFormationId: sel.FormationId,
+            OffensivePlayName: sel.OffensivePlayName,
+            OffensivePlaySlot: sel.OffensivePlaySlot,
+            OffensivePlayNumber: sel.PlayNumber,
+            DefensiveCallId: string.Empty);
         SimEventBus.Send(ref e);
     }
 

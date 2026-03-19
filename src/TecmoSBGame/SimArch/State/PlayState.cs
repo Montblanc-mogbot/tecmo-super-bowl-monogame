@@ -1,6 +1,48 @@
-using System;
-
 namespace TecmoSBGame.SimArch.State;
+
+/// <summary>
+/// Per-play rules state.
+///
+/// Ported from: ArchiveMge/State/PlayState.cs (scaffold)
+/// </summary>
+public sealed class PlayState
+{
+    public int PlayId;
+
+    public int StartAbsoluteYard;
+    public int EndAbsoluteYard;
+
+    public uint DeterministicSeed;
+
+    public PlayPhase Phase;
+    public float PlayElapsedSeconds;
+
+    public WhistleReason WhistleReason;
+
+    public PlayResult Result;
+
+    public bool IsOver => Phase == PlayPhase.PostPlay;
+
+    public void ResetForNewPlay(int playId, int startAbsoluteYard)
+    {
+        PlayId = playId;
+        StartAbsoluteYard = startAbsoluteYard;
+        EndAbsoluteYard = startAbsoluteYard;
+
+        Phase = PlayPhase.PreSnap;
+        PlayElapsedSeconds = 0f;
+
+        WhistleReason = WhistleReason.None;
+        Result = new PlayResult(0, false, false, false);
+    }
+
+    public static int ToAbsoluteYard(BallSpot spot, OffenseDirection dir)
+    {
+        // Convert offense-relative spot into absolute 0..100.
+        var abs = spot.OnOwnSide ? spot.Yards : 100 - spot.Yards;
+        return dir == OffenseDirection.LeftToRight ? abs : 100 - abs;
+    }
+}
 
 public enum PlayPhase
 {
@@ -16,65 +58,8 @@ public enum WhistleReason
     OutOfBounds = 2,
     Touchdown = 3,
     Safety = 4,
-    Touchback = 5,
-    Incomplete = 6,
-    Turnover = 7,
-    Other = 99,
+    Incomplete = 5,
+    Touchback = 6,
 }
 
 public readonly record struct PlayResult(int YardsGained, bool Turnover, bool Touchdown, bool Safety);
-
-/// <summary>
-/// Arch-native play model.
-///
-/// This will eventually own deterministic seeds/play clock/etc.
-/// For now it tracks phase and play elapsed seconds.
-/// </summary>
-public sealed class PlayState
-{
-    public int PlayId { get; set; }
-
-    public PlayPhase Phase { get; set; } = PlayPhase.PreSnap;
-
-    public float PlayElapsedSeconds { get; set; }
-
-    public WhistleReason WhistleReason { get; set; } = WhistleReason.None;
-
-    public PlayResult Result { get; set; } = default;
-
-    public int StartAbsoluteYard { get; set; }
-
-    public int EndAbsoluteYard { get; set; }
-
-    public bool IsOver => WhistleReason != WhistleReason.None;
-
-    public void ResetForNewPlay(int playId, int startAbsoluteYard)
-    {
-        PlayId = playId;
-        Phase = PlayPhase.PreSnap;
-        PlayElapsedSeconds = 0f;
-
-        WhistleReason = WhistleReason.None;
-        Result = default;
-
-        StartAbsoluteYard = Math.Clamp(startAbsoluteYard, 0, 100);
-        EndAbsoluteYard = StartAbsoluteYard;
-    }
-
-    public static int ToAbsoluteYard(BallSpot spot, OffenseDirection dir)
-    {
-        var distFromOwnGoal = spot.Side switch
-        {
-            FieldSide.Midfield => 50,
-            FieldSide.Own => Math.Clamp(spot.YardLine, 0, 50),
-            FieldSide.Opp => 100 - Math.Clamp(spot.YardLine, 0, 50),
-            _ => 50,
-        };
-
-        var absolute = dir == OffenseDirection.LeftToRight
-            ? distFromOwnGoal
-            : 100 - distFromOwnGoal;
-
-        return Math.Clamp(absolute, 0, 100);
-    }
-}
