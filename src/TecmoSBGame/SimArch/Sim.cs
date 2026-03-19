@@ -36,6 +36,12 @@ public sealed class Sim : IDisposable
     private readonly Systems.DefensiveRushSystem _rush = new();
     private readonly Systems.CoverageSystem _coverage = new();
     private readonly Systems.QbAiSystem _qbAi = new();
+
+    // Match/play rules
+    private readonly SimArch.State.MatchState _match = new();
+    private readonly SimArch.State.PlayState _play = new();
+    private readonly Systems.GameClockSystem _clock = new();
+    private readonly Systems.DownDistanceSystem _downDistance = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
     private readonly Systems.PassFlightCompleteSystem _passComplete = new();
@@ -81,6 +87,21 @@ public sealed class Sim : IDisposable
         _offense.Clear();
         _defense.Clear();
         _ballEntityId = -1;
+
+        _match.Quarter = 1;
+        _match.GameClockSeconds = 5 * 60;
+        _match.PossessionTeam = 0;
+        _match.OffenseDirection = SimArch.State.OffenseDirection.LeftToRight;
+        _match.Down = 1;
+        _match.YardsToGo = 10;
+        _match.BallSpot = SimArch.State.BallSpot.Own(25);
+        _match.Team0Score = 0;
+        _match.Team1Score = 0;
+        _match.PlayNumber = 0;
+        _match.DriveId = 0;
+        _match.MatchOver = false;
+
+        _play.ResetForNewPlay(playId: 0, startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
 
         BootstrapWorld();
     }
@@ -131,6 +152,28 @@ public sealed class Sim : IDisposable
         _tackleResolution.Update(World, dtSeconds, _ballEntityId, ref _control);
         _behaviorStack.Update(World, dtSeconds);
         _ball.Update(World, dtSeconds);
+
+        // Rules/clock model: keep phase simple for now.
+        _play.Phase = TecmoSBGame.SimArch.State.PlayPhase.InPlay;
+        _play.PlayElapsedSeconds += dtSeconds;
+        _clock.Update(_match, _play);
+
+        // Down/distance updates: on whistle, finalize play + apply match rules.
+        if (_tackleResolution.WhistledThisTick)
+        {
+            _play.WhistleReason = TecmoSBGame.SimArch.State.WhistleReason.Tackle;
+
+            // TODO: compute absolute yards from world positions + ball spot.
+            // For now, keep it conservative (0 yards) to avoid bad state jumps.
+            _play.EndAbsoluteYard = _play.StartAbsoluteYard;
+            _play.Result = new TecmoSBGame.SimArch.State.PlayResult(
+                YardsGained: 0,
+                Turnover: false,
+                Touchdown: false,
+                Safety: false);
+
+            _downDistance.ApplyPlayEnd(_match, _play);
+        }
         _passComplete.Update(World);
         _kickoffComplete.Update(World);
         // NOTE: tackle detection is now handled by CollisionContactSystem + TackleResolutionSystem.

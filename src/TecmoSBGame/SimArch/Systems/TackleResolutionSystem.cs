@@ -36,8 +36,16 @@ public sealed class TackleResolutionSystem
 
     public float ContactCooldownSeconds = 0.25f;
 
+    /// <summary>
+    /// Set to true for the tick when a tackle downed the carrier (or fall-forward).
+    /// Caller is responsible for clearing each tick.
+    /// </summary>
+    public bool WhistledThisTick { get; private set; }
+
     public void Update(World world, float dtSeconds, int ballEntityId, ref Control control)
     {
+        WhistledThisTick = false;
+
         if (dtSeconds > 0f)
             TickCooldowns(dtSeconds);
 
@@ -75,10 +83,7 @@ public sealed class TackleResolutionSystem
                 case TackleOutcome.Downed:
                 case TackleOutcome.FallForward:
                     WhistleDeadBall(world, ballEntityId, carrierId, ref control);
-                    {
-                        var w = new WhistleEvent("tackle");
-                        SimEventBus.Send(ref w);
-                    }
+                    WhistledThisTick = true;
                     break;
 
                 case TackleOutcome.Stumble:
