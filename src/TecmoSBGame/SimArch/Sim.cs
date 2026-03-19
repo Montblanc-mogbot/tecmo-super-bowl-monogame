@@ -26,14 +26,14 @@ public sealed class Sim : IDisposable
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.CollisionContactSystem _contacts = new();
     private readonly Systems.EngagementSystem _engagement = new();
-    private readonly Systems.TackleInterruptSystem _tackleInterrupt = new();
+    private readonly Systems.TackleResolutionSystem _tackleResolution = new();
     private readonly Systems.BehaviorStackSystem _behaviorStack = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
     private readonly Systems.PassFlightCompleteSystem _passComplete = new();
     private readonly Systems.KickoffFlightCompleteSystem _kickoffComplete = new();
-    private readonly Systems.TackleAndPlayEndSystems _tackleAndEnd = new();
+    private readonly Systems.TackleAndPlayEndSystems _tackleAndEnd = new(); // legacy fallback; no longer detects tackles
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
     private readonly System.Collections.Generic.List<int> _defense = new(11);
@@ -111,12 +111,14 @@ public sealed class Sim : IDisposable
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);
         _engagement.Update(World, dtSeconds);
-        _tackleInterrupt.Update(World);
+        _tackleResolution.Update(World, dtSeconds, _ballEntityId, ref _control);
         _behaviorStack.Update(World, dtSeconds);
         _ball.Update(World, dtSeconds);
         _passComplete.Update(World);
         _kickoffComplete.Update(World);
-        _tackleAndEnd.Update(World, _ballEntityId, ref _control);
+        // NOTE: tackle detection is now handled by CollisionContactSystem + TackleResolutionSystem.
+        // Keep this system wired only for any remaining play-end/reset scaffolding.
+        // _tackleAndEnd.Update(World, _ballEntityId, ref _control);
 
         // Update snapshot.
         Snapshot.Tick++;
