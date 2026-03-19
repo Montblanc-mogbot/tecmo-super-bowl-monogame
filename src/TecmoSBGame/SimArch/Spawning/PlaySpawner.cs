@@ -15,7 +15,7 @@ namespace TecmoSBGame.SimArch.Spawning;
 /// - If the QB reaction contains a <c>handoff_to</c> command, schedule a delayed handoff.
 /// - Default defense behavior: track/rush QB (until richer defensive scripts are implemented).
 /// </summary>
-public static class PlaySpawner
+public static partial class PlaySpawner
 {
     public static void ApplyPlay(
         World world,
@@ -39,11 +39,19 @@ public static class PlaySpawner
         var qbId = FindRole(world, offenseEntityIds, RoleId.QB);
         var hbId = FindRole(world, offenseEntityIds, RoleId.HB);
 
+        // Build slot -> entityId lookup for this roster.
+        var slotToEntityId = BuildSlotLookup(world, offenseEntityIds);
+        var defSlotToEntityId = BuildDefensiveSlotLookup(world, defenseEntityIds);
+
         if (qbId < 0)
             throw new InvalidOperationException("SimArch play spawner requires QB");
 
         // Default: ball held by QB at snap.
         SetBallOwner(world, ballEntityId, qbId);
+
+        // Apply per-slot scripted movement intents from YAML (minimal: move_by).
+        ApplyMovementIntents(world, playData, def.Offense, slotToEntityId);
+        ApplyMovementIntents(world, playData, def.Defense, defSlotToEntityId);
 
         // QB playscript: detect a handoff_to slot+delayFrames from YAML.
         var qbScriptId = def.Offense.TryGetValue("QB", out var qbReactionId) ? qbReactionId : null;
@@ -77,7 +85,7 @@ public static class PlaySpawner
             SetOrAddPlayScript(world, qbId, new PlayScript { ScriptId = playNumber, Ip = 0, WaitSeconds = 0f, PendingHandoffToEntityId = -1 });
         }
 
-        // Defense: set tracking behavior toward QB initially.
+        // Defense default fallback: if a defender has no movement intent, track QB.
         var defenseSet = new HashSet<int>(defenseEntityIds);
         var defQuery = new QueryDescription().WithAll<Behavior>();
         world.Query(in defQuery, (Entity e, ref Behavior b) =>
@@ -85,8 +93,11 @@ public static class PlaySpawner
             if (!defenseSet.Contains(e.Id))
                 return;
 
-            b.State = BehaviorState.TrackingEntity;
-            b.TargetEntityId = qbId;
+            if (b.State == BehaviorState.Idle)
+            {
+                b.State = BehaviorState.TrackingEntity;
+                b.TargetEntityId = qbId;
+            }
         });
 
         Console.WriteLine($"[sim-arch] ApplyPlay play_number={playNumber} qb={qbId} hb={hbId} yaml={def.Description}");

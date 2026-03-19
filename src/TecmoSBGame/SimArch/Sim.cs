@@ -22,8 +22,6 @@ public sealed class Sim : IDisposable
 
     private PendingPlaySelection? _pendingSelection;
 
-    private TecmoSB.PlayListConfig? _playList;
-    private TecmoSB.PlayDataConfig? _playData;
 
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.CollisionContactSystem _contacts = new();
@@ -44,10 +42,16 @@ public sealed class Sim : IDisposable
     private Components.Control _control;
     private Components.Input _input;
 
-    public Sim()
+    private TecmoSB.FormationDataConfig? _formationData;
+    private TecmoSB.PlayDataConfig? _playData;
+
+    public Sim(TecmoSB.FormationDataConfig? formationData = null, TecmoSB.PlayDataConfig? playData = null)
     {
+        _formationData = formationData;
+        _playData = playData;
+
         World = World.Create();
-        BootstrapDemoWorld();
+        BootstrapWorld();
     }
 
     public void Dispose()
@@ -68,7 +72,7 @@ public sealed class Sim : IDisposable
         _defense.Clear();
         _ballEntityId = -1;
 
-        BootstrapDemoWorld();
+        BootstrapWorld();
     }
 
     public void ApplyPlaySelection(in PendingPlaySelection sel)
@@ -119,39 +123,41 @@ public sealed class Sim : IDisposable
         UpdateSnapshot();
     }
 
-    private void BootstrapDemoWorld()
+    private void BootstrapWorld()
     {
         // Arch can allocate entity ids starting at 0; our gameplay code uses 0 as a "null" sentinel.
-        // Ensure demo roster ids start at 1+.
+        // Ensure roster ids start at 1+.
         _ = World.Create();
 
-        // Formation YAML driven spawn (fallbacks to legacy demo roster if YAML not available).
-        TecmoSB.FormationDataConfig? formationData = null;
-        try
+        // If the host didn't provide YAML configs (e.g. quick headless), try to load from repo content.
+        if (_formationData is null)
         {
-            formationData = TecmoSB.FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[sim-arch] WARN: could not load formation_data.yaml; using demo roster. err={ex.Message}");
-        }
-
-        // Playbook YAML
-        try
-        {
-            _playList = PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml"));
-            _playData = PlayDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playdata", "bank5_6_play_data.yaml"));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[sim-arch] WARN: could not load playbook YAML; play selection will be limited. err={ex.Message}");
-            _playList = null;
-            _playData = null;
+            try
+            {
+                _formationData = TecmoSB.FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[sim-arch] WARN: could not load formation_data.yaml; using demo roster. err={ex.Message}");
+            }
         }
 
-        var (off, def, ball) = formationData is null
+        if (_playData is null)
+        {
+            try
+            {
+                _playData = TecmoSB.PlayDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playdata", "bank5_6_play_data.yaml"));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[sim-arch] WARN: could not load playdata YAML; play selection will be limited. err={ex.Message}");
+                _playData = null;
+            }
+        }
+
+        var (off, def, ball) = _formationData is null
             ? Spawning.FormationSpawner.SpawnDemoScrimmage(World)
-            : Spawning.FormationSpawner.SpawnScrimmage(World, formationData);
+            : Spawning.FormationSpawner.SpawnScrimmage(World, _formationData);
         _offense.AddRange(off);
         _defense.AddRange(def);
         _ballEntityId = ball;
