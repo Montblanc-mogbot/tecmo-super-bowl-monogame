@@ -49,7 +49,7 @@ public sealed class PlayScriptSystem
             if (e.Id != ballEntityId)
                 return;
 
-            b.State = TecmoSBGame.State.BallState.Held;
+            b.State = TecmoSBGame.SimArch.Components.BallState.Held;
             b.OwnerEntityId = toEntityId;
             b.FlightKind = BallFlightKind.None;
             b.ElapsedSeconds = 0f;

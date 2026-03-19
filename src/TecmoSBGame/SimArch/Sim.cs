@@ -171,7 +171,7 @@ public sealed class Sim : IDisposable
                 Snapshot.Ball = new SimSnapshot.BallSnapshot
                 {
                     Position = p.Value,
-                    IsHeld = b.State == TecmoSBGame.State.BallState.Held,
+                    IsHeld = b.State == TecmoSBGame.SimArch.Components.BallState.Held,
                     OwnerEntityId = b.OwnerEntityId,
                     SpriteId = "ball",
                 };

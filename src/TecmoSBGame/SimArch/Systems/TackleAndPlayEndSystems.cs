@@ -45,7 +45,7 @@ public sealed class TackleAndPlayEndSystems
 
             ballFound = true;
 
-            if (b.State == TecmoSBGame.State.BallState.Held && b.OwnerEntityId >= 0)
+            if (b.State == TecmoSBGame.SimArch.Components.BallState.Held && b.OwnerEntityId >= 0)
             {
                 carrierId = b.OwnerEntityId;
                 // Note: ball position may lag behind owner if other systems did something odd; we prefer the owner.
@@ -107,7 +107,7 @@ public sealed class TackleAndPlayEndSystems
             if (e.Id != ballEntityId)
                 return;
 
-            b.State = TecmoSBGame.State.BallState.Dead;
+            b.State = TecmoSBGame.SimArch.Components.BallState.Dead;
             b.OwnerEntityId = -1;
             b.FlightKind = BallFlightKind.None;
             b.Height = 0f;

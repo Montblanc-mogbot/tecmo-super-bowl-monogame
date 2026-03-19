@@ -67,7 +67,7 @@ public static class PlaySpawner
             if (e.Id != ballEntityId)
                 return;
 
-            b.State = TecmoSBGame.State.BallState.Held;
+            b.State = TecmoSBGame.SimArch.Components.BallState.Held;
             b.OwnerEntityId = qbId;
         });
 

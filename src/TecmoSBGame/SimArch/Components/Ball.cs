@@ -1,5 +1,4 @@
 using Microsoft.Xna.Framework;
-using TecmoSBGame.State;
 
 namespace TecmoSBGame.SimArch.Components;
 

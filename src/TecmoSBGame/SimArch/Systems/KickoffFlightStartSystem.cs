@@ -22,7 +22,7 @@ public static class KickoffFlightStartSystem
             if (e.Id != ballEntityId)
                 return;
 
-            b.State = TecmoSBGame.State.BallState.InAir;
+            b.State = TecmoSBGame.SimArch.Components.BallState.InAir;
             b.OwnerEntityId = -1;
 
             b.FlightKind = BallFlightKind.Kickoff;

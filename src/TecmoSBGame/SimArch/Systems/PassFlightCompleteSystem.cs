@@ -54,7 +54,7 @@ public sealed class PassFlightCompleteSystem
 
             if (bestId >= 0)
             {
-                ball.State = TecmoSBGame.State.BallState.Held;
+                ball.State = TecmoSBGame.SimArch.Components.BallState.Held;
                 ball.OwnerEntityId = bestId;
                 ball.FlightKind = BallFlightKind.None;
                 ball.Height = 0f;
@@ -62,7 +62,7 @@ public sealed class PassFlightCompleteSystem
             }
             else
             {
-                ball.State = TecmoSBGame.State.BallState.Dead;
+                ball.State = TecmoSBGame.SimArch.Components.BallState.Dead;
                 ball.OwnerEntityId = -1;
                 ball.FlightKind = BallFlightKind.None;
                 ball.Height = 0f;

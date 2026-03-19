@@ -80,7 +80,7 @@ public static class FormationSpawner
         ball.Add(new Velocity { Value = Vector2.Zero });
         ball.Add(new Ball
         {
-            State = TecmoSBGame.State.BallState.Held,
+            State = TecmoSBGame.SimArch.Components.BallState.Held,
             OwnerEntityId = qbId,
             FlightKind = BallFlightKind.None,
             StartPos = Vector2.Zero,

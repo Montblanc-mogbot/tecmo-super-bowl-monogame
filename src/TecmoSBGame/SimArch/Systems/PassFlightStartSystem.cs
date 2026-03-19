@@ -1,7 +1,6 @@
 using System;
 using Arch.Core;
 using Microsoft.Xna.Framework;
-using TecmoSBGame.Events;
 using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
@@ -60,7 +59,7 @@ public static class PassFlightStartSystem
             if (e.Id != ballEntityId)
                 return;
 
-            b.State = TecmoSBGame.State.BallState.InAir;
+            b.State = BallState.InAir;
             b.OwnerEntityId = -1;
 
             b.FlightKind = BallFlightKind.Pass;

@@ -62,7 +62,7 @@ public sealed class PreSnapSystems
 
             pos.Value = new Vector2(losX, pos.Value.Y);
 
-            b.State = TecmoSBGame.State.BallState.Dead;
+            b.State = TecmoSBGame.SimArch.Components.BallState.Dead;
             b.OwnerEntityId = -1;
             b.FlightKind = BallFlightKind.None;
             b.DurationSeconds = 0f;
@@ -89,7 +89,7 @@ public sealed class PreSnapSystems
                 return;
 
             // Only run during a "dead ball" situation.
-            if (b.State != TecmoSBGame.State.BallState.Dead)
+            if (b.State != TecmoSBGame.SimArch.Components.BallState.Dead)
                 return;
             if (b.FlightKind != BallFlightKind.None)
                 return;

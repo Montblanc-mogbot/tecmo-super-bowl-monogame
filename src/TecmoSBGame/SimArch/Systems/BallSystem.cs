@@ -61,7 +61,7 @@ public sealed class BallSystem
         world.Query(in query, (Entity _, ref Ball b, ref Position pos, ref Velocity vel) =>
         {
             // Held: glue to owner.
-            if (b.State == TecmoSBGame.State.BallState.Held && b.OwnerEntityId >= 0)
+            if (b.State == TecmoSBGame.SimArch.Components.BallState.Held && b.OwnerEntityId >= 0)
             {
                 if (TryGetOwnerPosition(world, b.OwnerEntityId, out var ownerPos))
                 {
@@ -101,7 +101,7 @@ public sealed class BallSystem
 
             // Loose or in-air without a flight component: constant velocity integration.
             // Velocity is in "units per 60Hz tick".
-            if (b.State is TecmoSBGame.State.BallState.InAir or TecmoSBGame.State.BallState.Loose)
+            if (b.State is TecmoSBGame.SimArch.Components.BallState.InAir or TecmoSBGame.SimArch.Components.BallState.Loose)
             {
                 pos.Value += vel.Value * tickScale;
             }
