@@ -70,7 +70,7 @@ public sealed class MainGameArch : Game
         _renderResources = new RenderResources(GraphicsDevice);
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
 
-        _sim = new Sim(GameContent.FormationData, GameContent.PlayData);
+        _sim = new Sim(GameContent.FormationData, GameContent.DefensiveFormationData, GameContent.PlayData);
 
         // Sprite registry (optional; game can still render via debug primitives).
         var reg = new SpriteRegistry();

@@ -20,7 +20,7 @@ namespace TecmoSBGame.SimArch.Spawning;
 /// - Uses FormationDataConfig (YAML) offensive formations to place the 11 offensive players.
 /// - Uses the first SetPosFromKick/SetPosFromHike/SetPosFromMid occurrence in the command string
 ///   to derive an initial position.
-/// - Spawns a simple placeholder defense (until defensive formation YAML is added).
+/// - Uses DefensiveFormationDataConfig (YAML) defensive formations to place the 11 defensive players.
 /// </summary>
 public static class FormationSpawner
 {
@@ -32,18 +32,27 @@ public static class FormationSpawner
     public static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnScrimmage(
         World world,
         FormationDataConfig formationData,
+        DefensiveFormationDataConfig defensiveFormationData,
         string? offenseFormationId = null,
+        string? defenseFormationId = null,
         int offenseTeamIndex = 1,
         int defenseTeamIndex = 0)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (formationData is null) throw new ArgumentNullException(nameof(formationData));
+        if (defensiveFormationData is null) throw new ArgumentNullException(nameof(defensiveFormationData));
 
         if (formationData.OffensiveFormations is null || formationData.OffensiveFormations.Count == 0)
             return SpawnLegacyDemoScrimmage(world, offenseTeamIndex, defenseTeamIndex);
 
+        if (defensiveFormationData.DefensiveFormations is null || defensiveFormationData.DefensiveFormations.Count == 0)
+            return SpawnLegacyDemoScrimmage(world, offenseTeamIndex, defenseTeamIndex);
+
         var formationId = PickOffensiveFormationId(formationData, offenseFormationId);
         var formation = formationData.OffensiveFormations.First(f => f.Id == formationId);
+
+        var defFormationId = PickDefensiveFormationId(defensiveFormationData, defenseFormationId);
+        var defFormation = defensiveFormationData.DefensiveFormations.First(f => f.Id == defFormationId);
 
         var offense = new List<int>(capacity: 11);
         var defense = new List<int>(capacity: 11);
@@ -109,22 +118,19 @@ public static class FormationSpawner
             }
         }
 
-        // Defense: placeholder front 4 / LB 4 / DB 3.
-        // (Uses offsets anchored around hike centerline so it looks reasonable versus scrimmage offense.)
+        // Defense: spawn from defensive formation YAML offsets relative to hike anchor (LOS origin).
         var origin = DefaultHikeAnchor;
-        defense.Add(SpawnPlayer(RoleId.DL1, origin + new Vector2(-24, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.DL2, origin + new Vector2(-8, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.DL3, origin + new Vector2(8, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.DL4, origin + new Vector2(24, 16), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        foreach (var p in defFormation.Players)
+        {
+            var pos = origin + ParseOffset(p.Offset);
+            var role = MapDefensiveSlotToRoleId(p.Slot);
+            var id = SpawnPlayer(role, pos, isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false);
+            defense.Add(id);
+        }
 
-        defense.Add(SpawnPlayer(RoleId.LB1, origin + new Vector2(-40, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.LB2, origin + new Vector2(-16, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.LB3, origin + new Vector2(16, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.LB4, origin + new Vector2(40, 32), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-
-        defense.Add(SpawnPlayer(RoleId.CB1, origin + new Vector2(-56, 56), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.CB2, origin + new Vector2(56, 56), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
-        defense.Add(SpawnPlayer(RoleId.S1, origin + new Vector2(0, 72), isOffense: false, teamIndex: defenseTeamIndex, isPlayerControlled: false));
+        // Ensure exactly 11 defenders.
+        if (defense.Count != 11)
+            throw new InvalidOperationException($"Defensive formation '{defFormationId}' must have 11 players; got {defense.Count}");
 
         // Ball entity: start held by QB.
         if (qbId < 0)
@@ -150,7 +156,7 @@ public static class FormationSpawner
             IsComplete = true,
         });
 
-        Console.WriteLine($"[sim-arch] spawned formation scrimmage roster formation={formationId} off={offense.Count} def={defense.Count} ballOwner={qbId}");
+        Console.WriteLine($"[sim-arch] spawned formation scrimmage roster offFormation={formationId} defFormation={defFormationId} off={offense.Count} def={defense.Count} ballOwner={qbId}");
         return (offense, defense, ball.Id);
     }
 
@@ -167,13 +173,59 @@ public static class FormationSpawner
         if (!string.IsNullOrWhiteSpace(requested) && data.OffensiveFormations.Any(f => f.Id == requested))
             return requested;
 
-        // Prefer a "normal" scrimmage-ish formation if present; otherwise first.
-        if (data.OffensiveFormations.Any(f => f.Id == "03"))
-            return "03";
-        if (data.OffensiveFormations.Any(f => f.Id == "01"))
-            return "01";
+        // Prefer a "scrimmage demo" formation if present; otherwise first.
+        if (data.OffensiveFormations.Any(f => f.Id == "04"))
+            return "04";
 
         return data.OffensiveFormations.First().Id;
+    }
+
+    private static string PickDefensiveFormationId(DefensiveFormationDataConfig data, string? requested)
+    {
+        if (!string.IsNullOrWhiteSpace(requested) && data.DefensiveFormations.Any(f => f.Id == requested))
+            return requested;
+
+        if (data.DefensiveFormations.Any(f => f.Id == "D00"))
+            return "D00";
+
+        return data.DefensiveFormations.First().Id;
+    }
+
+    private static Vector2 ParseOffset(string offset)
+    {
+        // "x,y" in pixels
+        var parts = (offset ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2)
+            throw new FormatException($"Invalid offset '{offset}'. Expected 'x,y'.");
+
+        var x = float.Parse(parts[0], CultureInfo.InvariantCulture);
+        var y = float.Parse(parts[1], CultureInfo.InvariantCulture);
+        return new Vector2(x, y);
+    }
+
+    private static RoleId MapDefensiveSlotToRoleId(string slot)
+    {
+        // Minimal: map to generic role ids used by existing systems.
+        var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+        return s switch
+        {
+            "DE-L" => RoleId.DL1,
+            "DT-L" => RoleId.DL2,
+            "DT-R" => RoleId.DL3,
+            "DE-R" => RoleId.DL4,
+
+            "LB-L" => RoleId.LB1,
+            "MLB" => RoleId.LB2,
+            "LB-R" => RoleId.LB3,
+
+            "CB-L" => RoleId.CB1,
+            "CB-R" => RoleId.CB2,
+
+            "S-L" => RoleId.S1,
+            "S-R" => RoleId.S2,
+
+            _ => RoleId.Unknown,
+        };
     }
 
     private static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnLegacyDemoScrimmage(

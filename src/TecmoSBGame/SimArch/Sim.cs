@@ -60,11 +60,16 @@ public sealed class Sim : IDisposable
     private Components.Input _input;
 
     private TecmoSB.FormationDataConfig? _formationData;
+    private TecmoSB.DefensiveFormationDataConfig? _defensiveFormationData;
     private TecmoSB.PlayDataConfig? _playData;
 
-    public Sim(TecmoSB.FormationDataConfig? formationData = null, TecmoSB.PlayDataConfig? playData = null)
+    public Sim(
+        TecmoSB.FormationDataConfig? formationData = null,
+        TecmoSB.DefensiveFormationDataConfig? defensiveFormationData = null,
+        TecmoSB.PlayDataConfig? playData = null)
     {
         _formationData = formationData;
+        _defensiveFormationData = defensiveFormationData;
         _playData = playData;
 
         _lifecycle = new Systems.PlayLifecycleSystem(_match, _play);
@@ -250,6 +255,18 @@ public sealed class Sim : IDisposable
             }
         }
 
+        if (_defensiveFormationData is null)
+        {
+            try
+            {
+                _defensiveFormationData = TecmoSB.DefensiveFormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "defensive_formation_data.yaml"));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[sim-arch] WARN: could not load defensive_formation_data.yaml; using placeholder defense. err={ex.Message}");
+            }
+        }
+
         if (_playData is null)
         {
             try
@@ -263,9 +280,9 @@ public sealed class Sim : IDisposable
             }
         }
 
-        var (off, def, ball) = _formationData is null
+        var (off, def, ball) = _formationData is null || _defensiveFormationData is null
             ? Spawning.FormationSpawner.SpawnDemoScrimmage(World)
-            : Spawning.FormationSpawner.SpawnScrimmage(World, _formationData);
+            : Spawning.FormationSpawner.SpawnScrimmage(World, _formationData, _defensiveFormationData);
         _offense.AddRange(off);
         _defense.AddRange(def);
         _ballEntityId = ball;

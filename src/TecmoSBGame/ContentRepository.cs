@@ -43,6 +43,12 @@ public sealed class ContentRepository
         return FormationDataYamlLoader.LoadFromFile(path);
     }
 
+    public DefensiveFormationDataConfig LoadDefensiveFormationData()
+    {
+        var path = System.IO.Path.Combine(_yamlRoot, "formations/defensive_formation_data.yaml");
+        return DefensiveFormationDataYamlLoader.LoadFromFile(path);
+    }
+
     // Plays
     public PlayListConfig LoadPlayList()
     {

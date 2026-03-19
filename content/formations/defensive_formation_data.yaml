@@ -1,0 +1,42 @@
+# Defensive Formation Data
+#
+# Clean-room, YAML-driven defensive formation placements.
+# These are *positions only* (no behavior). Behaviors come from DefensePlayConfig + PlayData.
+
+defensive_formations:
+  - id: "D00"
+    name: "BASE_43"
+    description: "Base 4-3 shell (positions relative to LOS)"
+    players:
+      # Defensive line
+      - slot: "DE-L"
+        offset: "24,-24"
+      - slot: "DT-L"
+        offset: "24,-8"
+      - slot: "DT-R"
+        offset: "24,8"
+      - slot: "DE-R"
+        offset: "24,24"
+
+      # Linebackers
+      - slot: "LB-L"
+        offset: "48,-20"
+      - slot: "MLB"
+        offset: "48,0"
+      - slot: "LB-R"
+        offset: "48,20"
+
+      # Corners
+      - slot: "CB-L"
+        offset: "72,-44"
+      - slot: "CB-R"
+        offset: "72,44"
+
+      # Safeties
+      - slot: "S-L"
+        offset: "96,-20"
+      - slot: "S-R"
+        offset: "96,20"
+
+notes:
+  - "Offsets are in pixels relative to LOS origin (0,0), with +X = defense deeper (towards offense endzone) and +Y downfield." 

@@ -17,6 +17,7 @@ public sealed class GameContent
     public TeamDataConfig TeamData { get; private set; } = null!;
     public TeamTextDataConfig TeamTextData { get; private set; } = null!;
     public FormationDataConfig FormationData { get; private set; } = null!;
+    public DefensiveFormationDataConfig DefensiveFormationData { get; private set; } = null!;
     public PlayListConfig PlayList { get; private set; } = null!;
     public PlayDataConfig PlayData { get; private set; } = null!;
     public DefensePlayConfig DefensePlays { get; private set; } = null!;
@@ -57,6 +58,9 @@ public sealed class GameContent
             
             FormationData = _repository.LoadFormationData();
             Console.WriteLine("[GameContent] Loaded formation data");
+
+            DefensiveFormationData = _repository.LoadDefensiveFormationData();
+            Console.WriteLine("[GameContent] Loaded defensive formation data");
             
             PlayList = _repository.LoadPlayList();
             Console.WriteLine("[GameContent] Loaded play list");

@@ -7,9 +7,10 @@ public static class SimArchHeadless
     public static int RunTwoPlaysScenario(int ticks = 240)
     {
         var formationData = TecmoSB.FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
+        var defensiveFormationData = TecmoSB.DefensiveFormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "defensive_formation_data.yaml"));
         var playData = TecmoSB.PlayDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playdata", "bank5_6_play_data.yaml"));
 
-        using var sim = new Sim(formationData, playData);
+        using var sim = new Sim(formationData, defensiveFormationData, playData);
 
         // Deterministic play selection (same as the in-game bootstrap for now).
         sim.ApplyPlaySelection(new Sim.PendingPlaySelection(
