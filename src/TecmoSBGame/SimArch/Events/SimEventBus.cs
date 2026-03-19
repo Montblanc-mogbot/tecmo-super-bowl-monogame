@@ -1,15 +1,18 @@
 namespace TecmoSBGame.SimArch.Events;
 
 /// <summary>
-/// Thin wrapper around Arch.EventBus.
+/// Event dispatch abstraction for SimArch.
 ///
-/// Per Arch.EventBus docs, the source generator emits a global static EventBus type.
-/// We intentionally avoid hard-binding to a package-defined namespace/type.
+/// We *intend* to use Arch.EventBus (source generated) here.
+/// However, until receiver wiring exists (and therefore the generator emits a bus),
+/// this is a safe no-op shim that keeps SimArch code compiling.
 /// </summary>
 public static class SimEventBus
 {
-    public static void Send<T>(ref T e) where T : struct
+    public static void Send<T>(ref T _) where T : struct
     {
-        EventBus.Send(ref e);
+        // Intentionally no-op for now.
+        // When we add receiver methods (with the Arch.EventBus attributes), we'll swap this
+        // to call the generated bus type.
     }
 }

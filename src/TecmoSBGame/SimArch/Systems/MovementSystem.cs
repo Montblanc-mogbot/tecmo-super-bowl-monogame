@@ -1,5 +1,6 @@
 using System;
 using Arch.Core;
+using Arch.Core.Extensions;
 using Microsoft.Xna.Framework;
 using TecmoSBGame.SimArch.Components;
 
@@ -42,10 +43,9 @@ public sealed class MovementSystem
             }
             else if (b.State == BehaviorState.TrackingEntity && b.TargetEntityId != 0)
             {
-                var te = new Entity(world, b.TargetEntityId);
-                if (te.IsAlive() && te.Has<Position>())
+                if (TryGetPosition(world, b.TargetEntityId, out var targetPos))
                 {
-                    var toTarget = te.Get<Position>().Value - pos.Value;
+                    var toTarget = targetPos - pos.Value;
                     desiredDir = SafeNormalize(toTarget);
                 }
                 else
@@ -73,6 +73,35 @@ public sealed class MovementSystem
 
             pos.Value += vel.Value * tickScale;
         });
+    }
+
+
+    private static bool TryGetPosition(World world, int entityId, out Vector2 pos)
+    {
+        pos = default;
+        if (entityId == 0)
+            return false;
+
+        var found = false;
+        var result = Vector2.Zero;
+
+        var q = new QueryDescription().WithAll<Position>();
+        world.Query(in q, (Entity e, ref Position p) =>
+        {
+            if (found)
+                return;
+            if (e.Id != entityId)
+                return;
+
+            result = p.Value;
+            found = true;
+        });
+
+        if (!found)
+            return false;
+
+        pos = result;
+        return true;
     }
 
     private static Vector2 ApplyTurnLimit(Vector2 lastDir, Vector2 desiredDir, float maxTurnRad)

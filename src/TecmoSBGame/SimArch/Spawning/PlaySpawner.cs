@@ -35,48 +35,61 @@ public static class PlaySpawner
         }
 
         // QB: attach playscript state which will handoff to HB after ~38 frames.
-        var qb = new Entity(world, qbId);
-        if (!qb.Has<PlayScript>())
-            qb.Add(new PlayScript { ScriptId = 10, Ip = 0, WaitSeconds = 38f / 60f, PendingHandoffToEntityId = hbId });
-        else
-            qb.Set(new PlayScript { ScriptId = 10, Ip = 0, WaitSeconds = 38f / 60f, PendingHandoffToEntityId = hbId });
+        var qbScript = new PlayScript { ScriptId = 10, Ip = 0, WaitSeconds = 38f / 60f, PendingHandoffToEntityId = hbId };
+        var qbQuery = new QueryDescription().WithAll<Role>();
+        world.Query(in qbQuery, (Entity e, ref Role r) =>
+        {
+            if (e.Id != qbId)
+                return;
+
+            if (!e.Has<PlayScript>())
+                e.Add(qbScript);
+            else
+                e.Set(qbScript);
+        });
 
         // Defense: set tracking behavior toward QB initially (rush) then they can be switched to ballcarrier later.
-        foreach (var did in defenseEntityIds)
+        var defenseSet = new HashSet<int>(defenseEntityIds);
+        var defQuery = new QueryDescription().WithAll<Behavior>();
+        world.Query(in defQuery, (Entity e, ref Behavior b) =>
         {
-            var d = new Entity(world, did);
-            if (!d.IsAlive() || !d.Has<Behavior>())
-                continue;
+            if (!defenseSet.Contains(e.Id))
+                return;
 
-            var b = d.Get<Behavior>();
             b.State = BehaviorState.TrackingEntity;
             b.TargetEntityId = qbId;
-            d.Set(b);
-        }
+        });
 
         // Ball is held by QB at snap.
-        var ball = new Entity(world, ballEntityId);
-        if (ball.IsAlive() && ball.Has<Ball>())
+        var ballQuery = new QueryDescription().WithAll<Ball>();
+        world.Query(in ballQuery, (Entity e, ref Ball b) =>
         {
-            var b = ball.Get<Ball>();
+            if (e.Id != ballEntityId)
+                return;
+
             b.State = TecmoSBGame.State.BallState.Held;
             b.OwnerEntityId = qbId;
-            ball.Set(b);
-        }
+        });
 
         Console.WriteLine($"[sim-arch] ApplyPlay play_number=10 qb={qbId} hb={hbId} defenseTracking=qb");
     }
 
     private static int FindRole(World world, IReadOnlyList<int> entityIds, RoleId role)
     {
-        foreach (var id in entityIds)
+        var allow = new HashSet<int>(entityIds);
+        var found = 0;
+
+        var q = new QueryDescription().WithAll<Role>();
+        world.Query(in q, (Entity e, ref Role r) =>
         {
-            var e = new Entity(world, id);
-            if (!e.IsAlive() || !e.Has<Role>())
-                continue;
-            if (e.Get<Role>().Id == role)
-                return id;
-        }
-        return 0;
+            if (found != 0)
+                return;
+            if (!allow.Contains(e.Id))
+                return;
+            if (r.Id == role)
+                found = e.Id;
+        });
+
+        return found;
     }
 }

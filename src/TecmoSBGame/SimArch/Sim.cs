@@ -1,5 +1,6 @@
 using System;
 using Arch.Core;
+using Arch.Core.Extensions;
 using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch;
@@ -22,6 +23,7 @@ public sealed class Sim : IDisposable
 
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
+    private readonly Systems.BallSystem _ball = new();
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
     private readonly System.Collections.Generic.List<int> _defense = new(11);
@@ -85,6 +87,7 @@ public sealed class Sim : IDisposable
         // Run systems (minimal set for now).
         _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
+        _ball.Update(World, dtSeconds);
 
         // Update snapshot.
         Snapshot.Tick++;
@@ -107,27 +110,27 @@ public sealed class Sim : IDisposable
         var players = new SimSnapshot.PlayerSnapshot[_offense.Count + _defense.Count];
         var idx = 0;
 
+        // Build a lookup for current sim entity snapshots.
+        var lookup = new System.Collections.Generic.Dictionary<int, (Microsoft.Xna.Framework.Vector2 pos, Components.Team team)>();
+        var qPlayers = new QueryDescription().WithAll<Components.Position, Components.Team>();
+        World.Query(in qPlayers, (Entity e, ref Components.Position p, ref Components.Team t) =>
+        {
+            lookup[e.Id] = (p.Value, t);
+        });
+
         void Fill(int entityId)
         {
-            // Query by entity id (use World.Get with an Entity wrapper)
-            var e = new Arch.Core.Entity(World, entityId);
-            if (!e.IsAlive())
+            if (!lookup.TryGetValue(entityId, out var v))
                 return;
-
-            if (!e.Has<Components.Position>() || !e.Has<Components.Team>())
-                return;
-
-            var pos = e.Get<Components.Position>().Value;
-            var team = e.Get<Components.Team>();
 
             players[idx] = new SimSnapshot.PlayerSnapshot
             {
                 EntityId = entityId,
-                Position = pos,
-                TeamIndex = team.TeamIndex,
-                IsOffense = team.IsOffense,
+                Position = v.pos,
+                TeamIndex = v.team.TeamIndex,
+                IsOffense = v.team.IsOffense,
                 HasBall = false,
-                SpriteId = team.IsOffense ? "qb" : "def",
+                SpriteId = v.team.IsOffense ? "qb" : "def",
             };
             idx++;
         }
@@ -141,36 +144,48 @@ public sealed class Sim : IDisposable
         Snapshot.Players = players;
 
         // Ball
-        var ballEntity = new Arch.Core.Entity(World, _ballEntityId);
-        if (ballEntity.IsAlive() && ballEntity.Has<Components.Position>() && ballEntity.Has<Components.Ball>())
         {
-            var bpos = ballEntity.Get<Components.Position>().Value;
-            var b = ballEntity.Get<Components.Ball>();
-            Snapshot.Ball = new SimSnapshot.BallSnapshot
-            {
-                Position = bpos,
-                IsHeld = b.State == TecmoSBGame.State.BallState.Held,
-                OwnerEntityId = b.OwnerEntityId,
-                SpriteId = "ball",
-            };
+            // Ball
+            var qBall = new QueryDescription().WithAll<Components.Ball, Components.Position>();
+            var didSetBall = false;
 
-            // Mark owner in players snapshot
-            if (b.OwnerEntityId != 0)
+            World.Query(in qBall, (Entity e, ref Components.Ball b, ref Components.Position p) =>
             {
-                for (var i = 0; i < Snapshot.Players.Length; i++)
+                if (e.Id != _ballEntityId)
+                    return;
+
+                Snapshot.Ball = new SimSnapshot.BallSnapshot
                 {
-                    if (Snapshot.Players[i].EntityId == b.OwnerEntityId)
+                    Position = p.Value,
+                    IsHeld = b.State == TecmoSBGame.State.BallState.Held,
+                    OwnerEntityId = b.OwnerEntityId,
+                    SpriteId = "ball",
+                };
+                didSetBall = true;
+            });
+
+            if (didSetBall)
+            {
+                var b = Snapshot.Ball;
+
+                // Mark owner in players snapshot
+                if (b.OwnerEntityId != 0)
+                {
+                    for (var i = 0; i < Snapshot.Players.Length; i++)
                     {
-                        Snapshot.Players[i].HasBall = true;
-                        break;
+                        if (Snapshot.Players[i].EntityId == b.OwnerEntityId)
+                        {
+                            Snapshot.Players[i].HasBall = true;
+                            break;
+                        }
                     }
                 }
+
+                return;
             }
         }
-        else
-        {
-            Snapshot.Ball = default;
-        }
+
+        Snapshot.Ball = default;
     }
 
     public readonly record struct PendingPlaySelection(
