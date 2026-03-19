@@ -233,27 +233,45 @@ public sealed class Sim : IDisposable
         var players = new SimSnapshot.PlayerSnapshot[_offense.Count + _defense.Count];
         var idx = 0;
 
-        // Build a lookup for current sim entity snapshots.
-        var lookup = new System.Collections.Generic.Dictionary<int, (Microsoft.Xna.Framework.Vector2 pos, Components.Team team)>();
+        // Lookups
+        var posById = new System.Collections.Generic.Dictionary<int, Microsoft.Xna.Framework.Vector2>();
+        var teamById = new System.Collections.Generic.Dictionary<int, Components.Team>();
+        var roleById = new System.Collections.Generic.Dictionary<int, Components.Role>();
+        var behaviorById = new System.Collections.Generic.Dictionary<int, Components.Behavior>();
+
         var qPlayers = new QueryDescription().WithAll<Components.Position, Components.Team>();
         World.Query(in qPlayers, (Entity e, ref Components.Position p, ref Components.Team t) =>
         {
-            lookup[e.Id] = (p.Value, t);
+            posById[e.Id] = p.Value;
+            teamById[e.Id] = t;
         });
+
+        var qRole = new QueryDescription().WithAll<Components.Role>();
+        World.Query(in qRole, (Entity e, ref Components.Role r) => roleById[e.Id] = r);
+
+        var qBeh = new QueryDescription().WithAll<Components.Behavior>();
+        World.Query(in qBeh, (Entity e, ref Components.Behavior b) => behaviorById[e.Id] = b);
 
         void Fill(int entityId)
         {
-            if (!lookup.TryGetValue(entityId, out var v))
+            if (!posById.TryGetValue(entityId, out var pos))
                 return;
+            if (!teamById.TryGetValue(entityId, out var team))
+                return;
+
+            roleById.TryGetValue(entityId, out var role);
+            behaviorById.TryGetValue(entityId, out var beh);
 
             players[idx] = new SimSnapshot.PlayerSnapshot
             {
                 EntityId = entityId,
-                Position = v.pos,
-                TeamIndex = v.team.TeamIndex,
-                IsOffense = v.team.IsOffense,
+                Position = pos,
+                TeamIndex = team.TeamIndex,
+                IsOffense = team.IsOffense,
                 HasBall = false,
-                SpriteId = v.team.IsOffense ? "qb" : "def",
+                SpriteId = team.IsOffense ? "qb" : "def",
+                Role = role.Id.ToString(),
+                Behavior = beh.State.ToString(),
             };
             idx++;
         }
@@ -265,6 +283,65 @@ public sealed class Sim : IDisposable
             Array.Resize(ref players, idx);
 
         Snapshot.Players = players;
+
+        // Engagement lines (from Engagement component partner pairs)
+        {
+            var lines = new System.Collections.Generic.List<SimSnapshot.EngagementLine>();
+            var qEng = new QueryDescription().WithAll<Components.Engagement>();
+            World.Query(in qEng, (Entity e, ref Components.Engagement eng) =>
+            {
+                if (eng.PartnerEntityId < 0)
+                    return;
+
+                // Only draw one line per pair.
+                if (e.Id > eng.PartnerEntityId)
+                    return;
+
+                if (!posById.TryGetValue(e.Id, out var aPos))
+                    return;
+                if (!posById.TryGetValue(eng.PartnerEntityId, out var bPos))
+                    return;
+
+                lines.Add(new SimSnapshot.EngagementLine(e.Id, eng.PartnerEntityId, aPos, bPos));
+            });
+
+            Snapshot.EngagementLines = lines.ToArray();
+        }
+
+        // Route debug
+        {
+            var routes = new System.Collections.Generic.List<SimSnapshot.RouteDebug>();
+            var qRoutes = new QueryDescription().WithAll<Components.RouteFollow, Components.Behavior>();
+            World.Query(in qRoutes, (Entity e, ref Components.RouteFollow rf, ref Components.Behavior b) =>
+            {
+                routes.Add(new SimSnapshot.RouteDebug(
+                    EntityId: e.Id,
+                    TargetPosition: b.TargetPosition,
+                    NodeIndex: rf.NodeIndex,
+                    FramesRemaining: rf.FramesRemainingInNode,
+                    Completed: rf.Completed));
+            });
+
+            Snapshot.Routes = routes.ToArray();
+        }
+
+        // Coverage debug
+        {
+            var cov = new System.Collections.Generic.List<SimSnapshot.CoverageDebug>();
+            var qCov = new QueryDescription().WithAll<Components.Coverage>();
+            World.Query(in qCov, (Entity e, ref Components.Coverage c) =>
+            {
+                cov.Add(new SimSnapshot.CoverageDebug(
+                    DefenderId: e.Id,
+                    Type: (SnapshotCoverageType)c.Type,
+                    AssignmentTargetId: c.AssignmentTargetId,
+                    PursuitTargetId: c.PursuitTargetId,
+                    InPursuit: c.InPursuit,
+                    Landmark: c.LandmarkPosition));
+            });
+
+            Snapshot.Coverage = cov.ToArray();
+        }
 
         // Ball
         {

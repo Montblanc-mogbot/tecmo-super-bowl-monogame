@@ -70,9 +70,9 @@ public static class FormationSpawner
                 e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
                 e.Add(new Coverage
                 {
-                    Type = CoverageType.ZoneHook,
+                    Type = TecmoSBGame.SimArch.Components.CoverageType.ZoneHook,
                     AssignmentTargetId = -1,
-                    Zone = ZoneLandmark.HookLeft,
+                    Zone = TecmoSBGame.SimArch.Components.ZoneLandmark.HookLeft,
                     LandmarkPosition = Vector2.Zero,
                     InPursuit = false,
                     PursuitTargetId = -1,
@@ -206,9 +206,9 @@ public static class FormationSpawner
                 e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
                 e.Add(new Coverage
                 {
-                    Type = CoverageType.ZoneHook,
+                    Type = TecmoSBGame.SimArch.Components.CoverageType.ZoneHook,
                     AssignmentTargetId = -1,
-                    Zone = ZoneLandmark.HookLeft,
+                    Zone = TecmoSBGame.SimArch.Components.ZoneLandmark.HookLeft,
                     LandmarkPosition = Vector2.Zero,
                     InPursuit = false,
                     PursuitTargetId = -1,
