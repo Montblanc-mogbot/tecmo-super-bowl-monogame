@@ -4,6 +4,10 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/KickoffAfterScoreSystem.cs
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/KickoffCoverageSystem.cs
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/KickoffReturnSystem.cs
+
 /// <summary>
 /// SimArch kickoff flight start stub.
 ///

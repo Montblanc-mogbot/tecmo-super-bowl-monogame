@@ -3,6 +3,8 @@ using TecmoSBGame.SimArch.State;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/GameClockSystem.cs
+
 /// <summary>
 /// Deterministic 60Hz game clock rules (SimArch).
 ///

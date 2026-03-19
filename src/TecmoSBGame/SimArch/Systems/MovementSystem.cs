@@ -6,6 +6,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/MovementSystem.cs
+
 /// <summary>
 /// Minimal movement system for Arch sim.
 ///
