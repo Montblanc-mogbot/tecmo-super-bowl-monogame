@@ -61,7 +61,14 @@ public static class FormationSpawner
 
             // Only offense entities participate as blockers.
             if (isOffense)
+            {
                 e.Add(new BlockTarget { TargetEntityId = -1, Assignment = BlockAssignmentType.ManOn, IsEngaged = false, EngagedEntityId = -1, EngagementFrame = 0, IsDoubleTeam = false });
+            }
+            else
+            {
+                // Default defensive rush assignment; can be overridden later via YAML.
+                e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
+            }
 
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
@@ -179,7 +186,13 @@ public static class FormationSpawner
             e.Add(new Engagement { PartnerEntityId = -1, CooldownSeconds = 0f });
 
             if (isOffense)
+            {
                 e.Add(new BlockTarget { TargetEntityId = -1, Assignment = BlockAssignmentType.ManOn, IsEngaged = false, EngagedEntityId = -1, EngagementFrame = 0, IsDoubleTeam = false });
+            }
+            else
+            {
+                e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
+            }
 
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
