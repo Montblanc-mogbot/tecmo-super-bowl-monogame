@@ -17,14 +17,43 @@ public struct Coverage
     public ZoneLandmark Zone;
 
     // Runtime
+
+    /// <summary>
+    /// Cached landmark position in field coordinates.
+    /// Deterministically set at play start (or first update) based on formation.
+    /// </summary>
     public Vector2 LandmarkPosition;
+
+    /// <summary>
+    /// True when the defender is actively pursuing a receiver/ball rather than dropping.
+    /// </summary>
     public bool InPursuit;
+
+    /// <summary>Entity id of the current pursuit target (receiver id). -1 means none.</summary>
     public int PursuitTargetId;
 
     // Reaction timing
+
+    /// <summary>Frames before reacting to a cut/zone threat.</summary>
     public int ReactionDelay;
+
+    /// <summary>Frame counter used for reaction gating.</summary>
     public int ReactionTimer;
+
     public bool HasReacted;
+
+    public static Coverage Default => new()
+    {
+        Type = CoverageType.ManToMan,
+        AssignmentTargetId = -1,
+        Zone = ZoneLandmark.DeepMiddle,
+        LandmarkPosition = Vector2.Zero,
+        InPursuit = false,
+        PursuitTargetId = -1,
+        ReactionDelay = 0,
+        ReactionTimer = 0,
+        HasReacted = false,
+    };
 }
 
 public enum CoverageType
