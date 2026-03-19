@@ -46,6 +46,9 @@ public sealed class Sim : IDisposable
     private readonly Systems.GameClockSystem _clock = new();
     private readonly Systems.DownDistanceSystem _downDistance = new();
     private readonly Systems.PlayLifecycleSystem _lifecycle;
+    private readonly Systems.SnapAndContinueInputSystem _snapAndContinue;
+    private readonly Systems.PlayCall.PlayCallSystem _playCall;
+    private readonly Systems.PlayCall.PlayCallPublishSelectionSystem _playCallPublish = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.FormationScriptSystem _formationScripts;
     private readonly Systems.BallSystem _ball = new();
@@ -59,21 +62,36 @@ public sealed class Sim : IDisposable
 
     private Components.Control _control;
     private Components.Input _input;
+    private Components.UiButtons _ui;
 
     private TecmoSB.FormationDataConfig? _formationData;
     private TecmoSB.DefensiveFormationDataConfig? _defensiveFormationData;
     private TecmoSB.PlayDataConfig? _playData;
 
+    private TecmoSB.PlayListConfig? _playList;
+    private TecmoSB.DefensePlayConfig? _defensePlays;
+
     public Sim(
         TecmoSB.FormationDataConfig? formationData = null,
         TecmoSB.DefensiveFormationDataConfig? defensiveFormationData = null,
-        TecmoSB.PlayDataConfig? playData = null)
+        TecmoSB.PlayListConfig? playList = null,
+        TecmoSB.PlayDataConfig? playData = null,
+        TecmoSB.DefensePlayConfig? defensePlays = null)
     {
         _formationData = formationData;
         _defensiveFormationData = defensiveFormationData;
+        _playList = playList;
         _playData = playData;
+        _defensePlays = defensePlays;
 
         _lifecycle = new Systems.PlayLifecycleSystem(_match, _play);
+        _snapAndContinue = new Systems.SnapAndContinueInputSystem(_match, _play);
+
+        // If these aren't provided, we'll lazy-load in BootstrapWorld.
+        _playCall = new Systems.PlayCall.PlayCallSystem(
+            formations: _formationData ?? TecmoSB.FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml")),
+            playList: _playList ?? TecmoSB.PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml")),
+            defensePlays: _defensePlays ?? TecmoSB.DefensePlayYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "defenseplays", "bank4_defense_special_pointers.yaml")));
         _formationScripts = new Systems.FormationScriptSystem(_play);
 
         World = World.Create();
@@ -121,12 +139,9 @@ public sealed class Sim : IDisposable
 
     public void ApplyPlaySelection(in PendingPlaySelection sel)
     {
+        // Transitional API: publish the selection event.
+        // PlayLifecycleSystem owns phase transitions.
         _pendingSelection = sel;
-
-        // Treat selection as starting a new play from the current match spot.
-        _play.ResetForNewPlay(
-            playId: _match.PlayNumber + 1,
-            startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
 
         var e = new PlaySelectedEvent(
             OffensiveFormationId: sel.FormationId,
@@ -137,16 +152,9 @@ public sealed class Sim : IDisposable
         SimEventBus.Send(ref e);
     }
 
-    /// <summary>
-    /// Advances to the next down's pre-snap state using the current match spot.
-    /// Call this from a host UI after the post-play summary is acknowledged.
-    /// </summary>
-    public void AdvanceToNextPlay()
+    public void SetUiButtons(in Components.UiButtons ui)
     {
-        // Deprecated: lifecycle system now auto-advances; keep for transitional callers.
-        _play.ResetForNewPlay(
-            playId: _match.PlayNumber + 1,
-            startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
+        _ui = ui;
     }
 
     public void SetInput(Microsoft.Xna.Framework.Vector2 direction)
@@ -156,6 +164,11 @@ public sealed class Sim : IDisposable
 
     public void Update(float dtSeconds)
     {
+        // UI-driven playcall + lifecycle inputs.
+        _playCall.Update(World, _ui);
+        _playCallPublish.Update(World, _ui);
+        _snapAndContinue.Update(World, _ui);
+
         // Apply queued selection at the start of a tick.
         if (_pendingSelection is not null)
         {

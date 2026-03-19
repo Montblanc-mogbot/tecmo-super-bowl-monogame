@@ -39,6 +39,10 @@ public sealed class MainGameArch : Game
     private const float Dt = 1f / Hz;
     private float _accumulatorSeconds;
 
+    // UI input edge tracking
+    private bool _prevEnter;
+    private bool _prevSpace;
+
 
     public GameContent GameContent { get; private set; } = null!;
 
@@ -70,7 +74,12 @@ public sealed class MainGameArch : Game
         _renderResources = new RenderResources(GraphicsDevice);
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
 
-        _sim = new Sim(GameContent.FormationData, GameContent.DefensiveFormationData, GameContent.PlayData);
+        _sim = new Sim(
+            formationData: GameContent.FormationData,
+            defensiveFormationData: GameContent.DefensiveFormationData,
+            playList: GameContent.PlayList,
+            playData: GameContent.PlayData,
+            defensePlays: GameContent.DefensePlays);
 
         // Sprite registry (optional; game can still render via debug primitives).
         var reg = new SpriteRegistry();
@@ -98,9 +107,10 @@ public sealed class MainGameArch : Game
             return;
         }
 
+        var kb = Keyboard.GetState();
+
         // Basic input: move controlled player with arrow keys.
         var dir = Vector2.Zero;
-        var kb = Keyboard.GetState();
         if (kb.IsKeyDown(Keys.Left)) dir.X -= 1f;
         if (kb.IsKeyDown(Keys.Right)) dir.X += 1f;
         if (kb.IsKeyDown(Keys.Up)) dir.Y -= 1f;
@@ -110,7 +120,26 @@ public sealed class MainGameArch : Game
 
         _sim.SetInput(dir);
 
-        // Play selection/snap/advance are driven by SimArch systems + input (not hardcoded here).
+        // UI buttons (edge-triggered)
+        var enter = kb.IsKeyDown(Keys.Enter);
+        var space = kb.IsKeyDown(Keys.Space);
+
+        var ui = new SimArch.Components.UiButtons
+        {
+            Up = kb.IsKeyDown(Keys.Up),
+            Down = kb.IsKeyDown(Keys.Down),
+            Left = kb.IsKeyDown(Keys.Left),
+            Right = kb.IsKeyDown(Keys.Right),
+
+            Select = enter && !_prevEnter,
+            Snap = space && !_prevSpace,
+            Continue = enter && !_prevEnter,
+        };
+
+        _prevEnter = enter;
+        _prevSpace = space;
+
+        _sim.SetUiButtons(ui);
 
         // Fixed-step update.
         _accumulatorSeconds += (float)gameTime.ElapsedGameTime.TotalSeconds;

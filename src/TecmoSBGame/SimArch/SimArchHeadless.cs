@@ -8,9 +8,11 @@ public static class SimArchHeadless
     {
         var formationData = TecmoSB.FormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "formation_data.yaml"));
         var defensiveFormationData = TecmoSB.DefensiveFormationDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "formations", "defensive_formation_data.yaml"));
+        var playList = TecmoSB.PlayListYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playcall", "playlist.yaml"));
+        var defensePlays = TecmoSB.DefensePlayYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "defenseplays", "bank4_defense_special_pointers.yaml"));
         var playData = TecmoSB.PlayDataYamlLoader.LoadFromFile(System.IO.Path.Combine("content", "playdata", "bank5_6_play_data.yaml"));
 
-        using var sim = new Sim(formationData, defensiveFormationData, playData);
+        using var sim = new Sim(formationData, defensiveFormationData, playList, playData, defensePlays);
 
         // Deterministic play selection (same as the in-game bootstrap for now).
         sim.ApplyPlaySelection(new Sim.PendingPlaySelection(
