@@ -23,6 +23,7 @@ public sealed class Sim : IDisposable
 
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
+    private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
     private readonly Systems.PassFlightCompleteSystem _passComplete = new();
     private readonly Systems.KickoffFlightCompleteSystem _kickoffComplete = new();
@@ -88,6 +89,9 @@ public sealed class Sim : IDisposable
         }
 
         // Run systems (minimal set for now).
+        // Pre-snap placement runs opportunistically when the ball is Dead.
+        _preSnap.Update(World, _offense, _defense, _ballEntityId, offenseDirSign: 1f);
+
         _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _ball.Update(World, dtSeconds);
