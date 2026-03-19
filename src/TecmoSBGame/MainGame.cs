@@ -449,6 +449,10 @@ public sealed class MainGame : Game
 
                     _archSim?.SetInput(dir);
                     _archSim?.Update((float)fixedGameTime.ElapsedGameTime.TotalSeconds);
+
+                    // Playcall → Arch sim selection (offense only for now)
+                    AutoPlaycallTickArch();
+
                     return;
                 }
 
@@ -515,6 +519,41 @@ public sealed class MainGame : Game
         _playState.PlayCallLockedIn = true;
 
         Console.WriteLine($"[playcall] applied playId={_playState.PlayId} play_number={e.OffensivePlayNumber} def={spawned.DefensiveCallId}");
+    }
+
+    private void AutoPlaycallTickArch()
+    {
+        if (_archSim is null || _matchState is null || _playState is null || _playCallState is null)
+            return;
+
+        if (!_playCallState.Visible)
+            return;
+
+        // Only run in auto mode for now; manual Gum playcall wiring is upcoming.
+        if (!_playState.AutoPlaycallEnabled)
+            return;
+
+        var off = _playCallState.SelectedPlay;
+        if (off is null)
+            return;
+
+        var offNum = off.PlayNumbers is not null && off.PlayNumbers.Count > 0 ? off.PlayNumbers[0] : 0;
+        if (offNum <= 0)
+            return;
+
+        var formationId = off.Formation ?? _playCallState.SelectedFormationId ?? "00";
+
+        _archSim.ApplyPlaySelection(new TecmoSBGame.SimArch.Sim.PendingPlaySelection(
+            PlayNumber: offNum,
+            FormationId: formationId,
+            OffensivePlayName: off.Name ?? "play",
+            OffensivePlaySlot: off.Slot ?? "Run"));
+
+        // Hide playcall for this down.
+        _playState.PlayCallLockedIn = true;
+        _playCallState.Visible = false;
+
+        Console.WriteLine($"[playcall/arch] applied play_number={offNum} formation={formationId}");
     }
 
     private void AutoPlaycallTick()
