@@ -56,6 +56,8 @@ public static class FormationSpawner
             e.Add(new Role { Id = role });
             e.Add(new Ratings { MS = 50, HP = 50, RS = 50 });
             e.Add(new MovementTuning { MaxSpeedPerTick = 1.5f, MaxTurnDegreesPerTick = 9f, AccelPerTick = 0f, DecelPerTick = 0f });
+            e.Add(new BehaviorStack { Count = 0 });
+            e.Add(new Engagement { PartnerEntityId = -1, CooldownSeconds = 0f });
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
             return e.Id;
@@ -168,6 +170,8 @@ public static class FormationSpawner
             e.Add(new Role { Id = role });
             e.Add(new Ratings { MS = 50, HP = 50, RS = 50 });
             e.Add(new MovementTuning { MaxSpeedPerTick = 1.5f, MaxTurnDegreesPerTick = 9f, AccelPerTick = 0f, DecelPerTick = 0f });
+            e.Add(new BehaviorStack { Count = 0 });
+            e.Add(new Engagement { PartnerEntityId = -1, CooldownSeconds = 0f });
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
             return e.Id;

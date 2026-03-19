@@ -7,6 +7,11 @@ public enum BehaviorState
     Idle = 0,
     MovingToPosition = 1,
     TrackingEntity = 2,
+
+    // Interrupt / contact states (scaffolding)
+    Engaged = 3,
+    Tackling = 4,
+    Grappling = 5,
 }
 
 public struct Behavior

@@ -27,6 +27,9 @@ public sealed class Sim : IDisposable
 
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.CollisionContactSystem _contacts = new();
+    private readonly Systems.EngagementSystem _engagement = new();
+    private readonly Systems.TackleInterruptSystem _tackleInterrupt = new();
+    private readonly Systems.BehaviorStackSystem _behaviorStack = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
@@ -103,6 +106,9 @@ public sealed class Sim : IDisposable
         _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);
+        _engagement.Update(World, dtSeconds);
+        _tackleInterrupt.Update(World);
+        _behaviorStack.Update(World, dtSeconds);
         _ball.Update(World, dtSeconds);
         _passComplete.Update(World);
         _kickoffComplete.Update(World);

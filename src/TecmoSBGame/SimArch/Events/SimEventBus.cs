@@ -1,18 +1,35 @@
+using System.Collections.Generic;
+
 namespace TecmoSBGame.SimArch.Events;
 
 /// <summary>
-/// Event dispatch abstraction for SimArch.
+/// Minimal in-memory event bus for SimArch.
 ///
-/// We *intend* to use Arch.EventBus (source generated) here.
-/// However, until receiver wiring exists (and therefore the generator emits a bus),
-/// this is a safe no-op shim that keeps SimArch code compiling.
+/// This is a stopgap until we wire up Arch.EventBus source generation.
+/// Keep it deterministic: events are drained in FIFO order.
 /// </summary>
 public static class SimEventBus
 {
-    public static void Send<T>(ref T _) where T : struct
+    private static class Queue<T> where T : struct
     {
-        // Intentionally no-op for now.
-        // When we add receiver methods (with the Arch.EventBus attributes), we'll swap this
-        // to call the generated bus type.
+        public static readonly List<T> Items = new();
+    }
+
+    public static void Send<T>(ref T e) where T : struct
+    {
+        Queue<T>.Items.Add(e);
+    }
+
+    public static List<T> Drain<T>() where T : struct
+    {
+        var items = Queue<T>.Items;
+        if (items.Count == 0)
+            return items;
+
+        // Copy out then clear so producers can continue writing without swapping the list.
+        var drained = new List<T>(items);
+        items.Clear();
+        return drained;
     }
 }
+
