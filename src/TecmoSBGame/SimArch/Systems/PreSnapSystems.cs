@@ -63,7 +63,7 @@ public sealed class PreSnapSystems
             pos.Value = new Vector2(losX, pos.Value.Y);
 
             b.State = TecmoSBGame.State.BallState.Dead;
-            b.OwnerEntityId = 0;
+            b.OwnerEntityId = -1;
             b.FlightKind = BallFlightKind.None;
             b.DurationSeconds = 0f;
             b.ElapsedSeconds = 0f;

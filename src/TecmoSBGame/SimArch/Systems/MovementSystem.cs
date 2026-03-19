@@ -41,7 +41,7 @@ public sealed class MovementSystem
             {
                 desiredDir = inputNorm;
             }
-            else if (b.State == BehaviorState.TrackingEntity && b.TargetEntityId != 0)
+            else if (b.State == BehaviorState.TrackingEntity && b.TargetEntityId >= 0)
             {
                 if (TryGetPosition(world, b.TargetEntityId, out var targetPos))
                 {
@@ -79,7 +79,7 @@ public sealed class MovementSystem
     private static bool TryGetPosition(World world, int entityId, out Vector2 pos)
     {
         pos = default;
-        if (entityId == 0)
+        if (entityId < 0)
             return false;
 
         var found = false;

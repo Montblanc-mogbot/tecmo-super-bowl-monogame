@@ -29,7 +29,7 @@ public sealed class PassFlightCompleteSystem
             var pos = ballPos.Value;
 
             var radiusSq = ELIGIBLE_RADIUS * ELIGIBLE_RADIUS;
-            var bestId = 0;
+            var bestId = -1;
             var bestDistSq = float.PositiveInfinity;
 
             var qCandidates = new QueryDescription().WithAll<Position, Team>();
@@ -45,14 +45,14 @@ public sealed class PassFlightCompleteSystem
                 if (distSq > radiusSq)
                     return;
 
-                if (distSq < bestDistSq - 0.0001f || (MathF.Abs(distSq - bestDistSq) <= 0.0001f && (bestId == 0 || e.Id < bestId)))
+                if (distSq < bestDistSq - 0.0001f || (MathF.Abs(distSq - bestDistSq) <= 0.0001f && (bestId < 0 || e.Id < bestId)))
                 {
                     bestId = e.Id;
                     bestDistSq = distSq;
                 }
             });
 
-            if (bestId != 0)
+            if (bestId >= 0)
             {
                 ball.State = TecmoSBGame.State.BallState.Held;
                 ball.OwnerEntityId = bestId;
@@ -63,7 +63,7 @@ public sealed class PassFlightCompleteSystem
             else
             {
                 ball.State = TecmoSBGame.State.BallState.Dead;
-                ball.OwnerEntityId = 0;
+                ball.OwnerEntityId = -1;
                 ball.FlightKind = BallFlightKind.None;
                 ball.Height = 0f;
                 ball.IsComplete = true;

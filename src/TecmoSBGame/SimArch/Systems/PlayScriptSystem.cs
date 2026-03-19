@@ -28,10 +28,10 @@ public sealed class PlayScriptSystem
                 if (s.WaitSeconds > 0f)
                     return;
 
-                if (s.PendingHandoffToEntityId != 0)
+                if (s.PendingHandoffToEntityId >= 0)
                 {
                     ExecuteHandoff(world, ballEntityId, fromEntityId: e.Id, toEntityId: s.PendingHandoffToEntityId, ref controlLocal);
-                    s.PendingHandoffToEntityId = 0;
+                    s.PendingHandoffToEntityId = -1;
                 }
             }
         });

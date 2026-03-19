@@ -61,7 +61,7 @@ public static class PassFlightStartSystem
                 return;
 
             b.State = TecmoSBGame.State.BallState.InAir;
-            b.OwnerEntityId = 0;
+            b.OwnerEntityId = -1;
 
             b.FlightKind = BallFlightKind.Pass;
             b.StartPos = passerPos;

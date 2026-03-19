@@ -31,7 +31,7 @@ public sealed class Sim : IDisposable
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
     private readonly System.Collections.Generic.List<int> _defense = new(11);
-    private int _ballEntityId;
+    private int _ballEntityId = -1;
 
     private Components.Control _control;
     private Components.Input _input;
@@ -58,7 +58,7 @@ public sealed class Sim : IDisposable
 
         _offense.Clear();
         _defense.Clear();
-        _ballEntityId = 0;
+        _ballEntityId = -1;
 
         BootstrapDemoWorld();
     }
@@ -106,12 +106,16 @@ public sealed class Sim : IDisposable
 
     private void BootstrapDemoWorld()
     {
+        // Arch can allocate entity ids starting at 0; our gameplay code uses 0 as a "null" sentinel.
+        // Ensure demo roster ids start at 1+.
+        _ = World.Create();
+
         var (off, def, ball) = Spawning.FormationSpawner.SpawnDemoScrimmage(World);
         _offense.AddRange(off);
         _defense.AddRange(def);
         _ballEntityId = ball;
 
-        _control = new Components.Control { ControlledEntityId = off.Count > 0 ? off[0] : 0, PendingForcedEntityId = 0 };
+        _control = new Components.Control { ControlledEntityId = off.Count > 0 ? off[0] : -1, PendingForcedEntityId = -1 };
     }
 
     private void UpdateSnapshot()
@@ -179,7 +183,7 @@ public sealed class Sim : IDisposable
                 var b = Snapshot.Ball;
 
                 // Mark owner in players snapshot
-                if (b.OwnerEntityId != 0)
+                if (b.OwnerEntityId >= 0)
                 {
                     for (var i = 0; i < Snapshot.Players.Length; i++)
                     {

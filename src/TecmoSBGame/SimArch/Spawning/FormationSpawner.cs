@@ -32,7 +32,7 @@ public static class FormationSpawner
             e.Add(new Velocity { Value = Vector2.Zero });
             e.Add(new Team { TeamIndex = teamIndex, IsOffense = isOffense, IsPlayerControlled = isOffense });
             e.Add(new Role { Id = role });
-            e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = 0, TargetPosition = Vector2.Zero, StateTimer = 0f });
+            e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
             return e.Id;
         }

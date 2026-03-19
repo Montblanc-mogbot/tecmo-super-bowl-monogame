@@ -45,14 +45,14 @@ public sealed class TackleAndPlayEndSystems
 
             ballFound = true;
 
-            if (b.State == TecmoSBGame.State.BallState.Held && b.OwnerEntityId != 0)
+            if (b.State == TecmoSBGame.State.BallState.Held && b.OwnerEntityId >= 0)
             {
                 carrierId = b.OwnerEntityId;
                 // Note: ball position may lag behind owner if other systems did something odd; we prefer the owner.
             }
         });
 
-        if (!ballFound || carrierId == 0)
+        if (!ballFound || carrierId < 0)
             return;
 
         if (!TryGetPosition(world, carrierId, out carrierPos))
@@ -61,7 +61,7 @@ public sealed class TackleAndPlayEndSystems
         var radiusSq = TACKLE_RADIUS * TACKLE_RADIUS;
 
         // Find nearest defender in radius.
-        var bestDefenderId = 0;
+        var bestDefenderId = -1;
         var bestDistSq = float.PositiveInfinity;
 
         var qDef = new QueryDescription().WithAll<Position, Team>();
@@ -75,14 +75,14 @@ public sealed class TackleAndPlayEndSystems
             if (distSq > radiusSq)
                 return;
 
-            if (distSq < bestDistSq - 0.0001f || (MathF.Abs(distSq - bestDistSq) <= 0.0001f && (bestDefenderId == 0 || e.Id < bestDefenderId)))
+            if (distSq < bestDistSq - 0.0001f || (MathF.Abs(distSq - bestDistSq) <= 0.0001f && (bestDefenderId < 0 || e.Id < bestDefenderId)))
             {
                 bestDefenderId = e.Id;
                 bestDistSq = distSq;
             }
         });
 
-        if (bestDefenderId == 0)
+        if (bestDefenderId < 0)
             return;
 
         // Resolve tackle -> whistle -> play end.
@@ -108,7 +108,7 @@ public sealed class TackleAndPlayEndSystems
                 return;
 
             b.State = TecmoSBGame.State.BallState.Dead;
-            b.OwnerEntityId = 0;
+            b.OwnerEntityId = -1;
             b.FlightKind = BallFlightKind.None;
             b.Height = 0f;
             b.IsComplete = true;
@@ -116,7 +116,7 @@ public sealed class TackleAndPlayEndSystems
 
         // Control reset: if user was controlling the carrier, release it.
         if (control.ControlledEntityId == carrierId)
-            control.ControlledEntityId = 0;
+            control.ControlledEntityId = -1;
     }
 
     private static bool TryGetPosition(World world, int entityId, out Vector2 pos)

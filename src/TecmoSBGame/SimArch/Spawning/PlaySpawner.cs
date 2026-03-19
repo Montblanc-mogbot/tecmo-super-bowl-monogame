@@ -25,7 +25,7 @@ public static class PlaySpawner
         var qbId = FindRole(world, offenseEntityIds, RoleId.QB);
         var hbId = FindRole(world, offenseEntityIds, RoleId.HB);
 
-        if (qbId == 0 || hbId == 0)
+        if (qbId < 0 || hbId < 0)
             throw new InvalidOperationException("SimArch play spawner requires QB+HB");
 
         if (playNumber != 10)
@@ -77,12 +77,12 @@ public static class PlaySpawner
     private static int FindRole(World world, IReadOnlyList<int> entityIds, RoleId role)
     {
         var allow = new HashSet<int>(entityIds);
-        var found = 0;
+        var found = -1;
 
         var q = new QueryDescription().WithAll<Role>();
         world.Query(in q, (Entity e, ref Role r) =>
         {
-            if (found != 0)
+            if (found != -1)
                 return;
             if (!allow.Contains(e.Id))
                 return;

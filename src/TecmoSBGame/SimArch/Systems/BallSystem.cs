@@ -24,7 +24,7 @@ public sealed class BallSystem
     private static bool TryGetOwnerPosition(World world, int ownerEntityId, out Vector2 pos)
     {
         pos = default;
-        if (ownerEntityId == 0)
+        if (ownerEntityId < 0)
             return false;
 
         var found = false;
@@ -61,7 +61,7 @@ public sealed class BallSystem
         world.Query(in query, (Entity _, ref Ball b, ref Position pos, ref Velocity vel) =>
         {
             // Held: glue to owner.
-            if (b.State == TecmoSBGame.State.BallState.Held && b.OwnerEntityId != 0)
+            if (b.State == TecmoSBGame.State.BallState.Held && b.OwnerEntityId >= 0)
             {
                 if (TryGetOwnerPosition(world, b.OwnerEntityId, out var ownerPos))
                 {

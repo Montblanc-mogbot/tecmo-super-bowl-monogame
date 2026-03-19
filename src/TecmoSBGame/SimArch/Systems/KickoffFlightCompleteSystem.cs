@@ -21,7 +21,7 @@ public sealed class KickoffFlightCompleteSystem
 
             b.FlightKind = BallFlightKind.None;
             b.State = TecmoSBGame.State.BallState.Loose;
-            b.OwnerEntityId = 0;
+            b.OwnerEntityId = -1;
             b.Height = 0f;
         });
     }
