@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 
 namespace TecmoSBGame.SimArch.Components;
 
+// Ported from: ArchiveMge/Components/RushComponents.cs
+
 // Existing SimArch rush assignment used by DefensiveRushSystem.
 public enum RushAssignment
 {

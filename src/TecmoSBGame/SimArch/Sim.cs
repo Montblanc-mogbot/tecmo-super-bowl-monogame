@@ -40,6 +40,9 @@ public sealed class Sim : IDisposable
     // Match/play rules
     private readonly SimArch.State.MatchState _match = new();
     private readonly SimArch.State.PlayState _play = new();
+
+    public SimArch.State.MatchState MatchState => _match;
+    public SimArch.State.PlayState PlayState => _play;
     private readonly Systems.GameClockSystem _clock = new();
     private readonly Systems.DownDistanceSystem _downDistance = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
@@ -110,6 +113,11 @@ public sealed class Sim : IDisposable
     {
         _pendingSelection = sel;
 
+        // Treat selection as starting a new play from the current match spot.
+        _play.ResetForNewPlay(
+            playId: _match.PlayNumber + 1,
+            startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
+
         var e = new PlaySelectedEvent(
             OffensiveFormationId: sel.FormationId,
             OffensivePlayName: sel.OffensivePlayName,
@@ -117,6 +125,17 @@ public sealed class Sim : IDisposable
             OffensivePlayNumber: sel.PlayNumber,
             DefensiveCallId: string.Empty);
         SimEventBus.Send(ref e);
+    }
+
+    /// <summary>
+    /// Advances to the next down's pre-snap state using the current match spot.
+    /// Call this from a host UI after the post-play summary is acknowledged.
+    /// </summary>
+    public void AdvanceToNextPlay()
+    {
+        _play.ResetForNewPlay(
+            playId: _match.PlayNumber + 1,
+            startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
     }
 
     public void SetInput(Microsoft.Xna.Framework.Vector2 direction)
@@ -178,6 +197,9 @@ public sealed class Sim : IDisposable
                 Safety: false);
 
             _downDistance.ApplyPlayEnd(_match, _play);
+
+            // Enter post-play phase; host decides when to advance.
+            _play.Phase = TecmoSBGame.SimArch.State.PlayPhase.PostPlay;
         }
         _passComplete.Update(World);
         _kickoffComplete.Update(World);

@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 
 namespace TecmoSBGame.SimArch.Components;
 
+// Ported from: ArchiveMge/Components/BallComponents.cs
+
 public struct Ball
 {
     public BallState State;

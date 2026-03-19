@@ -19,6 +19,8 @@ namespace TecmoSBGame;
 /// </summary>
 public sealed class MainGameArch : Game
 {
+    // Ported from: ArchiveMge/MainGame.cs
+
     private readonly GraphicsDeviceManager _graphics;
 
     private SpriteBatch? _spriteBatch;
@@ -36,7 +38,10 @@ public sealed class MainGameArch : Game
     private const float Dt = 1f / Hz;
     private float _accumulatorSeconds;
 
-    private bool _appliedInitialPlay;
+    // Temporary Arch-native flow scaffold (headless-friendly):
+    // - Enter starts a play (auto-pick play 10)
+    // - After tackle whistle, Enter advances to next play (pre-snap)
+    private bool _playAppliedThisDown;
 
     public GameContent GameContent { get; private set; } = null!;
 
@@ -108,15 +113,34 @@ public sealed class MainGameArch : Game
 
         _sim.SetInput(dir);
 
-        // Temporary bootstrap: apply a deterministic demo play once.
-        if (!_appliedInitialPlay)
+        // Arch-native flow scaffold:
+        // - PreSnap: press Enter to apply a play (auto-pick play 10 for now)
+        // - PostPlay: press Enter to advance to next play
+        if (_sim.PlayState.Phase == SimArch.State.PlayPhase.PreSnap)
         {
-            _appliedInitialPlay = true;
-            _sim.ApplyPlaySelection(new Sim.PendingPlaySelection(
-                PlayNumber: 10,
-                FormationId: "00",
-                OffensivePlayName: "DEMO",
-                OffensivePlaySlot: "DEMO"));
+            if (kb.IsKeyDown(Keys.Enter) && !_playAppliedThisDown)
+            {
+                _playAppliedThisDown = true;
+                _sim.ApplyPlaySelection(new Sim.PendingPlaySelection(
+                    PlayNumber: 10,
+                    FormationId: "00",
+                    OffensivePlayName: "AUTO",
+                    OffensivePlaySlot: "AUTO"));
+            }
+        }
+        else if (_sim.PlayState.Phase == SimArch.State.PlayPhase.PostPlay)
+        {
+            if (kb.IsKeyDown(Keys.Enter))
+            {
+                _playAppliedThisDown = false;
+                _sim.AdvanceToNextPlay();
+            }
+        }
+        else
+        {
+            // InPlay
+            if (!kb.IsKeyDown(Keys.Enter))
+                _playAppliedThisDown = false;
         }
 
         // Fixed-step update.

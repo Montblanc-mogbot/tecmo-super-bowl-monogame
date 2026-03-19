@@ -1,5 +1,7 @@
 namespace TecmoSBGame.SimArch.Components;
 
+// Ported from: ArchiveMge/Components/BlockTargetComponent.cs
+
 /// <summary>
 /// Tracks an offensive entity's current blocking objective (SimArch).
 /// </summary>

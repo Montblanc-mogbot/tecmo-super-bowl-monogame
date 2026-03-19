@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 
 namespace TecmoSBGame.SimArch.Components;
 
+// Ported from: ArchiveMge/Components/CoverageComponent.cs
+
 /// <summary>
 /// Defensive pass coverage assignment and runtime state (SimArch).
 ///
