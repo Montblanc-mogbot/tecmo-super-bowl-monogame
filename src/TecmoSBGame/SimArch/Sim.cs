@@ -24,6 +24,7 @@ public sealed class Sim : IDisposable
 
 
     private readonly Systems.MovementSystem _movement = new();
+    private readonly Systems.PlayerControlSystem _playerControl = new();
     private readonly Systems.CollisionContactSystem _contacts = new();
     private readonly Systems.EngagementSystem _engagement = new();
     private readonly Systems.TackleResolutionSystem _tackleResolution = new();
@@ -195,6 +196,7 @@ public sealed class Sim : IDisposable
         _rush.Update(World, dtSeconds, _defense);
         _coverage.Update(World, dtSeconds, _ballEntityId, _defense);
         _qbAi.Update(World, dtSeconds, _ballEntityId);
+        _playerControl.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);
         _engagement.Update(World, dtSeconds);
