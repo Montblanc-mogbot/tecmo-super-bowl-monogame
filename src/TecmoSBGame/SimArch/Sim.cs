@@ -29,7 +29,9 @@ public sealed class Sim : IDisposable
     private readonly Systems.TackleResolutionSystem _tackleResolution = new();
     private readonly Systems.BehaviorStackSystem _behaviorStack = new();
     private readonly PlayScripts.PlayScriptRegistry _scriptRegistry = new();
+    private readonly Routes.RouteRegistry _routeRegistry = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
+    private readonly Systems.RouteFollowSystem _routes = new();
     private readonly Systems.QbAiSystem _qbAi = new();
     private readonly Systems.PreSnapSystems _preSnap = new();
     private readonly Systems.BallSystem _ball = new();
@@ -70,6 +72,9 @@ public sealed class Sim : IDisposable
         Snapshot.Tick = 0;
         _pendingSelection = null;
 
+        _scriptRegistry.Clear();
+        _routeRegistry.Clear();
+
         _offense.Clear();
         _defense.Clear();
         _ballEntityId = -1;
@@ -103,7 +108,8 @@ public sealed class Sim : IDisposable
                 throw new InvalidOperationException("SimArch PlayData not loaded");
 
             _scriptRegistry.Clear();
-            Spawning.PlaySpawner.ApplyPlay(World, _playData, _offense, _defense, _ballEntityId, sel.PlayNumber, _scriptRegistry);
+            _routeRegistry.Clear();
+            Spawning.PlaySpawner.ApplyPlay(World, _playData, _offense, _defense, _ballEntityId, sel.PlayNumber, _scriptRegistry, _routeRegistry);
         }
 
         // Run systems (minimal set for now).
@@ -111,6 +117,7 @@ public sealed class Sim : IDisposable
         _preSnap.Update(World, _offense, _defense, _ballEntityId, offenseDirSign: 1f);
 
         _playScripts.Update(World, dtSeconds, _ballEntityId, _offense, _defense, _scriptRegistry, ref _control);
+        _routes.Update(World, dtSeconds, _routeRegistry);
         _qbAi.Update(World, dtSeconds, _ballEntityId);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);

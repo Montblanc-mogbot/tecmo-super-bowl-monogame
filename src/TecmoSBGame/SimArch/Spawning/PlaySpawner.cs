@@ -24,10 +24,12 @@ public static partial class PlaySpawner
         IReadOnlyList<int> defenseEntityIds,
         int ballEntityId,
         int playNumber,
-        SimArch.PlayScripts.PlayScriptRegistry scriptRegistry)
+        SimArch.PlayScripts.PlayScriptRegistry scriptRegistry,
+        SimArch.Routes.RouteRegistry routeRegistry)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (playData is null) throw new ArgumentNullException(nameof(playData));
+        if (routeRegistry is null) throw new ArgumentNullException(nameof(routeRegistry));
 
         var def = playData.Plays.FirstOrDefault(p => p.PlayNumber == playNumber);
         if (def is null)
@@ -50,9 +52,11 @@ public static partial class PlaySpawner
         // Default: ball held by QB at snap.
         SetBallOwner(world, ballEntityId, qbId);
 
-        // Attach per-slot scripts from YAML into the registry and PlayScript components.
+        // Attach per-slot scripts/routes from YAML.
         scriptRegistry.AttachSlotScripts(world, playData, def.Offense, slotToEntityId);
         scriptRegistry.AttachSlotScripts(world, playData, def.Defense, defSlotToEntityId);
+
+        AttachRoutes(world, routeRegistry, playData, def.Offense, slotToEntityId);
 
         // NOTE: handoff_to is handled by the generic SimArch playscript runner (compiled into the registry).
 
