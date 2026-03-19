@@ -58,6 +58,11 @@ public static class FormationSpawner
             e.Add(new MovementTuning { MaxSpeedPerTick = 1.5f, MaxTurnDegreesPerTick = 9f, AccelPerTick = 0f, DecelPerTick = 0f });
             e.Add(new BehaviorStack { Count = 0 });
             e.Add(new Engagement { PartnerEntityId = -1, CooldownSeconds = 0f });
+
+            // Only offense entities participate as blockers.
+            if (isOffense)
+                e.Add(new BlockTarget { TargetEntityId = -1, Assignment = BlockAssignmentType.ManOn, IsEngaged = false, EngagedEntityId = -1, EngagementFrame = 0, IsDoubleTeam = false });
+
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
             return e.Id;
@@ -172,6 +177,10 @@ public static class FormationSpawner
             e.Add(new MovementTuning { MaxSpeedPerTick = 1.5f, MaxTurnDegreesPerTick = 9f, AccelPerTick = 0f, DecelPerTick = 0f });
             e.Add(new BehaviorStack { Count = 0 });
             e.Add(new Engagement { PartnerEntityId = -1, CooldownSeconds = 0f });
+
+            if (isOffense)
+                e.Add(new BlockTarget { TargetEntityId = -1, Assignment = BlockAssignmentType.ManOn, IsEngaged = false, EngagedEntityId = -1, EngagementFrame = 0, IsDoubleTeam = false });
+
             e.Add(new Behavior { State = BehaviorState.Idle, TargetEntityId = -1, TargetPosition = Vector2.Zero, StateTimer = 0f });
 
             return e.Id;

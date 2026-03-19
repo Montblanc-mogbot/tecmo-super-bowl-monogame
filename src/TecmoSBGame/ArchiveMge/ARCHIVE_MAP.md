@@ -1,0 +1,128 @@
+# ArchiveMge → SimArch mapping
+
+This folder contains the retired MonoGame.Extended.Entities (MGE) implementation.
+For each archived file below, the “Current replacement” column points at the SimArch (Arch ECS) equivalent when one exists.
+If marked **(TODO)**, that legacy file has no Arch replacement yet.
+
+- `src/TecmoSBGame/ArchiveMge/Components/AIDebugComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/ActionComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/AnimationComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/BallComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/BallFlightKind.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/BehaviorInterruptComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/BlockTargetComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/CameraComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/CoverageComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/DefensiveLookComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/FieldGoalBlockRushComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/FormationScriptComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/GameComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/HudComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/KickoffCoverageComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/KickoffReturnComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/Menu/MenuItemComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/MovementComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayAssignmentComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayCall/FormationSlotComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayCall/PlayCallComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayCall/PlaySlotComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayScriptComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayerControlComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PlayerRoleComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PuntCoverageComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/PuntReturnComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/QbBrainComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/RouteComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/RushComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/RushComponents.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Components/SpeedModifierComponent.cs` → **(TODO)** (no SimArch component yet)
+- `src/TecmoSBGame/ArchiveMge/Events/GameEventTypes.cs` → src/TecmoSBGame/SimArch/Events/** (EventBus + events) **(TODO for specific types)**
+- `src/TecmoSBGame/ArchiveMge/Events/GameEvents.cs` → src/TecmoSBGame/SimArch/Events/** (EventBus + events) **(TODO for specific types)**
+- `src/TecmoSBGame/ArchiveMge/Factories/BallEntityFactory.cs` → **(TODO)** (spawning/factory not ported yet)
+- `src/TecmoSBGame/ArchiveMge/Factories/PlayerEntityFactory.cs` → **(TODO)** (spawning/factory not ported yet)
+- `src/TecmoSBGame/ArchiveMge/Flow/GameFlowController.cs` → **(TODO)**
+- `src/TecmoSBGame/ArchiveMge/Flow/GameFlowState.cs` → **(TODO)**
+- `src/TecmoSBGame/ArchiveMge/Headless/CoverageScenarioDriverSystem.cs` → src/TecmoSBGame/SimArch/SimArchHeadless.cs (or future Arch test harness)
+- `src/TecmoSBGame/ArchiveMge/Headless/HeadlessContactSeederSystem.cs` → src/TecmoSBGame/SimArch/SimArchHeadless.cs (or future Arch test harness)
+- `src/TecmoSBGame/ArchiveMge/Headless/HeadlessRunner.cs` → src/TecmoSBGame/SimArch/SimArchHeadless.cs
+- `src/TecmoSBGame/ArchiveMge/Headless/NesTraceCompareRunner.cs` → src/TecmoSBGame/SimArch/SimArchHeadless.cs (or future Arch test harness)
+- `src/TecmoSBGame/ArchiveMge/Headless/NesTraceModels.cs` → src/TecmoSBGame/SimArch/SimArchHeadless.cs (or future Arch test harness)
+- `src/TecmoSBGame/ArchiveMge/Input/InputManager.cs` → **(TODO)**
+- `src/TecmoSBGame/ArchiveMge/MainGame.cs` → src/TecmoSBGame/MainGameArch.cs
+- `src/TecmoSBGame/ArchiveMge/Replay/ReplayModels.cs` → **(TODO)**
+- `src/TecmoSBGame/ArchiveMge/Replay/ReplayRecorder.cs` → **(TODO)**
+- `src/TecmoSBGame/ArchiveMge/SimArch/SimMode.cs` → **(TODO)**
+- `src/TecmoSBGame/ArchiveMge/Spawning/FormationScriptParser.cs` → **(TODO)** (spawner not ported yet)
+- `src/TecmoSBGame/ArchiveMge/Spawning/FormationSpawner.cs` → src/TecmoSBGame/SimArch/Spawning/FormationSpawner.cs
+- `src/TecmoSBGame/ArchiveMge/Spawning/PlayDataScriptCompiler.cs` → **(TODO)** (spawner not ported yet)
+- `src/TecmoSBGame/ArchiveMge/Spawning/PlayScriptCompiler.cs` → **(TODO)** (spawner not ported yet)
+- `src/TecmoSBGame/ArchiveMge/Spawning/PlaySpawner.cs` → src/TecmoSBGame/SimArch/Spawning/PlaySpawner.cs
+- `src/TecmoSBGame/ArchiveMge/Spawning/TeamRoster.cs` → **(TODO)** (spawner not ported yet)
+- `src/TecmoSBGame/ArchiveMge/State/ControlState.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/State/GameStateManager.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/State/LoopState.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/State/MatchState.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/State/PassResolutionRuleset.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/State/PenaltyRuleset.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/State/PlayState.cs` → **(TODO)** (rules/state model not yet ported to SimArch)
+- `src/TecmoSBGame/ArchiveMge/Systems/AIDebugSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/AIDecisionLogSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/ActionResolutionSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/AnimationSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/BallBoundsSystem.cs` → src/TecmoSBGame/SimArch/Systems/BallSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/BallPhysicsSystem.cs` → src/TecmoSBGame/SimArch/Systems/BallSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/BehaviorStackSystem.cs` → src/TecmoSBGame/SimArch/Systems/BehaviorStackSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/BlockerAISystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/CameraSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/CollisionContactSystem.cs` → src/TecmoSBGame/SimArch/Systems/CollisionContactSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/CollisionDetectionSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/ContactDebugLogSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/DownDistanceSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/EngagementSystem.cs` → src/TecmoSBGame/SimArch/Systems/EngagementSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/FieldGoalBlockRushSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/FormationPositioningSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/FormationScriptSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/FumbleOnTackleWhistleSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/FumbleResolutionSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/GameClockSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/GameStateSystem.Scrimmage.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/GameStateSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/HudSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/InputSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/KickoffAfterScoreSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/KickoffCoverageSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/KickoffReturnSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/LoopMachineSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/LooseBallPickupSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/ManCoverageSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/Menu/MenuNavigationSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/MovementSystem.cs` → src/TecmoSBGame/SimArch/Systems/MovementSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/NextPlayResetSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PassFlightCompleteSystem.cs` → src/TecmoSBGame/SimArch/Systems/PassFlightCompleteSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/PassFlightStartSystem.cs` → src/TecmoSBGame/SimArch/Systems/PassFlightStartSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/PenaltySystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PlayCall/PlayCallSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PlayEndSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PlayExecutionSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PlayResultResolver.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PlayScriptSystem.cs` → src/TecmoSBGame/SimArch/Systems/PlayScriptSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/PlayerControlSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PostPlayContinueInputSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PreSnapBallPlacementSystem.cs` → src/TecmoSBGame/SimArch/Systems/PreSnapSystems.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/PreSnapSystem.cs` → src/TecmoSBGame/SimArch/Systems/PreSnapSystems.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/PuntCoverageSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/PuntReturnSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/QbDropbackSystem.cs` → src/TecmoSBGame/SimArch/Systems/QbAiSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/ReadProgressionSystem.cs` → src/TecmoSBGame/SimArch/Systems/QbAiSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/RenderingSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/ReplayRecorderSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/RouteFollowSystem.cs` → src/TecmoSBGame/SimArch/Systems/RouteFollowSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/RushSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/SnapResolutionSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/SoundSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/SpeedModifierSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/TackleInterruptSystem.cs` → src/TecmoSBGame/SimArch/Systems/TackleInterruptSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/TackleResolutionSystem.cs` → src/TecmoSBGame/SimArch/Systems/TackleResolutionSystem.cs
+- `src/TecmoSBGame/ArchiveMge/Systems/TestScrimmageBootstrapSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/WhistleOnTackleSystem.cs` → **(TODO)** (no SimArch port yet)
+- `src/TecmoSBGame/ArchiveMge/Systems/ZoneCoverageSystem.cs` → **(TODO)** (no SimArch port yet)
