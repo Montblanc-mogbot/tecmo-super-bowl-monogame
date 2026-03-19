@@ -46,6 +46,7 @@ public sealed class Sim : IDisposable
     public SimArch.State.PlayState PlayState => _play;
     private readonly Systems.GameClockSystem _clock = new();
     private readonly Systems.DownDistanceSystem _downDistance = new();
+    private readonly Systems.PlayResultResolver _playResult;
     private readonly Systems.PlayLifecycleSystem _lifecycle;
     private readonly Systems.SnapAndContinueInputSystem _snapAndContinue;
     private readonly Systems.PlayCall.PlayCallSystem _playCall;
@@ -85,6 +86,7 @@ public sealed class Sim : IDisposable
         _playData = playData;
         _defensePlays = defensePlays;
 
+        _playResult = new Systems.PlayResultResolver(_match, _play);
         _lifecycle = new Systems.PlayLifecycleSystem(_match, _play);
         _snapAndContinue = new Systems.SnapAndContinueInputSystem(_match, _play);
 
@@ -208,14 +210,8 @@ public sealed class Sim : IDisposable
         // Convert sim whistle into lifecycle events.
         if (_tackleResolution.WhistledThisTick)
         {
-            // TODO: compute absolute yards from world positions + ball spot.
-            // For now, keep it conservative (0 yards) to avoid bad state jumps.
-            _play.EndAbsoluteYard = _play.StartAbsoluteYard;
-            _play.Result = new TecmoSBGame.SimArch.State.PlayResult(
-                YardsGained: 0,
-                Turnover: false,
-                Touchdown: false,
-                Safety: false);
+            // Compute end spot + yards gained from world coordinates.
+            _playResult.ResolveOnTackle(World, _ballEntityId);
 
             var w = new TecmoSBGame.SimArch.Events.WhistleEvent("tackle");
             SimEventBus.Send(ref w);
