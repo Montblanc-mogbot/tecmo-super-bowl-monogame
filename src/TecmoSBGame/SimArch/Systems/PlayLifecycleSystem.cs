@@ -9,16 +9,13 @@ namespace TecmoSBGame.SimArch.Systems;
 /// Play lifecycle state machine (SimArch).
 ///
 /// Drives: PreSnap → InPlay → PostPlay → PreSnap
-/// via events:
+/// strictly via events:
 /// - PlaySelectedEvent (new play selected)
 /// - SnapEvent (snap occurs)
 /// - PlayEndedEvent (play ends)
+/// - PostPlayContinueRequestedEvent (user advances)
 ///
-/// Temporary behavior (until real inputs are wired):
-/// - auto-snap after <see cref="PreSnapAutoSnapSeconds"/>
-/// - auto-advance after <see cref="PostPlayAutoAdvanceSeconds"/>
-///
-/// Host UI should only feed inputs (play selection, snap later) and render based on PlayState.Phase.
+/// Host UI should feed inputs (play selection, snap, continue) and render based on PlayState.Phase.
 /// </summary>
 public sealed class PlayLifecycleSystem
 {
