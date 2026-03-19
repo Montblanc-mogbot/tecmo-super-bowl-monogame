@@ -373,6 +373,19 @@ public sealed class Sim : IDisposable
 
         Snapshot.Players = players;
 
+        // HUD snapshot
+        Snapshot.Hud = new SimSnapshot.HudSnapshot
+        {
+            Quarter = _match.Quarter,
+            GameClockSeconds = _match.GameClockSeconds,
+            Team0Score = _match.Team0Score,
+            Team1Score = _match.Team1Score,
+            Down = _match.Down,
+            YardsToGo = _match.YardsToGo,
+            BallOnOwnSide = _match.BallSpot.OnOwnSide,
+            BallYards = _match.BallSpot.Yards,
+        };
+
         // Engagement lines (from Engagement component partner pairs)
         {
             var lines = new System.Collections.Generic.List<SimSnapshot.EngagementLine>();

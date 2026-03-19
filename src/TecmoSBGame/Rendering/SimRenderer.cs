@@ -14,6 +14,8 @@ public sealed class SimRenderer
     private readonly Texture2D _pixel;
     private readonly SpriteRegistry _sprites;
 
+    private readonly TecmoSBGame.Rendering.Hud.HudRenderer _hud = new();
+
     public SimRenderer(SpriteBatch spriteBatch, Texture2D pixel, SpriteRegistry sprites)
     {
         _spriteBatch = spriteBatch;
@@ -23,6 +25,9 @@ public sealed class SimRenderer
 
     public void Draw(SimSnapshot snapshot)
     {
+        // HUD (top overlay)
+        _hud.Draw(_spriteBatch, snapshot);
+
         // Players
         foreach (var p in snapshot.Players)
         {

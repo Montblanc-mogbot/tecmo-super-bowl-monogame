@@ -19,6 +19,9 @@ public sealed class SimSnapshot
     public RouteDebug[] Routes = Array.Empty<RouteDebug>();
     public CoverageDebug[] Coverage = Array.Empty<CoverageDebug>();
 
+    // HUD
+    public HudSnapshot Hud;
+
     public sealed class PlayerSnapshot
     {
         public int EntityId;
@@ -46,6 +49,20 @@ public sealed class SimSnapshot
     public readonly record struct RouteDebug(int EntityId, Vector2 TargetPosition, int NodeIndex, int FramesRemaining, bool Completed);
 
     public readonly record struct CoverageDebug(int DefenderId, SnapshotCoverageType Type, int AssignmentTargetId, int PursuitTargetId, bool InPursuit, Vector2 Landmark);
+
+    public struct HudSnapshot
+    {
+        public int Quarter;
+        public int GameClockSeconds;
+
+        public int Team0Score;
+        public int Team1Score;
+
+        public int Down;
+        public int YardsToGo;
+        public bool BallOnOwnSide;
+        public int BallYards;
+    }
 }
 
 // Snapshot-only enum to avoid type name collisions with SimArch.Components.CoverageType.

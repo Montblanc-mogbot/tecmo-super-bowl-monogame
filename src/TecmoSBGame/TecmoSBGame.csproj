@@ -42,6 +42,8 @@
     <Compile Include="Rendering/RenderResources.cs" />
     <Compile Include="Rendering/FieldRenderer.cs" />
     <Compile Include="Rendering/SimRenderer.cs" />
+    <Compile Include="Rendering/Hud/**" />
+    <Compile Include="Rendering/UI/**" />
     <Compile Include="Rendering/Sprites/**" />
 
     <Compile Remove="MainGame.cs" />
