@@ -26,6 +26,8 @@ public sealed class Sim : IDisposable
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.PlayerControlSystem _playerControl = new();
     private readonly Systems.CollisionContactSystem _contacts = new();
+    private readonly Systems.FumbleDebugSystem _fumbleDebug = new();
+    private readonly Systems.LooseBallPickupSystem _loosePickup = new();
     private readonly Systems.EngagementSystem _engagement = new();
     private readonly Systems.TackleResolutionSystem _tackleResolution = new();
     private readonly Systems.BehaviorStackSystem _behaviorStack = new();
@@ -206,7 +208,12 @@ public sealed class Sim : IDisposable
         _engagement.Update(World, dtSeconds);
         _tackleResolution.Update(World, dtSeconds, _ballEntityId, ref _control);
         _behaviorStack.Update(World, dtSeconds);
+
+        // Debug fumble trigger + loose-ball recovery.
+        _fumbleDebug.Update(World, _ballEntityId, _ui);
+
         _ball.Update(World, dtSeconds);
+        _loosePickup.Update(World, _ballEntityId, ref _control);
 
 
         // Convert sim whistle into lifecycle events.

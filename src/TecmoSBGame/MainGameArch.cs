@@ -42,6 +42,7 @@ public sealed class MainGameArch : Game
     // UI input edge tracking
     private bool _prevEnter;
     private bool _prevSpace;
+    private bool _prevB;
 
 
     public GameContent GameContent { get; private set; } = null!;
@@ -123,6 +124,7 @@ public sealed class MainGameArch : Game
         // UI buttons (edge-triggered)
         var enter = kb.IsKeyDown(Keys.Enter);
         var space = kb.IsKeyDown(Keys.Space);
+        var bkey = kb.IsKeyDown(Keys.B);
 
         var ui = new SimArch.Components.UiButtons
         {
@@ -132,12 +134,14 @@ public sealed class MainGameArch : Game
             Right = kb.IsKeyDown(Keys.Right),
 
             Select = enter && !_prevEnter,
+            Back = bkey && !_prevB,
             Snap = space && !_prevSpace,
             Continue = enter && !_prevEnter,
         };
 
         _prevEnter = enter;
         _prevSpace = space;
+        _prevB = bkey;
 
         _sim.SetUiButtons(ui);
 
