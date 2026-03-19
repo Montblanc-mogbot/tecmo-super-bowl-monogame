@@ -41,17 +41,41 @@ public struct FormationScript
 
 public enum FormationScriptOpKind
 {
-    Nop = 0,
-    MoveAbsolute = 1,
-    MoveRelative = 2,
-    Pause = 3,
-    LoopBack = 4,
-    WaitForSnap = 5,
-    TakeControl = 6,
-    ComputerTakeControl = 7,
-    SetToBlock = 8,
-    PassBlock = 9,
-    Unknown = 99,
+    // Generic recognized-but-ignored token (keeps parser from emitting NOP/Unknown fallbacks).
+    NoOp = 0,
+
+    // Placement/motion subset
+    SetPosFromKick = 1,
+    SetPosFromHike = 2,
+    SetPosFromMid = 3,
+
+    MoveAbsolute = 10,
+    MoveRelative = 11,
+    Pause = 12,
+    LoopBack = 13,
+    WaitForSnap = 14,
+
+    // Control / blocking markers (may be ignored by interpreter for now)
+    TakeControl = 20,
+    ComputerTakeControl = 21,
+    SetToBlock = 22,
+    PassBlock = 23,
+
+    // Common opaque opcodes appearing in YAML (recognized, currently ignored)
+    Fc = 30,
+    Cd = 31,
+    Cf = 32,
+    JumpTo = 33,
+    BoostMs = 34,
+    BoostHp = 35,
+    SwitchIcon = 36,
+    FaceDirection = 37,
+    ShotgunHike = 38,
+
+    // Special teams markers
+    Punt = 50,
+    FieldGoal = 51,
+    FieldGoalTakeSnap = 52,
 }
 
 public readonly record struct FormationScriptOp(
@@ -60,5 +84,5 @@ public readonly record struct FormationScriptOp(
     float Seconds,
     string Raw)
 {
-    public static FormationScriptOp Nop(string raw) => new(FormationScriptOpKind.Nop, Vector2.Zero, 0f, raw);
+    public static FormationScriptOp NoOp(string raw) => new(FormationScriptOpKind.NoOp, Vector2.Zero, 0f, raw);
 }
