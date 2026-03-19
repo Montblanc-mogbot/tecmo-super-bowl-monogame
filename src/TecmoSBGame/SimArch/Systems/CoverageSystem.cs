@@ -8,6 +8,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/ZoneCoverageSystem.cs
+
 /// <summary>
 /// Combined man/zone coverage (SimArch scaffold).
 ///

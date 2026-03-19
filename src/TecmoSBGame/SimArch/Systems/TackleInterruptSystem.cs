@@ -6,6 +6,8 @@ using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/TackleInterruptSystem.cs
+
 /// <summary>
 /// Consumes <see cref="TackleContactEvent"/> and temporarily interrupts the carrier + defender.
 ///

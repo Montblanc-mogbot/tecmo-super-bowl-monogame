@@ -7,6 +7,8 @@ using TecmoSBGame.SimArch.Routes;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/RouteFollowSystem.cs
+
 /// <summary>
 /// Frame-timed route following (SimArch).
 ///

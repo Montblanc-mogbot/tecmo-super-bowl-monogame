@@ -6,6 +6,9 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/PreSnapSystem.cs
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/PreSnapBallPlacementSystem.cs
+
 /// <summary>
 /// SimArch pre-snap placement scaffold.
 ///

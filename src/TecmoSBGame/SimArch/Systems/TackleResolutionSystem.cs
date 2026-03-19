@@ -8,6 +8,9 @@ using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/TackleResolutionSystem.cs
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/WhistleOnTackleSystem.cs
+
 public enum TackleOutcome
 {
     Downed = 0,

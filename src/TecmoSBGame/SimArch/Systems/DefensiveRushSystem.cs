@@ -7,6 +7,8 @@ using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Systems;
 
+// Ported from: src/TecmoSBGame/ArchiveMge/Systems/RushSystem.cs
+
 /// <summary>
 /// Defensive rush (SimArch scaffold).
 ///
