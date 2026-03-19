@@ -24,6 +24,8 @@ public sealed class Sim : IDisposable
     private readonly Systems.MovementSystem _movement = new();
     private readonly Systems.PlayScriptSystem _playScripts = new();
     private readonly Systems.BallSystem _ball = new();
+    private readonly Systems.PassFlightCompleteSystem _passComplete = new();
+    private readonly Systems.KickoffFlightCompleteSystem _kickoffComplete = new();
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
     private readonly System.Collections.Generic.List<int> _defense = new(11);
@@ -88,6 +90,8 @@ public sealed class Sim : IDisposable
         _playScripts.Update(World, dtSeconds, _ballEntityId, ref _control);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _ball.Update(World, dtSeconds);
+        _passComplete.Update(World);
+        _kickoffComplete.Update(World);
 
         // Update snapshot.
         Snapshot.Tick++;
