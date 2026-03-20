@@ -69,8 +69,8 @@ public sealed class MainGameArch : Game
         GameContent = new GameContent(Services);
         GameContent.LoadAll();
 
-        base.Initialize();
-
+        // NOTE: Some MonoGame initialization paths can invoke LoadContent very early.
+        // Ensure render dependencies are created before base.Initialize().
         _viewport = new RenderViewport(GraphicsDevice);
         _renderResources = new RenderResources(GraphicsDevice);
         _fieldRenderer = new FieldRenderer(GraphicsDevice);
@@ -87,6 +87,8 @@ public sealed class MainGameArch : Game
         if (GameContent.SpriteManifest is not null)
             reg.LoadFromManifest(Content, GameContent.SpriteManifest);
         _spriteRegistry = reg;
+
+        base.Initialize();
     }
 
     protected override void LoadContent()
