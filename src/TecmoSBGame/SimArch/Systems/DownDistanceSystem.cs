@@ -19,8 +19,6 @@ public sealed class DownDistanceSystem
         if (!play.IsOver)
             return;
 
-        match.PlayNumber++;
-
         var offenseTeam = match.PossessionTeam;
 
         if (play.Result.Touchdown)
