@@ -3,13 +3,11 @@ namespace TecmoSBGame.Audio;
 public enum SoundCue
 {
     Snap = 0,
-    Catch = 1,
-    Interception = 2,
+    Whistle = 1,
+    Tackle = 2,
     Incomplete = 3,
-    Hit = 4,
-    Whistle = 5,
-    Fumble = 6,
-    Crowd = 7,
-    MenuMove = 8,
-    MenuSelect = 9,
+    Turnover = 4,
+    Touchdown = 5,
+    MenuMove = 6,
+    MenuSelect = 7,
 }

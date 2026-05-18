@@ -5,6 +5,7 @@ using Arch.Core.Extensions;
 using Microsoft.Xna.Framework;
 using TecmoSBGame.SimArch.Components;
 using TecmoSBGame.SimArch.Events;
+using TecmoSBGame.SimArch.State;
 
 namespace TecmoSBGame.SimArch.Systems;
 
@@ -31,6 +32,12 @@ public enum TackleOutcome
 /// </summary>
 public sealed class TackleResolutionSystem
 {
+    private const float BaseForcedFumbleChance = 0.14f;
+    private const float TacklerHpFumbleWeight = 0.0035f;
+    private const float CarrierRsFumbleWeight = 0.0020f;
+    private const float CarrierHpFumbleWeight = 0.0010f;
+    private const float FumbleImpulsePerTick = 1.8f;
+
     // (tackler, carrier) -> remaining cooldown seconds
     private readonly Dictionary<ulong, float> _cooldowns = new(capacity: 64);
 
@@ -45,9 +52,12 @@ public sealed class TackleResolutionSystem
     /// </summary>
     public bool WhistledThisTick { get; private set; }
 
-    public void Update(World world, float dtSeconds, int ballEntityId, ref Control control)
+    public bool FumbleTriggeredThisTick { get; private set; }
+
+    public void Update(World world, float dtSeconds, int ballEntityId, ref Control control, PlayState? play = null)
     {
         WhistledThisTick = false;
+        FumbleTriggeredThisTick = false;
 
         if (dtSeconds > 0f)
             TickCooldowns(dtSeconds);
@@ -71,8 +81,12 @@ public sealed class TackleResolutionSystem
             roll++;
             _rollIndex[key] = roll;
 
+            var playSeed = play is null
+                ? (uint)roll
+                : unchecked((uint)(play.PlayId * 131 + roll));
+
             var (outcome, u) = ResolveOutcome(
-                playSeed: (uint)roll,
+                playSeed: playSeed,
                 tacklerId: tacklerId,
                 carrierId: carrierId,
                 tackler: tackler,
@@ -85,6 +99,12 @@ public sealed class TackleResolutionSystem
             {
                 case TackleOutcome.Downed:
                 case TackleOutcome.FallForward:
+                    if (TryForceFumble(world, ballEntityId, tacklerId, carrierId, tackler, carrier, playSeed, evt.Position, ref control))
+                    {
+                        FumbleTriggeredThisTick = true;
+                        break;
+                    }
+
                     WhistleDeadBall(world, ballEntityId, carrierId, ref control);
                     WhistledThisTick = true;
                     break;
@@ -147,7 +167,7 @@ public sealed class TackleResolutionSystem
                 v.Value = Vector2.Zero;
         });
 
-        // Mark ball dead.
+        // Mark ball dead, but preserve the last carrier until play-end resolution runs.
         var qBall = new QueryDescription().WithAll<Ball>();
         world.Query(in qBall, (Entity e, ref Ball b) =>
         {
@@ -155,7 +175,7 @@ public sealed class TackleResolutionSystem
                 return;
 
             b.State = Components.BallState.Dead;
-            b.OwnerEntityId = -1;
+            b.OwnerEntityId = carrierId;
             b.FlightKind = BallFlightKind.None;
             b.Height = 0f;
             b.IsComplete = true;
@@ -164,6 +184,107 @@ public sealed class TackleResolutionSystem
         // Control reset: if user was controlling the carrier, release it.
         if (control.ControlledEntityId == carrierId)
             control.ControlledEntityId = -1;
+    }
+
+    private static bool TryForceFumble(World world, int ballEntityId, int tacklerId, int carrierId, Ratings tackler, Ratings carrier, uint playSeed, Vector2 contactPos, ref Control control)
+    {
+        if (!BallIsHeldByCarrier(world, ballEntityId, carrierId))
+            return false;
+
+        var fumbleChance = MathHelper.Clamp(
+            BaseForcedFumbleChance
+            + ((tackler.HP - 50f) * TacklerHpFumbleWeight)
+            - ((carrier.RS - 50f) * CarrierRsFumbleWeight)
+            - ((carrier.HP - 50f) * CarrierHpFumbleWeight),
+            0.02f,
+            0.65f);
+
+        var roll = DeterministicFloat01(playSeed, (uint)tacklerId, (uint)carrierId, 0xF00B1Eu);
+        if (roll >= fumbleChance)
+            return false;
+
+        var qBall = new QueryDescription().WithAll<Ball, Position, Velocity>();
+        world.Query(in qBall, (Entity e, ref Ball b, ref Position p, ref Velocity v) =>
+        {
+            if (e.Id != ballEntityId)
+                return;
+
+            b.State = BallState.Loose;
+            b.OwnerEntityId = -1;
+            b.FlightKind = BallFlightKind.None;
+            b.PasserEntityId = 0;
+            b.TargetEntityId = 0;
+            b.IntendedReceiverRoleId = RoleId.Unknown;
+            b.IntendedReceiverSlot = string.Empty;
+            b.PassTargetPosition = Vector2.Zero;
+            b.NearestDefenderEntityId = 0;
+            b.NearestDefenderPosition = Vector2.Zero;
+            b.Height = 0f;
+            b.IsComplete = true;
+            p.Value = contactPos;
+
+            var dir = BuildFumbleImpulseDirection(world, carrierId, tacklerId);
+            v.Value = dir * FumbleImpulsePerTick;
+        });
+
+        if (control.ControlledEntityId == carrierId)
+            control.ControlledEntityId = -1;
+
+        var fumble = new FumbleEvent(carrierId, "tackle");
+        SimEventBus.Send(ref fumble);
+        return true;
+    }
+
+    private static bool BallIsHeldByCarrier(World world, int ballEntityId, int carrierId)
+    {
+        var held = false;
+        var qBall = new QueryDescription().WithAll<Ball>();
+        world.Query(in qBall, (Entity e, ref Ball b) =>
+        {
+            if (held || e.Id != ballEntityId)
+                return;
+
+            held = b.State == BallState.Held && b.OwnerEntityId == carrierId;
+        });
+
+        return held;
+    }
+
+    private static Vector2 BuildFumbleImpulseDirection(World world, int carrierId, int tacklerId)
+    {
+        var carrierPos = TryGetPosition(world, carrierId, out var cPos) ? cPos : Vector2.Zero;
+        var tacklerPos = TryGetPosition(world, tacklerId, out var tPos) ? tPos : carrierPos - Vector2.UnitX;
+        var dir = carrierPos - tacklerPos;
+        if (dir.LengthSquared() <= 0.001f)
+            dir = new Vector2(1f, 0.3f);
+        else
+            dir.Normalize();
+
+        dir.Y += dir.Y >= 0f ? 0.2f : -0.2f;
+        if (dir.LengthSquared() <= 0.001f)
+            dir = new Vector2(1f, 0.25f);
+        else
+            dir.Normalize();
+
+        return dir;
+    }
+
+    private static bool TryGetPosition(World world, int entityId, out Vector2 position)
+    {
+        var local = Vector2.Zero;
+        var found = false;
+        var q = new QueryDescription().WithAll<Position>();
+        world.Query(in q, (Entity e, ref Position p) =>
+        {
+            if (found || e.Id != entityId)
+                return;
+
+            local = p.Value;
+            found = true;
+        });
+
+        position = local;
+        return found;
     }
 
     private static void ApplyInterrupt(World world, int entityId, int targetId, BehaviorState state, float durationSeconds)

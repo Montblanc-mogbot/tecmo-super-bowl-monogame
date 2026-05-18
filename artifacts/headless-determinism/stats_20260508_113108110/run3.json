@@ -1,0 +1,324 @@
+{
+  "Scenario": "stats",
+  "Results": [
+    {
+      "Name": "passing",
+      "Payload": {
+        "Stats": {
+          "Match": {
+            "Teams": {
+              "0": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 1,
+                "PassCompletions": 1,
+                "PassingYards": 12,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0,
+                "Interceptions": 0,
+                "FumbleRecoveries": 0
+              },
+              "1": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0,
+                "Interceptions": 0,
+                "FumbleRecoveries": 0
+              }
+            },
+            "Players": {
+              "0": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 1,
+                "PassCompletions": 1,
+                "PassingYards": 12,
+                "Receptions": 0,
+                "ReceivingYards": 0,
+                "InterceptionsThrown": 0,
+                "InterceptionsCaught": 0,
+                "FumblesRecovered": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0
+              },
+              "1": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "Receptions": 1,
+                "ReceivingYards": 12,
+                "InterceptionsThrown": 0,
+                "InterceptionsCaught": 0,
+                "FumblesRecovered": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0
+              }
+            }
+          },
+          "CurrentPlay": {
+            "PlayId": 1,
+            "RushingYards": 0,
+            "PassingYards": 12,
+            "Turnover": false,
+            "BallCarrierId": null,
+            "PasserId": 0,
+            "ReceiverId": 1,
+            "InterceptorId": null
+          },
+          "EventLog": [
+            {
+              "PlayId": 1,
+              "EventType": "pass_complete",
+              "TeamIndex": 0,
+              "PlayerId": 0,
+              "Yards": 12,
+              "Turnover": false,
+              "Detail": "receiver=1"
+            },
+            {
+              "PlayId": 1,
+              "EventType": "reception",
+              "TeamIndex": 0,
+              "PlayerId": 1,
+              "Yards": 12,
+              "Turnover": false,
+              "Detail": "passer=0"
+            }
+          ]
+        },
+        "Replay": {
+          "meta": {
+            "playId": 1,
+            "startAbsoluteYard": 40,
+            "seed": 0,
+            "notes": "",
+            "finalAbsoluteYard": 52
+          },
+          "frames": [],
+          "events": [
+            {
+              "tick": 0,
+              "type": "pass_complete",
+              "team": 0,
+              "player": 0,
+              "yards": 12,
+              "turnover": false,
+              "detail": "receiver=1"
+            },
+            {
+              "tick": 0,
+              "type": "reception",
+              "team": 0,
+              "player": 1,
+              "yards": 12,
+              "turnover": false,
+              "detail": "passer=0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "Name": "rushing",
+      "Payload": {
+        "Stats": {
+          "Match": {
+            "Teams": {
+              "0": {
+                "RushingAttempts": 1,
+                "RushingYards": 6,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0,
+                "Interceptions": 0,
+                "FumbleRecoveries": 0
+              },
+              "1": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0,
+                "Interceptions": 0,
+                "FumbleRecoveries": 0
+              }
+            },
+            "Players": {
+              "0": {
+                "RushingAttempts": 1,
+                "RushingYards": 6,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "Receptions": 0,
+                "ReceivingYards": 0,
+                "InterceptionsThrown": 0,
+                "InterceptionsCaught": 0,
+                "FumblesRecovered": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 0
+              }
+            }
+          },
+          "CurrentPlay": {
+            "PlayId": 1,
+            "RushingYards": 0,
+            "PassingYards": 0,
+            "Turnover": false,
+            "BallCarrierId": 0,
+            "PasserId": null,
+            "ReceiverId": null,
+            "InterceptorId": null
+          },
+          "EventLog": [
+            {
+              "PlayId": 1,
+              "EventType": "rush",
+              "TeamIndex": 0,
+              "PlayerId": 0,
+              "Yards": 6,
+              "Turnover": false,
+              "Detail": ""
+            }
+          ]
+        },
+        "Replay": {
+          "meta": {
+            "playId": 1,
+            "startAbsoluteYard": 40,
+            "seed": 0,
+            "notes": "",
+            "finalAbsoluteYard": 46
+          },
+          "frames": [],
+          "events": [
+            {
+              "tick": 0,
+              "type": "rush",
+              "team": 0,
+              "player": 0,
+              "yards": 6,
+              "turnover": false,
+              "detail": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "Name": "turnover",
+      "Payload": {
+        "Stats": {
+          "Match": {
+            "Teams": {
+              "0": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 1,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "TurnoversCommitted": 1,
+                "TurnoversForced": 0,
+                "Interceptions": 0,
+                "FumbleRecoveries": 0
+              },
+              "1": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 1,
+                "Interceptions": 1,
+                "FumbleRecoveries": 0
+              }
+            },
+            "Players": {
+              "0": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 1,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "Receptions": 0,
+                "ReceivingYards": 0,
+                "InterceptionsThrown": 1,
+                "InterceptionsCaught": 0,
+                "FumblesRecovered": 0,
+                "TurnoversCommitted": 1,
+                "TurnoversForced": 0
+              },
+              "1": {
+                "RushingAttempts": 0,
+                "RushingYards": 0,
+                "PassAttempts": 0,
+                "PassCompletions": 0,
+                "PassingYards": 0,
+                "Receptions": 0,
+                "ReceivingYards": 0,
+                "InterceptionsThrown": 0,
+                "InterceptionsCaught": 1,
+                "FumblesRecovered": 0,
+                "TurnoversCommitted": 0,
+                "TurnoversForced": 1
+              }
+            }
+          },
+          "CurrentPlay": {
+            "PlayId": 1,
+            "RushingYards": 0,
+            "PassingYards": 0,
+            "Turnover": true,
+            "BallCarrierId": null,
+            "PasserId": 0,
+            "ReceiverId": null,
+            "InterceptorId": 1
+          },
+          "EventLog": [
+            {
+              "PlayId": 1,
+              "EventType": "interception",
+              "TeamIndex": 1,
+              "PlayerId": 1,
+              "Yards": 0,
+              "Turnover": true,
+              "Detail": "passer=0"
+            }
+          ]
+        },
+        "Replay": {
+          "meta": {
+            "playId": 1,
+            "startAbsoluteYard": 40,
+            "seed": 0,
+            "notes": "",
+            "finalAbsoluteYard": 48
+          },
+          "frames": [],
+          "events": [
+            {
+              "tick": 0,
+              "type": "interception",
+              "team": 1,
+              "player": 1,
+              "yards": 0,
+              "turnover": true,
+              "detail": "passer=0"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

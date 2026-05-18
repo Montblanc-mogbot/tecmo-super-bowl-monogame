@@ -2,6 +2,7 @@ using System;
 using Arch.Core;
 using Arch.Core.Extensions;
 using TecmoSB;
+using TecmoSBGame.SimArch.Components.PlayCall;
 using TecmoSBGame.SimArch.Events;
 
 namespace TecmoSBGame.SimArch;
@@ -24,9 +25,11 @@ public sealed class Sim : IDisposable
 
 
     private readonly Systems.MovementSystem _movement = new();
+    private readonly Systems.SpeedModifierSystem _speedModifiers = new();
     private readonly Systems.PlayerControlSystem _playerControl = new();
     private readonly Systems.CollisionContactSystem _contacts = new();
     private readonly Systems.FumbleDebugSystem _fumbleDebug = new();
+    private readonly Systems.FumbleResolutionSystem _fumbleResolution = new();
     private readonly Systems.LooseBallPickupSystem _loosePickup = new();
     private readonly Systems.EngagementSystem _engagement = new();
     private readonly Systems.TackleResolutionSystem _tackleResolution = new();
@@ -49,6 +52,10 @@ public sealed class Sim : IDisposable
     private readonly Systems.GameClockSystem _clock = new();
     private readonly Systems.DownDistanceSystem _downDistance = new();
     private readonly Systems.PlayResultResolver _playResult;
+    private readonly Systems.KickoffAfterScoreSystem _kickoffAfterScore;
+    private readonly Systems.KickoffPlaySystem _kickoffPlay = new();
+    private readonly Systems.PuntPlaySystem _puntPlay = new();
+    private readonly Systems.FieldGoalPlaySystem _fieldGoalPlay = new();
     private readonly Systems.PlayLifecycleSystem _lifecycle;
     private readonly Systems.SnapAndContinueInputSystem _snapAndContinue;
     private readonly Systems.PlayCall.PlayCallSystem _playCall;
@@ -61,6 +68,7 @@ public sealed class Sim : IDisposable
     private readonly Systems.PlayEndSystem _playEnd = new();
     private readonly Systems.NextPlayResetSystem _nextPlayReset = new();
     private readonly Systems.TackleAndPlayEndSystems _tackleAndEnd = new(); // legacy fallback; no longer detects tackles
+    private int _lastAppliedPlayEndPlayId;
 
     private readonly System.Collections.Generic.List<int> _offense = new(11);
     private readonly System.Collections.Generic.List<int> _defense = new(11);
@@ -69,6 +77,8 @@ public sealed class Sim : IDisposable
     private Components.Control _control;
     private Components.Input _input;
     private Components.UiButtons _ui;
+    private bool _paused;
+    private string _lastPlaySummary = string.Empty;
 
     private TecmoSB.FormationDataConfig? _formationData;
     private TecmoSB.DefensiveFormationDataConfig? _defensiveFormationData;
@@ -91,7 +101,8 @@ public sealed class Sim : IDisposable
         _defensePlays = defensePlays;
 
         _playResult = new Systems.PlayResultResolver(_match, _play);
-        _lifecycle = new Systems.PlayLifecycleSystem(_match, _play);
+        _kickoffAfterScore = new Systems.KickoffAfterScoreSystem(_match, _play);
+        _lifecycle = new Systems.PlayLifecycleSystem(_match, _play, _kickoffAfterScore);
         _snapAndContinue = new Systems.SnapAndContinueInputSystem(_match, _play);
 
         // If these aren't provided, we'll lazy-load in BootstrapWorld.
@@ -132,12 +143,35 @@ public sealed class Sim : IDisposable
         _match.OffenseDirection = SimArch.State.OffenseDirection.LeftToRight;
         _match.Down = 1;
         _match.YardsToGo = 10;
+        _match.GoalToGo = false;
         _match.BallSpot = SimArch.State.BallSpot.Own(25);
         _match.Team0Score = 0;
         _match.Team1Score = 0;
         _match.PlayNumber = 0;
         _match.DriveId = 0;
         _match.MatchOver = false;
+        _match.Phase = SimArch.State.MatchPhase.FirstQuarter;
+        _match.ClockRunning = false;
+        _match.KickingTeamIndex = 1;
+        _match.ReceivingTeamIndex = 0;
+        _match.DeferredKickKickingTeam = 1;
+        _match.DeferredKickReceivingTeam = 0;
+        _match.KickoffPending = false;
+        _match.KickoffPlayActive = false;
+        _match.KickoffLandingAbsoluteYardOverride = null;
+        _match.PuntPending = false;
+        _match.PuntPlayActive = false;
+        _match.PuntLandingAbsoluteYardOverride = null;
+        _match.ForcePuntMuff = false;
+        _match.FieldGoalPending = false;
+        _match.FieldGoalPlayActive = false;
+        _match.ExtraPointPending = false;
+        _match.FieldGoalTargetAbsoluteYardOverride = null;
+        _match.ForceFieldGoalBlock = false;
+        _match.ForceFieldGoalMiss = false;
+        _lastAppliedPlayEndPlayId = 0;
+        _paused = false;
+        _lastPlaySummary = string.Empty;
 
         _play.ResetForNewPlay(playId: 0, startAbsoluteYard: SimArch.State.PlayState.ToAbsoluteYard(_match.BallSpot, _match.OffenseDirection));
 
@@ -169,15 +203,36 @@ public sealed class Sim : IDisposable
         _input.Direction = direction;
     }
 
+    public bool Paused => _paused;
+
+    public void SetPaused(bool paused)
+    {
+        _paused = paused;
+        if (paused)
+            _input.Direction = Microsoft.Xna.Framework.Vector2.Zero;
+    }
+
     public void Update(float dtSeconds)
     {
+        if (_paused)
+        {
+            UpdateSnapshot();
+            return;
+        }
+        var kickoffActive = _match.KickoffPending;
+        var puntActive = _match.PuntPending;
+        var fieldGoalActive = _match.FieldGoalPending;
+
         // UI-driven playcall + lifecycle inputs.
-        _playCall.Update(World, _ui);
-        _playCallPublish.Update(World, _ui);
+        if (!kickoffActive && !puntActive && !fieldGoalActive)
+        {
+            _playCall.Update(World, _ui);
+            _playCallPublish.Update(World, _ui);
+        }
         _snapAndContinue.Update(World, _ui);
 
         // Apply queued selection at the start of a tick.
-        if (_pendingSelection is not null)
+        if (!kickoffActive && !puntActive && !fieldGoalActive && _pendingSelection is not null)
         {
             var sel = _pendingSelection.Value;
             _pendingSelection = null;
@@ -192,29 +247,71 @@ public sealed class Sim : IDisposable
         }
 
         // Run systems (minimal set for now).
-        // Pre-snap placement runs opportunistically when the ball is Dead.
-        _preSnap.Update(World, _offense, _defense, _ballEntityId, offenseDirSign: 1f);
-        _formationScripts.Update(World, dtSeconds);
+        if (kickoffActive)
+        {
+            _kickoffPlay.UpdatePreMovement(World, _match, _play, _ballEntityId, _offense, _defense, ref _control);
+        }
+        else if (puntActive)
+        {
+            _puntPlay.UpdatePreMovement(World, _match, _play, _ballEntityId, _offense, _defense, ref _control);
+        }
+        else if (fieldGoalActive)
+        {
+            _fieldGoalPlay.UpdatePreMovement(World, _match, _play, _ballEntityId, _offense, _defense, ref _control);
+        }
+        else
+        {
+            // Pre-snap placement runs opportunistically when the ball is Dead.
+            _preSnap.Update(World, _offense, _defense, _ballEntityId, offenseDirSign: 1f);
+            _formationScripts.Update(World, dtSeconds);
 
-        _playScripts.Update(World, dtSeconds, _ballEntityId, _offense, _defense, _scriptRegistry, ref _control);
-        _routes.Update(World, dtSeconds, _routeRegistry);
-        _blockerAi.Update(World, dtSeconds, _offense, _defense, _ballEntityId);
-        _rush.Update(World, dtSeconds, _defense);
-        _coverage.Update(World, dtSeconds, _ballEntityId, _defense);
-        _qbAi.Update(World, dtSeconds, _ballEntityId);
+            _playScripts.Update(World, dtSeconds, _ballEntityId, _offense, _defense, _scriptRegistry, ref _control);
+            _routes.Update(World, dtSeconds, _routeRegistry);
+            _blockerAi.Update(World, dtSeconds, _offense, _defense, _ballEntityId);
+            _rush.Update(World, dtSeconds, _defense);
+            _coverage.Update(World, dtSeconds, _ballEntityId, _defense);
+            _qbAi.Update(World, dtSeconds, _ballEntityId);
+        }
         _playerControl.Update(World, dtSeconds, _ballEntityId, ref _control);
+        _speedModifiers.Update(World, dtSeconds);
         _movement.Update(World, dtSeconds, _control.ControlledEntityId, _input.Direction);
         _contacts.Update(World, _offense, _defense);
         _engagement.Update(World, dtSeconds);
-        _tackleResolution.Update(World, dtSeconds, _ballEntityId, ref _control);
+        _tackleResolution.Update(World, dtSeconds, _ballEntityId, ref _control, _play);
         _behaviorStack.Update(World, dtSeconds);
 
         // Debug fumble trigger + loose-ball recovery.
         _fumbleDebug.Update(World, _ballEntityId, _ui);
+        _fumbleResolution.Update(World, _ballEntityId);
 
         _ball.Update(World, dtSeconds);
-        _loosePickup.Update(World, _ballEntityId, ref _control);
+        if (kickoffActive)
+            _kickoffPlay.UpdatePostBall(World, _match, _play, _ballEntityId, ref _control);
+        else if (puntActive)
+            _puntPlay.UpdatePostBall(World, _match, _play, _ballEntityId, ref _control);
+        else if (fieldGoalActive)
+            _fieldGoalPlay.UpdatePostBall(World, _match, _play, _ballEntityId, ref _control);
+        else
+            _passComplete.Update(World);
+        _loosePickup.Update(World, _ballEntityId, ref _control, _match, _play);
 
+        if (_loosePickup.RecoveredThisTick)
+        {
+            _playResult.ResolveOnTackle(World, _ballEntityId);
+
+            var reason = _loosePickup.TurnoverThisTick
+                ? TecmoSBGame.SimArch.State.WhistleReason.Turnover
+                : TecmoSBGame.SimArch.State.WhistleReason.Tackle;
+            var ended = new TecmoSBGame.SimArch.Events.PlayEndedEvent(
+                PlayId: _play.PlayId,
+                Reason: (int)reason,
+                EndAbsoluteYard: _play.EndAbsoluteYard,
+                YardsGained: _play.Result.YardsGained,
+                Turnover: _play.Result.Turnover,
+                Touchdown: _play.Result.Touchdown,
+                Safety: _play.Result.Safety);
+            SimEventBus.Send(ref ended);
+        }
 
         // Convert sim whistle into lifecycle events.
         if (_tackleResolution.WhistledThisTick)
@@ -234,13 +331,43 @@ public sealed class Sim : IDisposable
                 Touchdown: _play.Result.Touchdown,
                 Safety: _play.Result.Safety);
             SimEventBus.Send(ref ended);
+        }
 
-            // Apply match rules immediately (still deterministic) using the play model.
-            _downDistance.ApplyPlayEnd(_match, _play);
+        foreach (var resolved in SimEventBus.Drain<PassResolvedEvent>())
+        {
+            if (resolved.Outcome != PassOutcome.Incomplete)
+                continue;
+
+            var ended = new TecmoSBGame.SimArch.Events.PlayEndedEvent(
+                PlayId: _play.PlayId,
+                Reason: (int)TecmoSBGame.SimArch.State.WhistleReason.Incomplete,
+                EndAbsoluteYard: _play.StartAbsoluteYard,
+                YardsGained: 0,
+                Turnover: false,
+                Touchdown: false,
+                Safety: false);
+            SimEventBus.Send(ref ended);
         }
 
         // Lifecycle transitions (event-driven; no auto-snap/auto-advance shortcuts).
         _lifecycle.Update(World);
+
+        foreach (var _ in SimEventBus.Drain<HalftimeEvent>())
+        {
+            // wait for explicit continue after halftime
+        }
+
+        foreach (var _ in SimEventBus.Drain<GameEndedEvent>())
+        {
+            _match.MatchOver = true;
+        }
+
+        if (_play.IsOver && _play.PlayId != _lastAppliedPlayEndPlayId)
+        {
+            _downDistance.ApplyPlayEnd(_match, _play);
+            _lastAppliedPlayEndPlayId = _play.PlayId;
+            _lastPlaySummary = BuildLastPlaySummary(_match, _play);
+        }
 
         // Play time/clock tick (after lifecycle transitions).
         if (_play.Phase == TecmoSBGame.SimArch.State.PlayPhase.InPlay)
@@ -248,11 +375,12 @@ public sealed class Sim : IDisposable
             _play.PlayElapsedSeconds += dtSeconds;
             _clock.Update(_match, _play);
         }
-        _passComplete.Update(World);
-        _kickoffComplete.Update(World);
 
         _playEnd.Update(World, _ballEntityId, _match, _play);
         _nextPlayReset.Update(World, _ballEntityId, _match, _play);
+
+        if (_match.Phase == SimArch.State.MatchPhase.Halftime && _play.Phase == TecmoSBGame.SimArch.State.PlayPhase.PreSnap)
+            _clock.AdvanceFromHalftime(_match);
         // NOTE: tackle detection is now handled by CollisionContactSystem + TackleResolutionSystem.
         // Keep this system wired only for any remaining play-end/reset scaffolding.
         // _tackleAndEnd.Update(World, _ballEntityId, ref _control);
@@ -313,7 +441,12 @@ public sealed class Sim : IDisposable
         _defense.AddRange(def);
         _ballEntityId = ball;
 
-        _control = new Components.Control { ControlledEntityId = off.Count > 0 ? off[0] : -1, PendingForcedEntityId = -1 };
+        _control = new Components.Control
+        {
+            ControlledEntityId = off.Count > 0 ? off[0] : -1,
+            PendingForcedEntityId = -1,
+            PreviousControlledEntityId = -1,
+        };
     }
 
     private void UpdateSnapshot()
@@ -326,6 +459,7 @@ public sealed class Sim : IDisposable
         var posById = new System.Collections.Generic.Dictionary<int, Microsoft.Xna.Framework.Vector2>();
         var teamById = new System.Collections.Generic.Dictionary<int, Components.Team>();
         var roleById = new System.Collections.Generic.Dictionary<int, Components.Role>();
+        var playerRoleById = new System.Collections.Generic.Dictionary<int, Components.PlayerRole>();
         var behaviorById = new System.Collections.Generic.Dictionary<int, Components.Behavior>();
 
         var qPlayers = new QueryDescription().WithAll<Components.Position, Components.Team>();
@@ -338,6 +472,9 @@ public sealed class Sim : IDisposable
         var qRole = new QueryDescription().WithAll<Components.Role>();
         World.Query(in qRole, (Entity e, ref Components.Role r) => roleById[e.Id] = r);
 
+        var qPlayerRole = new QueryDescription().WithAll<Components.PlayerRole>();
+        World.Query(in qPlayerRole, (Entity e, ref Components.PlayerRole pr) => playerRoleById[e.Id] = pr);
+
         var qBeh = new QueryDescription().WithAll<Components.Behavior>();
         World.Query(in qBeh, (Entity e, ref Components.Behavior b) => behaviorById[e.Id] = b);
 
@@ -349,6 +486,7 @@ public sealed class Sim : IDisposable
                 return;
 
             roleById.TryGetValue(entityId, out var role);
+            playerRoleById.TryGetValue(entityId, out var playerRole);
             behaviorById.TryGetValue(entityId, out var beh);
 
             players[idx] = new SimSnapshot.PlayerSnapshot
@@ -358,8 +496,10 @@ public sealed class Sim : IDisposable
                 TeamIndex = team.TeamIndex,
                 IsOffense = team.IsOffense,
                 HasBall = false,
+                IsPlayerControlled = team.IsPlayerControlled,
                 SpriteId = team.IsOffense ? "qb" : "def",
                 Role = role.Id.ToString(),
+                Slot = playerRole.Slot ?? string.Empty,
                 Behavior = beh.State.ToString(),
             };
             idx++;
@@ -380,10 +520,22 @@ public sealed class Sim : IDisposable
             GameClockSeconds = _match.GameClockSeconds,
             Team0Score = _match.Team0Score,
             Team1Score = _match.Team1Score,
+            PossessionTeam = _match.PossessionTeam,
+            AwayTeamId = _match.AwayTeamId,
+            HomeTeamId = _match.HomeTeamId,
             Down = _match.Down,
             YardsToGo = _match.YardsToGo,
+            GoalToGo = _match.GoalToGo,
             BallOnOwnSide = _match.BallSpot.OnOwnSide,
             BallYards = _match.BallSpot.Yards,
+            ClockRunning = _match.ClockRunning,
+            Paused = _paused,
+            MatchOver = _match.MatchOver,
+            PlayNumber = _match.PlayNumber,
+            PossessionLabel = BuildPossessionLabel(_match),
+            SituationLabel = BuildSituationLabel(_match),
+            StatusLine = BuildStatusLine(_match, _play, _paused),
+            LastPlaySummary = _lastPlaySummary,
         };
 
         // Engagement lines (from Engagement component partner pairs)
@@ -445,6 +597,32 @@ public sealed class Sim : IDisposable
             Snapshot.Coverage = cov.ToArray();
         }
 
+        // Playcall overlay
+        {
+            var playCallSnapshot = new SimSnapshot.PlayCallOverlaySnapshot
+            {
+                Visible = _play.Phase == TecmoSBGame.SimArch.State.PlayPhase.PreSnap,
+                Focus = PlayCallFocus.Formation,
+                SelectedFormationId = string.Empty,
+                SelectedPlayName = string.Empty,
+                FormationWindow = Array.Empty<string>(),
+                PlayWindow = Array.Empty<string>(),
+            };
+
+            var qPlayCall = new QueryDescription().WithAll<PlayCallState>();
+            World.Query(in qPlayCall, (Entity _, ref PlayCallState pcs) =>
+            {
+                playCallSnapshot.Visible = _play.Phase == TecmoSBGame.SimArch.State.PlayPhase.PreSnap;
+                playCallSnapshot.Focus = pcs.Focus;
+                playCallSnapshot.SelectedFormationId = pcs.SelectedFormationId;
+                playCallSnapshot.SelectedPlayName = pcs.SelectedPlay?.Name ?? string.Empty;
+                playCallSnapshot.FormationWindow = BuildWindow(pcs.FormationIds, pcs.FormationIndex);
+                playCallSnapshot.PlayWindow = BuildWindow(pcs.PlaysForFormation, pcs.PlayIndex, static p => p.Name ?? string.Empty);
+            });
+
+            Snapshot.PlayCall = playCallSnapshot;
+        }
+
         // Ball
         {
             // Ball
@@ -489,6 +667,110 @@ public sealed class Sim : IDisposable
 
         Snapshot.Ball = default;
     }
+
+    private static string[] BuildWindow(System.Collections.Generic.IReadOnlyList<string> items, int selectedIndex)
+    {
+        if (items.Count == 0)
+            return Array.Empty<string>();
+
+        var start = Math.Max(0, selectedIndex - 1);
+        var end = Math.Min(items.Count - 1, selectedIndex + 1);
+        var window = new System.Collections.Generic.List<string>(3);
+        for (var i = start; i <= end; i++)
+        {
+            var prefix = i == selectedIndex ? $"[{items[i]}]" : items[i];
+            window.Add(prefix);
+        }
+
+        return window.ToArray();
+    }
+
+    private static string[] BuildWindow(System.Collections.Generic.IReadOnlyList<TecmoSB.PlayEntry> items, int selectedIndex, Func<TecmoSB.PlayEntry, string> label)
+    {
+        if (items.Count == 0)
+            return Array.Empty<string>();
+
+        var start = Math.Max(0, selectedIndex - 1);
+        var end = Math.Min(items.Count - 1, selectedIndex + 1);
+        var window = new System.Collections.Generic.List<string>(3);
+        for (var i = start; i <= end; i++)
+        {
+            var text = label(items[i]);
+            window.Add(i == selectedIndex ? $"[{text}]" : text);
+        }
+
+        return window.ToArray();
+    }
+
+    private static string BuildPossessionLabel(State.MatchState match)
+    {
+        return match.PossessionTeam == 0 ? $"AWAY #{match.AwayTeamId}" : $"HOME #{match.HomeTeamId}";
+    }
+
+    private static string BuildSituationLabel(State.MatchState match)
+    {
+        var side = match.BallSpot.OnOwnSide ? "OWN" : "OPP";
+        var distance = match.GoalToGo ? "GOAL" : match.YardsToGo.ToString();
+        return $"{FormatDown(match.Down)} & {distance} AT {side} {match.BallSpot.Yards}";
+    }
+
+    private static string BuildStatusLine(State.MatchState match, State.PlayState play, bool paused)
+    {
+        if (paused)
+            return "PAUSED · PRESS P TO RESUME";
+        if (match.MatchOver)
+            return "FINAL";
+        if (match.Phase == State.MatchPhase.Halftime)
+            return "HALFTIME · PRESS ENTER TO CONTINUE";
+        if (play.Phase == State.PlayPhase.PostPlay)
+            return (play.Result.Turnover || play.Result.Touchdown || play.Result.Safety) ? "POST-PLAY · AUTO ADVANCING" : "POST-PLAY · PRESS ENTER TO CONTINUE";
+        if (play.Phase == State.PlayPhase.PreSnap)
+            return match.ClockRunning ? "PRE-SNAP · SELECT PLAY / SNAP" : "PRE-SNAP · SELECT PLAY";
+        return "LIVE PLAY";
+    }
+
+    private static string BuildLastPlaySummary(State.MatchState match, State.PlayState play)
+    {
+        if (play.Result.Touchdown)
+            return $"TOUCHDOWN · {DescribeYards(play.Result.YardsGained)}";
+        if (play.Result.Safety)
+            return "SAFETY";
+        if (play.Result.Turnover)
+            return $"TURNOVER · {DescribeWhistle(play.WhistleReason)}";
+        if (play.WhistleReason == State.WhistleReason.Incomplete)
+            return "INCOMPLETE PASS";
+        if (match.Down == 1 && play.Result.YardsGained > 0)
+            return $"FIRST DOWN · {DescribeYards(play.Result.YardsGained)}";
+        return DescribeYards(play.Result.YardsGained);
+    }
+
+    private static string DescribeYards(int yards)
+    {
+        if (yards > 0)
+            return $"GAIN OF {yards}";
+        if (yards < 0)
+            return $"LOSS OF {Math.Abs(yards)}";
+        return "NO GAIN";
+    }
+
+    private static string DescribeWhistle(State.WhistleReason whistleReason)
+        => whistleReason switch
+        {
+            State.WhistleReason.Touchback => "TOUCHBACK",
+            State.WhistleReason.OutOfBounds => "OUT OF BOUNDS",
+            State.WhistleReason.Incomplete => "INCOMPLETE",
+            _ => "CHANGE OF POSSESSION",
+        };
+
+    private static string FormatDown(int down)
+        => down switch
+        {
+            1 => "1ST",
+            2 => "2ND",
+            3 => "3RD",
+            4 => "4TH",
+            _ => $"{down}TH",
+        };
 
     public readonly record struct PendingPlaySelection(
         int PlayNumber,

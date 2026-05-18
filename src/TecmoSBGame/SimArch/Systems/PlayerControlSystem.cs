@@ -27,32 +27,62 @@ public sealed class PlayerControlSystem
         if (!TryGetBall(world, ballEntityId, out var ball))
             return;
 
+        var previous = control.ControlledEntityId;
+        var next = previous;
+
         // If something already forced control this tick (handoff etc), respect it.
         if (control.PendingForcedEntityId > 0)
         {
-            control.ControlledEntityId = control.PendingForcedEntityId;
+            next = control.PendingForcedEntityId;
             control.PendingForcedEntityId = -1;
-            return;
         }
-
-        // Determine who is "user side" based on ball ownership.
-        var owner = ball.OwnerEntityId;
-        var ownerIsOffense = owner > 0 && TryGetTeam(world, owner, out var ownerTeam) && ownerTeam.IsOffense;
-
-        // Offense control.
-        if (ownerIsOffense)
+        else
         {
-            var desired = PickOffenseControlledEntity(world, in ball);
-            if (desired > 0)
-                control.ControlledEntityId = desired;
-            return;
+            // Determine who is "user side" based on ball ownership.
+            var owner = ball.OwnerEntityId;
+            var ownerIsOffense = owner > 0 && TryGetTeam(world, owner, out var ownerTeam) && ownerTeam.IsOffense;
+
+            // Offense control.
+            if (ownerIsOffense)
+            {
+                var desired = PickOffenseControlledEntity(world, in ball);
+                if (desired > 0)
+                    next = desired;
+            }
+            else
+            {
+                // Defense control (or no owner yet): pick nearest defender to target.
+                var targetPos = PickDefenseTargetPosition(world, in ball);
+                var defenderId = FindNearestDefender(world, targetPos);
+                if (defenderId > 0)
+                    next = defenderId;
+            }
         }
 
-        // Defense control (or no owner yet): pick nearest defender to target.
-        var targetPos = PickDefenseTargetPosition(world, in ball);
-        var defenderId = FindNearestDefender(world, targetPos);
-        if (defenderId > 0)
-            control.ControlledEntityId = defenderId;
+        control.ControlledEntityId = next;
+        control.PreviousControlledEntityId = previous;
+
+        if (next != previous)
+            ClearBehaviorVelocityForControlTransition(world, previous, next);
+    }
+
+    private static void ClearBehaviorVelocityForControlTransition(World world, int previousId, int nextId)
+    {
+        if (previousId > 0)
+            ClearVelocity(world, previousId);
+
+        if (nextId > 0 && nextId != previousId)
+            ClearVelocity(world, nextId);
+    }
+
+    private static void ClearVelocity(World world, int entityId)
+    {
+        var q = new QueryDescription().WithAll<Velocity>();
+        world.Query(in q, (Entity e, ref Velocity v) =>
+        {
+            if (e.Id == entityId)
+                v.Value = Vector2.Zero;
+        });
     }
 
     private static int PickOffenseControlledEntity(World world, in Ball ball)

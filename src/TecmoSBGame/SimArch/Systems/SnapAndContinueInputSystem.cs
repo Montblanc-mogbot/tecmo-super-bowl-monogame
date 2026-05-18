@@ -30,7 +30,15 @@ public sealed class SnapAndContinueInputSystem
 
         if (_play.Phase == PlayPhase.PreSnap && ui.Snap)
         {
-            var snap = new SnapEvent(OffenseTeam: _match.PossessionTeam, DefenseTeam: 1 - _match.PossessionTeam);
+            var offenseTeam = _match.KickoffPending
+                ? _match.ReceivingTeamIndex
+                : _match.FieldGoalPending
+                    ? _match.PossessionTeam
+                    : _match.PossessionTeam;
+            var defenseTeam = _match.KickoffPending
+                ? _match.KickingTeamIndex
+                : 1 - _match.PossessionTeam;
+            var snap = new SnapEvent(OffenseTeam: offenseTeam, DefenseTeam: defenseTeam);
             SimEventBus.Send(ref snap);
         }
 

@@ -15,4 +15,7 @@ public static class HeadlessRunner
 
     public static int RunTwoPlaysScenario(int ticks = 240)
         => SimArchHeadless.RunTwoPlaysScenario(ticks);
+
+    public static int RunPressureScenario(int ticks = 120)
+        => SimArchHeadless.RunPressureScenario(ticks);
 }

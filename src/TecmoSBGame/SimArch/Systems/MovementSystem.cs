@@ -41,12 +41,20 @@ public sealed class MovementSystem
 
         var inputNorm = SafeNormalize(inputDir);
 
+        var qSpeedMod = new QueryDescription().WithAll<SpeedModifier>();
+        var speedModById = new System.Collections.Generic.Dictionary<int, SpeedModifier>();
+        world.Query(in qSpeedMod, (Entity e, ref SpeedModifier sm) =>
+        {
+            speedModById[e.Id] = sm;
+        });
+
         world.Query(in query, (Entity e, ref Position pos, ref Velocity vel, ref Behavior b) =>
         {
+            var isControlled = e.Id == controlledEntityId;
             Vector2 desiredDir;
 
-            // Controlled player: input overrides AI steering.
-            if (e.Id == controlledEntityId && inputNorm != Vector2.Zero)
+            // Controlled player: host input is authoritative, including explicit release-to-stop.
+            if (isControlled)
             {
                 desiredDir = inputNorm;
             }
@@ -83,14 +91,29 @@ public sealed class MovementSystem
 
             var maxTurnRad = MathHelper.ToRadians(tuning.MaxTurnDegreesPerTick * tickScale);
 
+            if (speedModById.TryGetValue(e.Id, out var speedMod) && speedMod.TimerSeconds > 0f && speedMod.MaxSpeedMultiplier > 0f && speedMod.MaxSpeedMultiplier < 1f)
+            {
+                tuning.MaxSpeedPerTick *= speedMod.MaxSpeedMultiplier;
+            }
+
             var currentDir = SafeNormalize(vel.Value);
             var newDir = ApplyTurnLimit(currentDir, desiredDir, maxTurnRad);
 
-            // For now: always drive toward desired direction when not idle.
-            if (b.State == BehaviorState.Idle)
+            // Controlled entities should never silently keep running on stale behavior intent.
+            if (isControlled)
+            {
+                vel.Value = desiredDir == Vector2.Zero
+                    ? Vector2.Zero
+                    : newDir * tuning.MaxSpeedPerTick;
+            }
+            else if (b.State == BehaviorState.Idle)
+            {
                 vel.Value = Vector2.Zero;
+            }
             else
+            {
                 vel.Value = newDir * tuning.MaxSpeedPerTick;
+            }
 
             pos.Value += vel.Value * tickScale;
         });

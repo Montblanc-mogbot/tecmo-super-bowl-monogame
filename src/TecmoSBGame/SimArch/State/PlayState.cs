@@ -60,6 +60,7 @@ public enum WhistleReason
     Safety = 4,
     Incomplete = 5,
     Touchback = 6,
+    Turnover = 7,
 }
 
 public readonly record struct PlayResult(int YardsGained, bool Turnover, bool Touchdown, bool Safety);

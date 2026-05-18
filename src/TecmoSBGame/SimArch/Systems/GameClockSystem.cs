@@ -1,4 +1,5 @@
 using System;
+using TecmoSBGame.SimArch.Events;
 using TecmoSBGame.SimArch.State;
 
 namespace TecmoSBGame.SimArch.Systems;
@@ -25,7 +26,8 @@ public sealed class GameClockSystem
         if (match.MatchOver)
             return;
 
-        if (play.Phase != PlayPhase.InPlay)
+        match.ClockRunning = play.Phase == PlayPhase.InPlay && match.Phase != MatchPhase.Halftime && match.Phase != MatchPhase.Final;
+        if (!match.ClockRunning)
             return;
 
         _ticksIntoSecond++;
@@ -41,6 +43,25 @@ public sealed class GameClockSystem
             HandleEndOfQuarterIfNeeded(match);
     }
 
+    public void AdvanceFromHalftime(MatchState match)
+    {
+        if (match.Phase != MatchPhase.Halftime)
+            return;
+
+        match.PossessionTeam = match.DeferredKickReceivingTeam;
+        match.OffenseDirection = match.PossessionTeam == 0 ? OffenseDirection.LeftToRight : OffenseDirection.RightToLeft;
+        match.KickingTeamIndex = match.DeferredKickKickingTeam;
+        match.ReceivingTeamIndex = match.DeferredKickReceivingTeam;
+        match.Down = 1;
+        match.YardsToGo = 10;
+        match.GoalToGo = false;
+        match.BallSpot = BallSpot.Own(25);
+        match.Quarter = 3;
+        match.GameClockSeconds = QuarterLengthSeconds;
+        match.Phase = MatchPhase.ThirdQuarter;
+        _ticksIntoSecond = 0;
+    }
+
     private void HandleEndOfQuarterIfNeeded(MatchState match)
     {
         if (match.GameClockSeconds != 0)
@@ -52,14 +73,42 @@ public sealed class GameClockSystem
         var endedQuarter = match.Quarter;
         _lastQuarterEndHandled = endedQuarter;
 
+        var quarterEnded = new QuarterEndedEvent(endedQuarter);
+        SimEventBus.Send(ref quarterEnded);
+
+        if (endedQuarter == 2)
+        {
+            var halftime = new HalftimeEvent();
+            SimEventBus.Send(ref halftime);
+            match.Phase = MatchPhase.Halftime;
+            match.DeferredKickReceivingTeam = match.ReceivingTeamIndex;
+            match.DeferredKickKickingTeam = match.KickingTeamIndex;
+            match.PossessionTeam = match.DeferredKickReceivingTeam;
+            match.OffenseDirection = match.PossessionTeam == 0 ? OffenseDirection.LeftToRight : OffenseDirection.RightToLeft;
+            match.Down = 1;
+            match.YardsToGo = 10;
+            match.GoalToGo = false;
+            match.BallSpot = BallSpot.Own(25);
+            _ticksIntoSecond = 0;
+            return;
+        }
+
         if (endedQuarter >= 4)
         {
             match.MatchOver = true;
+            match.Phase = MatchPhase.Final;
+            var ended = new GameEndedEvent(endedQuarter);
+            SimEventBus.Send(ref ended);
+            _ticksIntoSecond = 0;
             return;
         }
 
         match.Quarter = endedQuarter + 1;
         match.GameClockSeconds = QuarterLengthSeconds;
+        match.Phase = match.Quarter == 2 ? MatchPhase.SecondQuarter : MatchPhase.FourthQuarter;
+        match.OffenseDirection = match.OffenseDirection == OffenseDirection.LeftToRight
+            ? OffenseDirection.RightToLeft
+            : OffenseDirection.LeftToRight;
         _ticksIntoSecond = 0;
     }
 }

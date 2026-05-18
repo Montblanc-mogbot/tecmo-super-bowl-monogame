@@ -72,8 +72,10 @@ public struct Rush
 
     public bool Engaged;
     public int EngagedBlockerId;
+    public int EngagementFrames;
 
     public int LastRushMoveFrame;
+    public int FailedRushMoveCount;
 
     public const int RUSH_MOVE_COOLDOWN = 30;
 
@@ -97,7 +99,9 @@ public struct Rush
 
         Engaged = false,
         EngagedBlockerId = -1,
+        EngagementFrames = 0,
 
         LastRushMoveFrame = -60,
+        FailedRushMoveCount = 0,
     };
 }

@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using TecmoSBGame.SimArch.Components;
 
 namespace TecmoSBGame.SimArch.Events;
 
@@ -18,7 +19,16 @@ public enum PassOutcome
     Incomplete = 2,
 }
 
-public readonly record struct PassResolvedEvent(PassOutcome Outcome, int PasserId, int? TargetId, int? WinnerId, Vector2 BallPosition);
+public readonly record struct PassResolvedEvent(
+    PassOutcome Outcome,
+    int PasserId,
+    int? TargetId,
+    RoleId IntendedReceiverRoleId,
+    string IntendedReceiverSlot,
+    int? WinnerId,
+    int? PrimaryDefenderId,
+    Vector2 TargetPosition,
+    Vector2 BallPosition);
 
 public readonly record struct TackleEvent(int TacklerId, int BallCarrierId, Vector2 Position);
 

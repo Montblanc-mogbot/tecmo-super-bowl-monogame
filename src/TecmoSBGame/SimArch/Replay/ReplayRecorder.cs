@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using TecmoSBGame.SimArch.State;
 
 namespace TecmoSBGame.SimArch.Replay;
 
@@ -19,8 +20,24 @@ public sealed class ReplayRecorder
     {
         Capture.Meta.PlayId = play.PlayId;
         Capture.Meta.StartAbsoluteYard = play.StartAbsoluteYard;
+        Capture.Meta.FinalAbsoluteYard = play.StartAbsoluteYard;
         Capture.Meta.DeterministicSeed = play.DeterministicSeed;
         Capture.Frames.Clear();
+        Capture.Events.Clear();
+    }
+
+    public void RecordEvent(int tick, StatEventRecord record)
+    {
+        Capture.Events.Add(new ReplayEvent
+        {
+            Tick = tick,
+            Type = record.EventType,
+            TeamIndex = record.TeamIndex,
+            PlayerId = record.PlayerId,
+            Yards = record.Yards,
+            Turnover = record.Turnover,
+            Detail = record.Detail,
+        });
     }
 
     public string SaveJson(string? dir = null)

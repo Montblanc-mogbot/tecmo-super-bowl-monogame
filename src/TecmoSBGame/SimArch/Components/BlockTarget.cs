@@ -12,6 +12,12 @@ public struct BlockTarget
 
     public BlockAssignmentType Assignment;
 
+    /// <summary>
+    /// Optional Tecmo/disassembly-inspired defender hint (e.g. RE, NT, ROLB).
+    /// Used to keep initial assignments tied to authored play/formation intent.
+    /// </summary>
+    public string PreferredDefenderKey;
+
     public bool IsEngaged;
     public int EngagedEntityId;
 
@@ -19,15 +25,24 @@ public struct BlockTarget
     public int EngagementFrame;
 
     public bool IsDoubleTeam;
+    public int PressureContributionFrames;
+    public int AssignmentStickFrames;
+    public int FailedEngagements;
+    public float LastTargetDistanceSq;
 
     public static BlockTarget Default => new()
     {
         TargetEntityId = -1,
         Assignment = BlockAssignmentType.ManOn,
+        PreferredDefenderKey = string.Empty,
         IsEngaged = false,
         EngagedEntityId = -1,
         EngagementFrame = 0,
         IsDoubleTeam = false,
+        PressureContributionFrames = 0,
+        AssignmentStickFrames = 0,
+        FailedEngagements = 0,
+        LastTargetDistanceSq = float.PositiveInfinity,
     };
 }
 

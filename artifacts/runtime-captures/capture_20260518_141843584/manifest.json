@@ -1,0 +1,14 @@
+{
+  "TimestampUtc": "2026-05-18T14:18:43.5843915Z",
+  "CapturedTick": 240,
+  "RequestedTicks": 240,
+  "Quarter": 0,
+  "GameClockSeconds": 0,
+  "PossessionTeam": 0,
+  "PlayNumber": 0,
+  "PlayPhase": "PreSnap",
+  "StatusLine": "PRE-SNAP \u00B7 SELECT PLAY",
+  "SituationLabel": "0TH \u0026 0 AT OPP 0",
+  "LastPlaySummary": "",
+  "ScreenshotPath": "artifacts/runtime-captures/capture_20260518_141843584/frame.png"
+}

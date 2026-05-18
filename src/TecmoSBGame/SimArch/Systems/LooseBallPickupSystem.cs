@@ -4,6 +4,7 @@ using Arch.Core.Extensions;
 using Microsoft.Xna.Framework;
 using TecmoSBGame.SimArch.Components;
 using TecmoSBGame.SimArch.Events;
+using TecmoSBGame.SimArch.State;
 
 namespace TecmoSBGame.SimArch.Systems;
 
@@ -16,8 +17,18 @@ public sealed class LooseBallPickupSystem
 {
     public float PickupRadius = 8f;
 
-    public void Update(World world, int ballEntityId, ref Control control)
+    public bool RecoveredThisTick { get; private set; }
+    public bool TurnoverThisTick { get; private set; }
+    public int RecoveringTeamThisTick { get; private set; } = -1;
+    public int RecoveringPlayerThisTick { get; private set; } = -1;
+
+    public void Update(World world, int ballEntityId, ref Control control, MatchState? match = null, PlayState? play = null)
     {
+        RecoveredThisTick = false;
+        TurnoverThisTick = false;
+        RecoveringTeamThisTick = -1;
+        RecoveringPlayerThisTick = -1;
+
         if (!TryGetLooseBallPosition(world, ballEntityId, out var ballPos))
             return;
 
@@ -64,11 +75,19 @@ public sealed class LooseBallPickupSystem
         var ev = new LooseBallPickupEvent(PickerId: bestId, BallPosition: ballPos);
         SimEventBus.Send(ref ev);
 
+        RecoveredThisTick = true;
+        RecoveringPlayerThisTick = bestId;
+        RecoveringTeamThisTick = TryGetTeamIndex(world, bestId, out var pickerTeam) ? pickerTeam : -1;
+        TurnoverThisTick = match is not null && RecoveringTeamThisTick >= 0 && RecoveringTeamThisTick != match.PossessionTeam;
+
+        if (play is not null)
+            play.Result = play.Result with { Turnover = TurnoverThisTick };
+
         // Force control to picker.
         control.PendingForcedEntityId = bestId;
         control.ControlledEntityId = bestId;
 
-        Console.WriteLine($"[sim-arch] loose-ball pickup picker={bestId}");
+        Console.WriteLine($"[sim-arch] loose-ball pickup picker={bestId} team={RecoveringTeamThisTick} turnover={TurnoverThisTick}");
     }
 
     private static bool TryGetLooseBallPosition(World world, int ballEntityId, out Vector2 pos)
@@ -96,5 +115,23 @@ public sealed class LooseBallPickupSystem
 
         pos = local;
         return true;
+    }
+
+    private static bool TryGetTeamIndex(World world, int entityId, out int teamIndex)
+    {
+        var local = -1;
+        var found = false;
+        var q = new QueryDescription().WithAll<Team>();
+        world.Query(in q, (Entity e, ref Team team) =>
+        {
+            if (found || e.Id != entityId)
+                return;
+
+            local = team.TeamIndex;
+            found = true;
+        });
+
+        teamIndex = local;
+        return found;
     }
 }

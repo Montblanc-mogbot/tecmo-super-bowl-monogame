@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using TecmoSBGame.SimArch.Components.PlayCall;
 
 namespace TecmoSBGame.SimArch;
 
@@ -22,6 +23,9 @@ public sealed class SimSnapshot
     // HUD
     public HudSnapshot Hud;
 
+    // Playcall overlay
+    public PlayCallOverlaySnapshot PlayCall;
+
     public sealed class PlayerSnapshot
     {
         public int EntityId;
@@ -29,10 +33,12 @@ public sealed class SimSnapshot
         public int TeamIndex;
         public bool IsOffense;
         public bool HasBall;
+        public bool IsPlayerControlled;
         public string SpriteId = "";
 
         // Debug-friendly labels
         public string Role = "";
+        public string Slot = "";
         public string Behavior = "";
     }
 
@@ -58,10 +64,35 @@ public sealed class SimSnapshot
         public int Team0Score;
         public int Team1Score;
 
+        public int PossessionTeam;
+        public int AwayTeamId;
+        public int HomeTeamId;
         public int Down;
         public int YardsToGo;
+        public bool GoalToGo;
         public bool BallOnOwnSide;
         public int BallYards;
+        public bool ClockRunning;
+        public bool Paused;
+        public bool MatchOver;
+        public int PlayNumber;
+        public string PossessionLabel;
+        public string SituationLabel;
+        public string StatusLine;
+        public string LastPlaySummary;
+    }
+
+    public struct PlayCallOverlaySnapshot
+    {
+        public bool Visible;
+        public PlayCallFocus Focus;
+        public string SelectedFormationId;
+        public string SelectedPlayName;
+        public string[] FormationWindow;
+        public string[] PlayWindow;
+
+        public string SelectedFormationIdOrFallback => string.IsNullOrWhiteSpace(SelectedFormationId) ? "(no formation)" : SelectedFormationId;
+        public string SelectedPlayNameOrFallback => string.IsNullOrWhiteSpace(SelectedPlayName) ? "(no play)" : SelectedPlayName;
     }
 }
 

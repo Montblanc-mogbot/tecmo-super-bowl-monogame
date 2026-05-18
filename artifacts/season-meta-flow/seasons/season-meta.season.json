@@ -1,0 +1,295 @@
+{
+  "Kind": "season-state",
+  "Version": 2,
+  "SavedAtUtc": "2026-05-08T15:26:55.0271378+00:00",
+  "Data": {
+    "SchemaVersion": 2,
+    "Season": {
+      "SchemaVersion": 2,
+      "SlotName": "season-meta",
+      "CurrentWeek": 4,
+      "TotalWeeks": 3,
+      "TeamIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "Schedule": [
+        {
+          "Week": 1,
+          "Games": [
+            {
+              "Week": 1,
+              "GameNumber": 1,
+              "HomeTeamId": 3,
+              "AwayTeamId": 0,
+              "Result": {
+                "HomeTeamId": 3,
+                "AwayTeamId": 0,
+                "HomeScore": 22,
+                "AwayScore": 16,
+                "WinningTeamId": 3,
+                "WasSimulated": true,
+                "Source": "season-meta-week-1",
+                "Outcome": 1
+              },
+              "IsComplete": true
+            },
+            {
+              "Week": 1,
+              "GameNumber": 2,
+              "HomeTeamId": 2,
+              "AwayTeamId": 1,
+              "Result": {
+                "HomeTeamId": 2,
+                "AwayTeamId": 1,
+                "HomeScore": 18,
+                "AwayScore": 23,
+                "WinningTeamId": 1,
+                "WasSimulated": true,
+                "Source": "season-meta-week-1",
+                "Outcome": 2
+              },
+              "IsComplete": true
+            }
+          ],
+          "IsComplete": true
+        },
+        {
+          "Week": 2,
+          "Games": [
+            {
+              "Week": 2,
+              "GameNumber": 1,
+              "HomeTeamId": 0,
+              "AwayTeamId": 2,
+              "Result": {
+                "HomeTeamId": 0,
+                "AwayTeamId": 2,
+                "HomeScore": 27,
+                "AwayScore": 30,
+                "WinningTeamId": 2,
+                "WasSimulated": true,
+                "Source": "season-meta-week-2",
+                "Outcome": 2
+              },
+              "IsComplete": true
+            },
+            {
+              "Week": 2,
+              "GameNumber": 2,
+              "HomeTeamId": 3,
+              "AwayTeamId": 1,
+              "Result": {
+                "HomeTeamId": 3,
+                "AwayTeamId": 1,
+                "HomeScore": 30,
+                "AwayScore": 27,
+                "WinningTeamId": 3,
+                "WasSimulated": true,
+                "Source": "season-meta-week-2",
+                "Outcome": 1
+              },
+              "IsComplete": true
+            }
+          ],
+          "IsComplete": true
+        },
+        {
+          "Week": 3,
+          "Games": [
+            {
+              "Week": 3,
+              "GameNumber": 1,
+              "HomeTeamId": 1,
+              "AwayTeamId": 0,
+              "Result": {
+                "HomeTeamId": 1,
+                "AwayTeamId": 0,
+                "HomeScore": 18,
+                "AwayScore": 24,
+                "WinningTeamId": 0,
+                "WasSimulated": true,
+                "Source": "season-meta-week-3",
+                "Outcome": 2
+              },
+              "IsComplete": true
+            },
+            {
+              "Week": 3,
+              "GameNumber": 2,
+              "HomeTeamId": 3,
+              "AwayTeamId": 2,
+              "Result": {
+                "HomeTeamId": 3,
+                "AwayTeamId": 2,
+                "HomeScore": 14,
+                "AwayScore": 15,
+                "WinningTeamId": 2,
+                "WasSimulated": true,
+                "Source": "season-meta-week-3",
+                "Outcome": 2
+              },
+              "IsComplete": true
+            }
+          ],
+          "IsComplete": true
+        }
+      ],
+      "Standings": [
+        {
+          "TeamId": 3,
+          "TeamCode": "T03",
+          "Wins": 2,
+          "Losses": 1,
+          "Ties": 0,
+          "PointsFor": 66,
+          "PointsAgainst": 58,
+          "GamesPlayed": 3,
+          "WinPercentage": 0.6666666666666666,
+          "PointDifferential": 8
+        },
+        {
+          "TeamId": 2,
+          "TeamCode": "T02",
+          "Wins": 2,
+          "Losses": 1,
+          "Ties": 0,
+          "PointsFor": 63,
+          "PointsAgainst": 64,
+          "GamesPlayed": 3,
+          "WinPercentage": 0.6666666666666666,
+          "PointDifferential": -1
+        },
+        {
+          "TeamId": 0,
+          "TeamCode": "T00",
+          "Wins": 1,
+          "Losses": 2,
+          "Ties": 0,
+          "PointsFor": 67,
+          "PointsAgainst": 70,
+          "GamesPlayed": 3,
+          "WinPercentage": 0.3333333333333333,
+          "PointDifferential": -3
+        },
+        {
+          "TeamId": 1,
+          "TeamCode": "T01",
+          "Wins": 1,
+          "Losses": 2,
+          "Ties": 0,
+          "PointsFor": 68,
+          "PointsAgainst": 72,
+          "GamesPlayed": 3,
+          "WinPercentage": 0.3333333333333333,
+          "PointDifferential": -4
+        }
+      ],
+      "Records": {
+        "Entries": [
+          {
+            "Label": "MOST POINTS",
+            "TeamId": 1,
+            "TeamCode": "T01",
+            "Value": 68,
+            "Detail": "PA 72"
+          },
+          {
+            "Label": "BEST DIFF",
+            "TeamId": 3,
+            "TeamCode": "T03",
+            "Value": 8,
+            "Detail": "PF 66 / PA 58"
+          },
+          {
+            "Label": "MOST WINS",
+            "TeamId": 3,
+            "TeamCode": "T03",
+            "Value": 2,
+            "Detail": "2-1-0"
+          }
+        ]
+      },
+      "Leaders": {
+        "Entries": [
+          {
+            "Category": "BEST RECORD",
+            "TeamId": 3,
+            "TeamCode": "T03",
+            "Value": 2,
+            "Detail": "2-1-0"
+          },
+          {
+            "Category": "TOP OFFENSE",
+            "TeamId": 1,
+            "TeamCode": "T01",
+            "Value": 68,
+            "Detail": "PF 68"
+          },
+          {
+            "Category": "TOP DEFENSE",
+            "TeamId": 3,
+            "TeamCode": "T03",
+            "Value": 58,
+            "Detail": "PA 58"
+          }
+        ]
+      },
+      "Playoffs": {
+        "IsLocked": true,
+        "ChampionshipResolved": true,
+        "Seeds": [
+          {
+            "Seed": 1,
+            "TeamId": 3,
+            "TeamCode": "T03",
+            "Wins": 2,
+            "Losses": 1,
+            "Ties": 0
+          },
+          {
+            "Seed": 2,
+            "TeamId": 2,
+            "TeamCode": "T02",
+            "Wins": 2,
+            "Losses": 1,
+            "Ties": 0
+          },
+          {
+            "Seed": 3,
+            "TeamId": 0,
+            "TeamCode": "T00",
+            "Wins": 1,
+            "Losses": 2,
+            "Ties": 0
+          },
+          {
+            "Seed": 4,
+            "TeamId": 1,
+            "TeamCode": "T01",
+            "Wins": 1,
+            "Losses": 2,
+            "Ties": 0
+          }
+        ],
+        "ChampionshipMatchup": "T03 vs T02",
+        "Champion": "T03"
+      },
+      "ProBowl": {
+        "IsReady": true,
+        "TeamIds": [
+          3,
+          2
+        ],
+        "TeamCodes": [
+          "T03",
+          "T02"
+        ]
+      },
+      "ChampionSummary": "T03",
+      "UpdatedAtUtc": "2026-05-08T15:26:55.0271367+00:00"
+    }
+  }
+}

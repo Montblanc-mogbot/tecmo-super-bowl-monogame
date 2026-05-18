@@ -33,6 +33,9 @@ public sealed class PlayCallSystem
         // Can't capture an 'in' parameter in the query lambda; copy into locals.
         var up = ui.Up;
         var down = ui.Down;
+        var left = ui.Left;
+        var right = ui.Right;
+        var back = ui.Back;
 
         // Find the singleton PlayCallState
         var found = false;
@@ -55,9 +58,29 @@ public sealed class PlayCallSystem
                 pcs.DefenseIndex = 0;
             }
 
-            // Simple navigation: up/down cycles plays within the current formation.
-            if (up) pcs.PlayIndex = Math.Max(0, pcs.PlayIndex - 1);
-            if (down) pcs.PlayIndex = pcs.PlayIndex + 1;
+            if (pcs.Focus == PlayCallFocus.Formation)
+            {
+                if (left) pcs.FormationIndex = Math.Max(0, pcs.FormationIndex - 1);
+                if (right) pcs.FormationIndex = Math.Min(Math.Max(0, pcs.FormationIds.Count - 1), pcs.FormationIndex + 1);
+                if (up) pcs.FormationIndex = Math.Max(0, pcs.FormationIndex - 1);
+                if (down) pcs.FormationIndex = pcs.FormationIndex + 1;
+            }
+            else
+            {
+                if (up) pcs.PlayIndex = Math.Max(0, pcs.PlayIndex - 1);
+                if (down) pcs.PlayIndex = pcs.PlayIndex + 1;
+            }
+
+            if (ui.Select)
+            {
+                if (pcs.Focus == PlayCallFocus.Formation)
+                {
+                    pcs.Focus = PlayCallFocus.Play;
+                }
+            }
+
+            if (back)
+                pcs.Focus = PlayCallFocus.Formation;
 
             // Clamp play index within formation subset.
             var formationId = pcs.FormationIds[Math.Clamp(pcs.FormationIndex, 0, pcs.FormationIds.Count - 1)];
@@ -74,6 +97,7 @@ public sealed class PlayCallSystem
             {
                 pcs.PlayIndex = 0;
                 pcs.SelectedPlay = null;
+                pcs.Focus = PlayCallFocus.Formation;
                 return;
             }
 

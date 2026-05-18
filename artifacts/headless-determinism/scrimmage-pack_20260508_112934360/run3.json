@@ -1,0 +1,356 @@
+{
+  "Scenario": "scrimmage-pack",
+  "Results": [
+    {
+      "Name": "run-drive",
+      "Payload": {
+        "Play1StartId": 1,
+        "Play2StartId": 2,
+        "Play3StartId": 3,
+        "Play4StartId": 4,
+        "AfterRun": {
+          "PossessionTeam": 0,
+          "Down": 2,
+          "YardsToGo": 5,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 35
+          },
+          "Team0Score": 0,
+          "Team1Score": 0,
+          "DriveId": 0,
+          "PlayNumber": 1,
+          "OffenseDirection": 0,
+          "Phase": 2,
+          "WhistleReason": 1,
+          "EndAbsoluteYard": 35,
+          "GoalToGo": false
+        },
+        "AfterFirstDown": {
+          "PossessionTeam": 0,
+          "Down": 1,
+          "YardsToGo": 10,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 45
+          },
+          "Team0Score": 0,
+          "Team1Score": 0,
+          "DriveId": 0,
+          "PlayNumber": 2,
+          "OffenseDirection": 0,
+          "Phase": 2,
+          "WhistleReason": 1,
+          "EndAbsoluteYard": 45,
+          "GoalToGo": false
+        },
+        "AfterTouchdown": {
+          "PossessionTeam": 0,
+          "Down": 1,
+          "YardsToGo": 10,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 25
+          },
+          "Team0Score": 6,
+          "Team1Score": 0,
+          "DriveId": 0,
+          "PlayNumber": 3,
+          "OffenseDirection": 0,
+          "Phase": 2,
+          "WhistleReason": 3,
+          "EndAbsoluteYard": 100,
+          "GoalToGo": false
+        },
+        "AfterTurnover": {
+          "PossessionTeam": 0,
+          "Down": 1,
+          "YardsToGo": 10,
+          "BallSpot": {
+            "OnOwnSide": false,
+            "Yards": 41
+          },
+          "Team0Score": 6,
+          "Team1Score": 0,
+          "DriveId": 2,
+          "PlayNumber": 4,
+          "OffenseDirection": 0,
+          "Phase": 2,
+          "WhistleReason": 7,
+          "EndAbsoluteYard": 59,
+          "GoalToGo": false
+        }
+      }
+    },
+    {
+      "Name": "pass-outcomes",
+      "Payload": {
+        "Scenario": "pass-outcomes",
+        "Results": [
+          {
+            "Name": "pass-outcomes",
+            "Payload": [
+              {
+                "Scenario": 0,
+                "Outcome": 0,
+                "LiveOwnerId": 2,
+                "FinalBallState": 3,
+                "FinalBallOwnerId": -1,
+                "Phase": 2,
+                "WhistleReason": 1,
+                "Turnover": false,
+                "YardsGained": 7,
+                "EndAbsoluteYard": 47,
+                "PossessionTeam": 0,
+                "Down": 2,
+                "YardsToGo": 3,
+                "DriveId": 0,
+                "OffenseDirection": 0,
+                "TargetedReceiverId": 2,
+                "PressureForcedRead": false
+              },
+              {
+                "Scenario": 1,
+                "Outcome": 2,
+                "LiveOwnerId": -1,
+                "FinalBallState": 3,
+                "FinalBallOwnerId": -1,
+                "Phase": 2,
+                "WhistleReason": 5,
+                "Turnover": false,
+                "YardsGained": 0,
+                "EndAbsoluteYard": 40,
+                "PossessionTeam": 0,
+                "Down": 2,
+                "YardsToGo": 10,
+                "DriveId": 0,
+                "OffenseDirection": 0,
+                "TargetedReceiverId": 2,
+                "PressureForcedRead": false
+              },
+              {
+                "Scenario": 2,
+                "Outcome": 1,
+                "LiveOwnerId": 4,
+                "FinalBallState": 3,
+                "FinalBallOwnerId": -1,
+                "Phase": 2,
+                "WhistleReason": 1,
+                "Turnover": true,
+                "YardsGained": 19,
+                "EndAbsoluteYard": 59,
+                "PossessionTeam": 1,
+                "Down": 1,
+                "YardsToGo": 10,
+                "DriveId": 1,
+                "OffenseDirection": 1,
+                "TargetedReceiverId": 2,
+                "PressureForcedRead": false
+              },
+              {
+                "Scenario": 3,
+                "Outcome": 2,
+                "LiveOwnerId": -1,
+                "FinalBallState": 3,
+                "FinalBallOwnerId": -1,
+                "Phase": 2,
+                "WhistleReason": 5,
+                "Turnover": false,
+                "YardsGained": 0,
+                "EndAbsoluteYard": 40,
+                "PossessionTeam": 0,
+                "Down": 2,
+                "YardsToGo": 10,
+                "DriveId": 0,
+                "OffenseDirection": 0,
+                "TargetedReceiverId": 2,
+                "PressureForcedRead": false
+              },
+              {
+                "Scenario": 4,
+                "Outcome": 0,
+                "LiveOwnerId": 3,
+                "FinalBallState": 3,
+                "FinalBallOwnerId": -1,
+                "Phase": 2,
+                "WhistleReason": 1,
+                "Turnover": false,
+                "YardsGained": 3,
+                "EndAbsoluteYard": 43,
+                "PossessionTeam": 0,
+                "Down": 2,
+                "YardsToGo": 7,
+                "DriveId": 0,
+                "OffenseDirection": 0,
+                "TargetedReceiverId": 3,
+                "PressureForcedRead": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Name": "turnover-fumble",
+      "Payload": {
+        "offenseRecovery": {
+          "RecoveredByDefense": false,
+          "RecoveringPlayerId": 2,
+          "PossessionTeam": 0,
+          "Down": 3,
+          "YardsToGo": 2,
+          "DriveId": 0,
+          "OffenseDirection": 0,
+          "WhistleReason": 1,
+          "Turnover": false,
+          "YardsGained": 4,
+          "EndAbsoluteYard": 34,
+          "FinalBallState": 3,
+          "FinalBallOwnerId": -1,
+          "Phase": 2
+        },
+        "defenseRecovery": {
+          "RecoveredByDefense": true,
+          "RecoveringPlayerId": 4,
+          "PossessionTeam": 1,
+          "Down": 1,
+          "YardsToGo": 10,
+          "DriveId": 1,
+          "OffenseDirection": 1,
+          "WhistleReason": 7,
+          "Turnover": true,
+          "YardsGained": 4,
+          "EndAbsoluteYard": 34,
+          "FinalBallState": 3,
+          "FinalBallOwnerId": -1,
+          "Phase": 2
+        }
+      }
+    },
+    {
+      "Name": "scoring-scoreboard",
+      "Payload": {
+        "GoalPlayId": 1,
+        "AfterGoalShort": {
+          "PossessionTeam": 0,
+          "Down": 4,
+          "YardsToGo": 1,
+          "BallSpot": {
+            "OnOwnSide": false,
+            "Yards": 1
+          },
+          "Team0Score": 0,
+          "Team1Score": 0,
+          "DriveId": 0,
+          "PlayNumber": 1,
+          "OffenseDirection": 0,
+          "Phase": 2,
+          "WhistleReason": 1,
+          "EndAbsoluteYard": 99,
+          "GoalToGo": true
+        },
+        "AfterTurnoverOnDowns": {
+          "PossessionTeam": 1,
+          "Down": 1,
+          "YardsToGo": 10,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 1
+          },
+          "Team0Score": 0,
+          "Team1Score": 0,
+          "DriveId": 1,
+          "PlayNumber": 2,
+          "OffenseDirection": 1,
+          "Phase": 2,
+          "WhistleReason": 7,
+          "EndAbsoluteYard": 99,
+          "GoalToGo": false
+        },
+        "AfterTouchdown": {
+          "PossessionTeam": 0,
+          "Down": 1,
+          "YardsToGo": 10,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 25
+          },
+          "Team0Score": 6,
+          "Team1Score": 0,
+          "DriveId": 2,
+          "PlayNumber": 3,
+          "OffenseDirection": 0,
+          "Phase": 2,
+          "WhistleReason": 3,
+          "EndAbsoluteYard": 100,
+          "GoalToGo": false
+        }
+      }
+    },
+    {
+      "Name": "reset-quarter-flow",
+      "Payload": {
+        "AfterQ1": {
+          "Quarter": 2,
+          "GameClockSeconds": 300,
+          "Phase": 2,
+          "Direction": 1,
+          "PossessionTeam": 0,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 33
+          },
+          "MatchOver": false
+        },
+        "Halftime": {
+          "Quarter": 2,
+          "GameClockSeconds": 0,
+          "Phase": 3,
+          "Direction": 0,
+          "PossessionTeam": 0,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 25
+          },
+          "MatchOver": false
+        },
+        "AfterHalftime": {
+          "Quarter": 3,
+          "GameClockSeconds": 300,
+          "Phase": 4,
+          "Direction": 0,
+          "PossessionTeam": 0,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 25
+          },
+          "MatchOver": false
+        },
+        "AfterQ3": {
+          "Quarter": 4,
+          "GameClockSeconds": 300,
+          "Phase": 5,
+          "Direction": 1,
+          "PossessionTeam": 0,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 25
+          },
+          "MatchOver": false
+        },
+        "Final": {
+          "Quarter": 4,
+          "GameClockSeconds": 0,
+          "Phase": 6,
+          "Direction": 1,
+          "PossessionTeam": 0,
+          "BallSpot": {
+            "OnOwnSide": true,
+            "Yards": 25
+          },
+          "MatchOver": true
+        }
+      }
+    }
+  ]
+}

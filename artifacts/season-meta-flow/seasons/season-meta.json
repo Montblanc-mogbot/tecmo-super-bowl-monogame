@@ -1,0 +1,13 @@
+{
+  "Kind": "season-slot",
+  "Version": 1,
+  "SavedAtUtc": "2026-05-08T15:26:55.0272747+00:00",
+  "Data": {
+    "SchemaVersion": 1,
+    "SlotName": "season-meta",
+    "Week": 4,
+    "HomeTeamId": 1,
+    "AwayTeamId": 0,
+    "UpdatedAtUtc": "2026-05-08T15:26:55.0272735+00:00"
+  }
+}

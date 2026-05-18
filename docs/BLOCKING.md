@@ -48,7 +48,7 @@ Current implementation (`BlockerAISystem.ApplyDoubleTeams`):
     - multiplier: `0.45`
     - refreshed while double-teamed
 
-Additional effects (increasing block win chance / reducing break chance) are planned but not yet modeled because the grapple/block win resolver is still scaffolded.
+Additional effects are now partially modeled: double-teams extend engagement hold time, strengthen pass-protection help, and reduce rush disengage success while the shared engagement persists.
 
 ## YAML gaps / next steps
 
@@ -56,3 +56,4 @@ Additional effects (increasing block win chance / reducing break chance) are pla
   The `Block-RE/NT/...` exact man assignments are therefore approximated by lane/nearest selection.
 - No explicit run play “pull” opcodes are present in the current YAML sample; `PullLeft/PullRight` are reserved for future parsing.
 - There is no explicit LOS / gap geometry yet; gap assignments are currently a Y-offset heuristic.
+- Current SimArch trench logic also tracks failed engagements/reassignments, selective second-level climbs, and deterministic rush disengage attempts so line play affects pressure instead of collapsing into nearest-lane selection alone.

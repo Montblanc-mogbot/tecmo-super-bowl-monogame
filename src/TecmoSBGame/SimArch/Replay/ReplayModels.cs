@@ -15,6 +15,9 @@ public sealed class ReplayCapture
 
     [JsonPropertyName("frames")]
     public List<ReplayFrame> Frames { get; set; } = new();
+
+    [JsonPropertyName("events")]
+    public List<ReplayEvent> Events { get; set; } = new();
 }
 
 public sealed class ReplayMeta
@@ -30,6 +33,9 @@ public sealed class ReplayMeta
 
     [JsonPropertyName("notes")]
     public string Notes { get; set; } = string.Empty;
+
+    [JsonPropertyName("finalAbsoluteYard")]
+    public int FinalAbsoluteYard { get; set; }
 }
 
 public sealed class ReplayFrame
@@ -55,4 +61,28 @@ public sealed class ReplayBallState
 
     [JsonPropertyName("owner")]
     public int? OwnerEntityId { get; set; }
+}
+
+public sealed class ReplayEvent
+{
+    [JsonPropertyName("tick")]
+    public int Tick { get; set; }
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = string.Empty;
+
+    [JsonPropertyName("team")]
+    public int TeamIndex { get; set; }
+
+    [JsonPropertyName("player")]
+    public int? PlayerId { get; set; }
+
+    [JsonPropertyName("yards")]
+    public int Yards { get; set; }
+
+    [JsonPropertyName("turnover")]
+    public bool Turnover { get; set; }
+
+    [JsonPropertyName("detail")]
+    public string Detail { get; set; } = string.Empty;
 }

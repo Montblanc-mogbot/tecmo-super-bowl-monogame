@@ -4,4 +4,5 @@ public struct Control
 {
     public int ControlledEntityId;
     public int PendingForcedEntityId;
+    public int PreviousControlledEntityId;
 }

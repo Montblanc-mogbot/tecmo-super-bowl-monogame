@@ -32,6 +32,9 @@
     <Compile Remove="Replay/**" />
     <Compile Remove="Spawning/**" />
     <Compile Remove="State/**" />
+    <Compile Include="ArchiveMge/State/MatchState.cs" />
+    <Compile Include="ArchiveMge/State/PlayState.cs" />
+    <Compile Include="ArchiveMge/State/PenaltyRuleset.cs" />
     <Compile Remove="Systems/**" />
     <Compile Remove="Events/**" />
     <Compile Remove="Headless/**" />
@@ -42,6 +45,16 @@
     <Compile Include="Rendering/RenderResources.cs" />
     <Compile Include="Rendering/FieldRenderer.cs" />
     <Compile Include="Rendering/SimRenderer.cs" />
+    <Compile Include="Rendering/PlayCallOverlayRenderer.cs" />
+    <Compile Include="Rendering/NesHudFont.cs" />
+    <Compile Include="Rendering/TitleScreenRenderer.cs" />
+    <Compile Include="Rendering/MainMenuRenderer.cs" />
+    <Compile Include="Rendering/TeamSelectRenderer.cs" />
+    <Compile Include="Rendering/CoinTossRenderer.cs" />
+    <Compile Include="Rendering/SeasonMetaRenderer.cs" />
+    <Compile Include="Rendering/ScoreboardRenderer.cs" />
+    <Compile Include="Rendering/DownDistanceRenderer.cs" />
+    <Compile Include="Rendering/PostPlay/**" />
     <Compile Include="Rendering/Hud/**" />
     <Compile Include="Rendering/UI/**" />
     <Compile Include="Rendering/Sprites/**" />

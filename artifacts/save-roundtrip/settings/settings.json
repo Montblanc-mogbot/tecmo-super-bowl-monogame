@@ -1,0 +1,11 @@
+{
+  "Kind": "settings",
+  "Version": 1,
+  "SavedAtUtc": "2026-05-18T16:16:46.0013303+00:00",
+  "Data": {
+    "SchemaVersion": 1,
+    "MasterVolume": 0.65,
+    "PauseOnFocusLoss": false,
+    "LastSelectedTeam": "NYG"
+  }
+}

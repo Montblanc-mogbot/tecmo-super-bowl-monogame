@@ -71,12 +71,7 @@ public static class FormationSpawner
             e.Add(new BehaviorStack { Count = 0 });
             e.Add(new Engagement { PartnerEntityId = -1, CooldownSeconds = 0f });
 
-            // Only offense entities participate as blockers.
-            if (isOffense)
-            {
-                e.Add(new BlockTarget { TargetEntityId = -1, Assignment = BlockAssignmentType.ManOn, IsEngaged = false, EngagedEntityId = -1, EngagementFrame = 0, IsDoubleTeam = false });
-            }
-            else
+            if (!isOffense)
             {
                 // Default defensive rush assignment + coverage (can be overridden later via YAML).
                 e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
@@ -116,6 +111,10 @@ public static class FormationSpawner
             // Attach formation script for pre-snap placement/motion.
             var ops = FormationScriptParser.Parse(slot.Commands);
             ent.Add(FormationScript.Create(ops));
+            ent.Add(PlayerRole.Create(RoleKindFromOffensiveRole(role), slot.Position));
+
+            if (TryCreateInitialBlockTarget(role, slot.Position, slot.Commands, out var blockTarget))
+                ent.Add(blockTarget);
 
             if (role == RoleId.QB)
             {
@@ -134,6 +133,7 @@ public static class FormationSpawner
 
             // Attach explicit slot key for PlayData defense script lookup.
             ent.Add(PlayerRole.Create(RoleKindFromDefensiveSlot(p.Slot), slot: p.Slot));
+            ent.Set(BuildDefaultRushForSlot(p.Slot));
 
             defense.Add(ent.Id);
         }
@@ -247,6 +247,130 @@ public static class FormationSpawner
         return PlayerRoleKind.Unknown;
     }
 
+    private static PlayerRoleKind RoleKindFromOffensiveRole(RoleId role)
+        => role switch
+        {
+            RoleId.QB => PlayerRoleKind.QB,
+            RoleId.HB or RoleId.FB => PlayerRoleKind.RB,
+            RoleId.WR1 or RoleId.WR2 => PlayerRoleKind.WR,
+            RoleId.TE => PlayerRoleKind.TE,
+            RoleId.OC or RoleId.LG or RoleId.RG or RoleId.LT or RoleId.RT => PlayerRoleKind.OL,
+            _ => PlayerRoleKind.Unknown,
+        };
+
+    private static bool TryCreateInitialBlockTarget(RoleId role, string slot, string commands, out BlockTarget blockTarget)
+    {
+        blockTarget = BlockTarget.Default;
+
+        var hasScriptedAssignment = TryGetInitialBlockAssignment(slot, commands, out var assignment, out var preferredDefenderKey);
+        if (!hasScriptedAssignment && !ShouldDefaultBlockerRole(role))
+            return false;
+
+        blockTarget = new BlockTarget
+        {
+            TargetEntityId = -1,
+            Assignment = hasScriptedAssignment ? assignment : DefaultBlockAssignmentForRole(role),
+            PreferredDefenderKey = preferredDefenderKey,
+            IsEngaged = false,
+            EngagedEntityId = -1,
+            EngagementFrame = 0,
+            IsDoubleTeam = false,
+        };
+
+        return true;
+    }
+
+    private static bool ShouldDefaultBlockerRole(RoleId role)
+        => role is RoleId.OC or RoleId.LG or RoleId.RG or RoleId.LT or RoleId.RT or RoleId.TE or RoleId.FB;
+
+    private static BlockAssignmentType DefaultBlockAssignmentForRole(RoleId role)
+        => role switch
+        {
+            RoleId.LG or RoleId.LT => BlockAssignmentType.GapLeft,
+            RoleId.RG or RoleId.RT or RoleId.TE => BlockAssignmentType.GapRight,
+            RoleId.FB => BlockAssignmentType.SecondLevel,
+            _ => BlockAssignmentType.ManOn,
+        };
+
+    private static string SlotFromRole(RoleId role)
+        => role switch
+        {
+            RoleId.QB => "QB",
+            RoleId.HB => "HB",
+            RoleId.FB => "FB",
+            RoleId.WR1 => "WR1",
+            RoleId.WR2 => "WR2",
+            RoleId.TE => "TE",
+            RoleId.OC => "OC",
+            RoleId.LG => "LG",
+            RoleId.RG => "RG",
+            RoleId.LT => "LT",
+            RoleId.RT => "RT",
+            _ => string.Empty,
+        };
+
+    private static Rush BuildDefaultRushForSlot(string slot)
+    {
+        var rush = Rush.Default;
+        var key = (slot ?? string.Empty).Trim().ToUpperInvariant();
+
+        switch (key)
+        {
+            case "DE-L":
+                rush.Assignment = RushAssignment.EdgeLeft;
+                rush.TargetGap = RushGap.ContainLeft;
+                rush.IsContain = true;
+                rush.Type = RushType.Swim;
+                break;
+            case "DE-R":
+                rush.Assignment = RushAssignment.EdgeRight;
+                rush.TargetGap = RushGap.ContainRight;
+                rush.IsContain = true;
+                rush.Type = RushType.Swim;
+                break;
+            case "DT-L":
+                rush.Assignment = RushAssignment.AGapLeft;
+                rush.TargetGap = RushGap.ALeft;
+                rush.Type = RushType.Power;
+                break;
+            case "DT-R":
+                rush.Assignment = RushAssignment.AGapRight;
+                rush.TargetGap = RushGap.ARight;
+                rush.Type = RushType.Power;
+                break;
+            case "LB-L":
+                rush.Assignment = RushAssignment.BGapLeft;
+                rush.TargetGap = RushGap.BLeft;
+                rush.Type = RushType.Swim;
+                break;
+            case "LB-R":
+                rush.Assignment = RushAssignment.BGapRight;
+                rush.TargetGap = RushGap.BRight;
+                rush.Type = RushType.Swim;
+                break;
+            case "MLB":
+                rush.Assignment = RushAssignment.AGapLeft;
+                rush.TargetGap = RushGap.ALeft;
+                rush.Type = RushType.Power;
+                break;
+        }
+
+        return rush;
+    }
+
+    private static Rush BuildDefaultRushForRole(RoleId role)
+        => role switch
+        {
+            RoleId.DL1 => BuildDefaultRushForSlot("DE-L"),
+            RoleId.DL2 => BuildDefaultRushForSlot("DT-L"),
+            RoleId.DL3 => BuildDefaultRushForSlot("DT-R"),
+            RoleId.DL4 => BuildDefaultRushForSlot("DE-R"),
+            RoleId.LB1 => BuildDefaultRushForSlot("LB-L"),
+            RoleId.LB2 => BuildDefaultRushForSlot("MLB"),
+            RoleId.LB3 or RoleId.LB4 => BuildDefaultRushForSlot("LB-R"),
+            _ => Rush.Default,
+        };
+
     private static (List<int> offenseEntityIds, List<int> defenseEntityIds, int ballEntityId) SpawnLegacyDemoScrimmage(
         World world,
         int offenseTeamIndex,
@@ -272,11 +396,24 @@ public static class FormationSpawner
 
             if (isOffense)
             {
-                e.Add(new BlockTarget { TargetEntityId = -1, Assignment = BlockAssignmentType.ManOn, IsEngaged = false, EngagedEntityId = -1, EngagementFrame = 0, IsDoubleTeam = false });
+                e.Add(PlayerRole.Create(RoleKindFromOffensiveRole(role), SlotFromRole(role)));
+                if (ShouldDefaultBlockerRole(role))
+                {
+                    e.Add(new BlockTarget
+                    {
+                        TargetEntityId = -1,
+                        Assignment = DefaultBlockAssignmentForRole(role),
+                        PreferredDefenderKey = string.Empty,
+                        IsEngaged = false,
+                        EngagedEntityId = -1,
+                        EngagementFrame = 0,
+                        IsDoubleTeam = false,
+                    });
+                }
             }
             else
             {
-                e.Add(new Rush { Assignment = RushAssignment.AGapLeft, HasLandmark = false, Landmark = Vector2.Zero, ReachedLandmark = false });
+                e.Add(BuildDefaultRushForRole(role));
                 e.Add(new Coverage
                 {
                     Type = TecmoSBGame.SimArch.Components.CoverageType.ZoneHook,
@@ -436,5 +573,52 @@ public static class FormationSpawner
             return false;
 
         return true;
+    }
+
+    private static bool TryGetInitialBlockAssignment(string slot, string commands, out BlockAssignmentType assignment, out string preferredDefenderKey)
+    {
+        assignment = default;
+        preferredDefenderKey = string.Empty;
+
+        var s = (slot ?? string.Empty).Trim().ToUpperInvariant();
+        var c = commands ?? string.Empty;
+
+        if (c.Contains("Block-", StringComparison.OrdinalIgnoreCase)
+            || c.Contains("PassBlock", StringComparison.OrdinalIgnoreCase)
+            || c.Contains("SetToBlock", StringComparison.OrdinalIgnoreCase))
+        {
+            if (c.Contains("PullLeft", StringComparison.OrdinalIgnoreCase))
+            {
+                assignment = BlockAssignmentType.PullLeft;
+                return true;
+            }
+
+            if (c.Contains("PullRight", StringComparison.OrdinalIgnoreCase))
+            {
+                assignment = BlockAssignmentType.PullRight;
+                return true;
+            }
+
+            if (c.Contains("SetToBlock", StringComparison.OrdinalIgnoreCase) && !c.Contains("Block-", StringComparison.OrdinalIgnoreCase))
+            {
+                if (s.Contains("LG") || s.Contains("LT"))
+                    assignment = BlockAssignmentType.GapLeft;
+                else if (s.Contains("RG") || s.Contains("RT"))
+                    assignment = BlockAssignmentType.GapRight;
+                else
+                    assignment = BlockAssignmentType.ManOn;
+
+                return true;
+            }
+
+            var blockMatch = Regex.Match(c, @"Block-(?<target>[A-Za-z0-9]+)", RegexOptions.IgnoreCase);
+            if (blockMatch.Success)
+                preferredDefenderKey = blockMatch.Groups["target"].Value.Trim().ToUpperInvariant();
+
+            assignment = BlockAssignmentType.ManOn;
+            return true;
+        }
+
+        return false;
     }
 }

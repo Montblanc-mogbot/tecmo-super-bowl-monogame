@@ -1,4 +1,5 @@
 using System;
+using TecmoSBGame.Persistence;
 
 namespace TecmoSBGame.SimArch.Flow;
 
@@ -38,6 +39,8 @@ public sealed class GameFlowController
     public int WindDirection { get; private set; } = +1;
 
     public int LastEndedPlayId { get; private set; } = -1;
+    public SeasonMetaPage ActiveSeasonMetaPage { get; private set; } = SeasonMetaPage.Hub;
+    public SeasonState? ActiveSeason { get; private set; }
 
     public event Action<GameFlowState, GameFlowState>? StateChanged;
 
@@ -58,6 +61,8 @@ public sealed class GameFlowController
 
         WindDirection = +1;
         LastEndedPlayId = -1;
+        ActiveSeasonMetaPage = SeasonMetaPage.Hub;
+        ActiveSeason = null;
 
         Transition(GameFlowState.Title);
     }
@@ -71,6 +76,8 @@ public sealed class GameFlowController
 
         if (item == SimArch.Components.MenuItemType.Preseason)
             Transition(GameFlowState.TeamSelect);
+        else if (item == SimArch.Components.MenuItemType.Season)
+            Transition(GameFlowState.SeasonMeta);
     }
 
     public void UpdateUiInput(bool startPressed, bool leftPressed, bool rightPressed, bool upPressed, bool downPressed)
@@ -89,6 +96,14 @@ public sealed class GameFlowController
                 UpdateTeamSelect(leftPressed, rightPressed, upPressed, downPressed);
                 if (startPressed)
                     Transition(GameFlowState.CoinToss);
+                break;
+
+            case GameFlowState.SeasonMeta:
+                UpdateSeasonMeta(leftPressed, rightPressed);
+                if (startPressed)
+                    CycleSeasonMetaPage();
+                if (downPressed)
+                    Transition(GameFlowState.MainMenu);
                 break;
 
             case GameFlowState.CoinToss:
@@ -138,6 +153,19 @@ public sealed class GameFlowController
             else
                 AwayTeamIndex = Wrap(AwayTeamIndex + 1, TeamCount);
         }
+    }
+
+    private void UpdateSeasonMeta(bool leftPressed, bool rightPressed)
+    {
+        if (leftPressed)
+            ActiveSeasonMetaPage = (SeasonMetaPage)(((int)ActiveSeasonMetaPage + 5) % 6);
+        if (rightPressed)
+            ActiveSeasonMetaPage = (SeasonMetaPage)(((int)ActiveSeasonMetaPage + 1) % 6);
+    }
+
+    private void CycleSeasonMetaPage()
+    {
+        ActiveSeasonMetaPage = (SeasonMetaPage)(((int)ActiveSeasonMetaPage + 1) % 6);
     }
 
     private void UpdateCoinToss(bool leftPressed, bool rightPressed)
@@ -206,6 +234,11 @@ public sealed class GameFlowController
             : (TossWinnerTeamIndex == 0 ? 1 : 0);
 
         KickingTeamIndex = ReceivingTeamIndex == 0 ? 1 : 0;
+    }
+
+    public void SetActiveSeason(SeasonState? season)
+    {
+        ActiveSeason = season;
     }
 
     private void Transition(GameFlowState next)

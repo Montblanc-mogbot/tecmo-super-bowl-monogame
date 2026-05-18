@@ -21,11 +21,14 @@ public sealed class PlayLifecycleSystem
 {
     private readonly MatchState _match;
     private readonly PlayState _play;
+    private readonly KickoffAfterScoreSystem? _kickoffAfterScore;
+    private int _lastCompletedPlayId;
 
-    public PlayLifecycleSystem(MatchState match, PlayState play)
+    public PlayLifecycleSystem(MatchState match, PlayState play, KickoffAfterScoreSystem? kickoffAfterScore = null)
     {
         _match = match ?? throw new ArgumentNullException(nameof(match));
         _play = play ?? throw new ArgumentNullException(nameof(play));
+        _kickoffAfterScore = kickoffAfterScore;
     }
 
     public void Update(World world)
@@ -46,17 +49,36 @@ public sealed class PlayLifecycleSystem
         // Play end -> post-play.
         foreach (var e in SimEventBus.Drain<PlayEndedEvent>())
         {
-            _play.Phase = PlayPhase.PostPlay;
+            if (e.PlayId <= 0 || e.PlayId == _lastCompletedPlayId)
+                continue;
 
+            _kickoffAfterScore?.OnPlayEnded(e);
+
+            _lastCompletedPlayId = e.PlayId;
+            _play.Phase = PlayPhase.PostPlay;
             _play.PlayId = e.PlayId;
             _play.EndAbsoluteYard = e.EndAbsoluteYard;
             _play.Result = new PlayResult(e.YardsGained, e.Turnover, e.Touchdown, e.Safety);
             _play.WhistleReason = (WhistleReason)e.Reason;
         }
 
-        // User acknowledges post-play.
+        // User acknowledges post-play / halftime break.
         foreach (var _ in SimEventBus.Drain<PostPlayContinueRequestedEvent>())
+        {
+            if (_match.Phase == MatchPhase.Halftime)
+            {
+                _play.Phase = PlayPhase.PreSnap;
+                continue;
+            }
+
+            if (_match.Phase == MatchPhase.Final)
+            {
+                _play.Phase = PlayPhase.PostPlay;
+                continue;
+            }
+
             StartNewPreSnap();
+        }
     }
 
     private void StartNewPreSnap()

@@ -35,9 +35,12 @@ public sealed class PlayResultResolver
         if (_match.OffenseDirection == OffenseDirection.RightToLeft)
             gained = -gained;
 
+        var turnover = TryGetBallOwnerTeamIndex(world, ballEntityId, out var ownerTeamIndex)
+            && ownerTeamIndex != _match.PossessionTeam;
+
         _play.Result = new PlayResult(
             YardsGained: gained,
-            Turnover: false,
+            Turnover: turnover,
             Touchdown: false,
             Safety: false);
     }
@@ -64,6 +67,44 @@ public sealed class PlayResultResolver
             return false;
 
         pos = local;
+        return true;
+    }
+
+    private static bool TryGetBallOwnerTeamIndex(World world, int ballEntityId, out int teamIndex)
+    {
+        teamIndex = -1;
+        var ownerEntityId = -1;
+        var foundBall = false;
+
+        var qBall = new QueryDescription().WithAll<Ball>();
+        world.Query(in qBall, (Entity e, ref Ball ball) =>
+        {
+            if (foundBall || e.Id != ballEntityId)
+                return;
+
+            ownerEntityId = ball.OwnerEntityId;
+            foundBall = true;
+        });
+
+        if (!foundBall || ownerEntityId <= 0)
+            return false;
+
+        var foundTeam = false;
+        var resolvedTeamIndex = -1;
+        var qTeam = new QueryDescription().WithAll<Team>();
+        world.Query(in qTeam, (Entity e, ref Team team) =>
+        {
+            if (foundTeam || e.Id != ownerEntityId)
+                return;
+
+            resolvedTeamIndex = team.TeamIndex;
+            foundTeam = true;
+        });
+
+        if (!foundTeam)
+            return false;
+
+        teamIndex = resolvedTeamIndex;
         return true;
     }
 }

@@ -71,6 +71,11 @@ public sealed class NextPlayResetSystem
             r.HasLandmark = false;
             r.ReachedLandmark = false;
             r.Landmark = Vector2.Zero;
+            r.Engaged = false;
+            r.EngagedBlockerId = -1;
+            r.GapReached = false;
+            r.GapPosition = Vector2.Zero;
+            r.LastRushMoveFrame = -60;
         });
 
         var qCov = new QueryDescription().WithAll<Coverage>();
@@ -125,6 +130,11 @@ public sealed class NextPlayResetSystem
             b.FlightKind = BallFlightKind.None;
             b.PasserEntityId = 0;
             b.TargetEntityId = 0;
+            b.IntendedReceiverRoleId = RoleId.Unknown;
+            b.IntendedReceiverSlot = string.Empty;
+            b.PassTargetPosition = Vector2.Zero;
+            b.NearestDefenderEntityId = 0;
+            b.NearestDefenderPosition = Vector2.Zero;
             b.ElapsedSeconds = 0f;
             b.DurationSeconds = 0f;
             b.Height = 0f;

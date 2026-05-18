@@ -80,7 +80,12 @@ public sealed class CoverageSystem
 
         if (inAir)
         {
-            SetMoveTarget(ref beh, ballEnd);
+            c.ReactionTimer++;
+            var breakDelay = Math.Max(0, c.BreakDelayFrames);
+            if (c.ReactionTimer < breakDelay)
+                return;
+
+            SetMoveTarget(ref beh, BlendBallBreakTarget(ballEnd, receiverPos, c.BallHawkLeverage));
             c.InPursuit = true;
             c.PursuitTargetId = targetId;
             return;
@@ -125,7 +130,12 @@ public sealed class CoverageSystem
 
         if (inAir)
         {
-            SetMoveTarget(ref beh, ballEnd);
+            c.ReactionTimer++;
+            var breakDelay = Math.Max(0, c.BreakDelayFrames);
+            if (c.ReactionTimer < breakDelay)
+                return;
+
+            SetMoveTarget(ref beh, BlendBallBreakTarget(ballEnd, c.LandmarkPosition, c.BallHawkLeverage * 0.5f));
             c.InPursuit = true;
             return;
         }
@@ -183,6 +193,12 @@ public sealed class CoverageSystem
         var defenderPos = defenderPos0.Value;
         if (Vector2.Distance(defenderPos, c.LandmarkPosition) > 2.5f)
             SetMoveTarget(ref beh, c.LandmarkPosition);
+    }
+
+    private static Vector2 BlendBallBreakTarget(Vector2 ballEnd, Vector2 anchor, float leverage)
+    {
+        var t = MathHelper.Clamp(0.45f + leverage * 0.08f, 0.2f, 0.85f);
+        return Vector2.Lerp(anchor, ballEnd, t);
     }
 
     private static void SetMoveTarget(ref Behavior b, Vector2 target)

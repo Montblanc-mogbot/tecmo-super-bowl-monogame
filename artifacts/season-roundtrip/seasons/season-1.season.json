@@ -1,0 +1,149 @@
+{
+  "Kind": "season-state",
+  "Version": 1,
+  "SavedAtUtc": "2026-05-08T14:55:49.3008148+00:00",
+  "Data": {
+    "SchemaVersion": 1,
+    "Season": {
+      "SchemaVersion": 1,
+      "SlotName": "season-1",
+      "CurrentWeek": 2,
+      "TotalWeeks": 3,
+      "TeamIds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "Schedule": [
+        {
+          "Week": 1,
+          "Games": [
+            {
+              "Week": 1,
+              "GameNumber": 1,
+              "HomeTeamId": 3,
+              "AwayTeamId": 0,
+              "Result": {
+                "HomeTeamId": 3,
+                "AwayTeamId": 0,
+                "HomeScore": 17,
+                "AwayScore": 10,
+                "WinningTeamId": 3,
+                "WasSimulated": true,
+                "Source": "headless-week-1",
+                "Outcome": 1
+              },
+              "IsComplete": true
+            },
+            {
+              "Week": 1,
+              "GameNumber": 2,
+              "HomeTeamId": 2,
+              "AwayTeamId": 1,
+              "Result": {
+                "HomeTeamId": 2,
+                "AwayTeamId": 1,
+                "HomeScore": 18,
+                "AwayScore": 11,
+                "WinningTeamId": 2,
+                "WasSimulated": true,
+                "Source": "headless-week-1",
+                "Outcome": 1
+              },
+              "IsComplete": true
+            }
+          ],
+          "IsComplete": true
+        },
+        {
+          "Week": 2,
+          "Games": [
+            {
+              "Week": 2,
+              "GameNumber": 1,
+              "HomeTeamId": 0,
+              "AwayTeamId": 2,
+              "Result": null,
+              "IsComplete": false
+            },
+            {
+              "Week": 2,
+              "GameNumber": 2,
+              "HomeTeamId": 3,
+              "AwayTeamId": 1,
+              "Result": null,
+              "IsComplete": false
+            }
+          ],
+          "IsComplete": false
+        },
+        {
+          "Week": 3,
+          "Games": [
+            {
+              "Week": 3,
+              "GameNumber": 1,
+              "HomeTeamId": 1,
+              "AwayTeamId": 0,
+              "Result": null,
+              "IsComplete": false
+            },
+            {
+              "Week": 3,
+              "GameNumber": 2,
+              "HomeTeamId": 3,
+              "AwayTeamId": 2,
+              "Result": null,
+              "IsComplete": false
+            }
+          ],
+          "IsComplete": false
+        }
+      ],
+      "Standings": [
+        {
+          "TeamId": 2,
+          "TeamCode": "T02",
+          "Wins": 1,
+          "Losses": 0,
+          "Ties": 0,
+          "PointsFor": 18,
+          "PointsAgainst": 11,
+          "GamesPlayed": 1
+        },
+        {
+          "TeamId": 3,
+          "TeamCode": "T03",
+          "Wins": 1,
+          "Losses": 0,
+          "Ties": 0,
+          "PointsFor": 17,
+          "PointsAgainst": 10,
+          "GamesPlayed": 1
+        },
+        {
+          "TeamId": 0,
+          "TeamCode": "T00",
+          "Wins": 0,
+          "Losses": 1,
+          "Ties": 0,
+          "PointsFor": 10,
+          "PointsAgainst": 17,
+          "GamesPlayed": 1
+        },
+        {
+          "TeamId": 1,
+          "TeamCode": "T01",
+          "Wins": 0,
+          "Losses": 1,
+          "Ties": 0,
+          "PointsFor": 11,
+          "PointsAgainst": 18,
+          "GamesPlayed": 1
+        }
+      ],
+      "UpdatedAtUtc": "2026-05-08T14:55:49.2995889+00:00"
+    }
+  }
+}

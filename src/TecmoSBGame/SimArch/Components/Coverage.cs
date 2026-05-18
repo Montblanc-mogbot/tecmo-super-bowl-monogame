@@ -44,6 +44,18 @@ public struct Coverage
 
     public bool HasReacted;
 
+    /// <summary>
+    /// Additional pre-break delay before the defender can drive on a receiver or ball.
+    /// Lets coverage shells play tighter/looser deterministically.
+    /// </summary>
+    public int BreakDelayFrames;
+
+    /// <summary>
+    /// Receiver proximity bonus/penalty applied during contested pass resolution.
+    /// Positive values favor the defender; negative values favor the receiver.
+    /// </summary>
+    public float BallHawkLeverage;
+
     public static Coverage Default => new()
     {
         Type = CoverageType.ManToMan,
@@ -55,6 +67,8 @@ public struct Coverage
         ReactionDelay = 0,
         ReactionTimer = 0,
         HasReacted = false,
+        BreakDelayFrames = 0,
+        BallHawkLeverage = 0f,
     };
 }
 

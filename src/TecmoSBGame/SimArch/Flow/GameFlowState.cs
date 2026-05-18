@@ -11,7 +11,8 @@ public enum GameFlowState
     MainMenu = 1,
     TeamSelect = 2,
     CoinToss = 3,
-    Kickoff = 4,
-    OnField = 5,
-    PostPlay = 6,
+    SeasonMeta = 4,
+    Kickoff = 5,
+    OnField = 6,
+    PostPlay = 7,
 }

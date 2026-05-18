@@ -16,7 +16,12 @@ public struct Ball
 
     public int PasserEntityId; // 0 = none
     public int TargetEntityId; // 0 = none
+    public RoleId IntendedReceiverRoleId;
+    public string IntendedReceiverSlot;
     public PassType PassType;
+    public Vector2 PassTargetPosition;
+    public int NearestDefenderEntityId; // 0 = none
+    public Vector2 NearestDefenderPosition;
 
     public Vector2 StartPos;
     public Vector2 EndPos;

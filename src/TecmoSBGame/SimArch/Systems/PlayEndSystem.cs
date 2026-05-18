@@ -53,6 +53,13 @@ public sealed class PlayEndSystem
             b.State = BallState.Dead;
             b.OwnerEntityId = -1;
             b.FlightKind = BallFlightKind.None;
+            b.PasserEntityId = 0;
+            b.TargetEntityId = 0;
+            b.IntendedReceiverRoleId = RoleId.Unknown;
+            b.IntendedReceiverSlot = string.Empty;
+            b.PassTargetPosition = Vector2.Zero;
+            b.NearestDefenderEntityId = 0;
+            b.NearestDefenderPosition = Vector2.Zero;
             b.ElapsedSeconds = 0f;
             b.DurationSeconds = 0f;
             b.Height = 0f;

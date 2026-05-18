@@ -62,11 +62,17 @@
 # Audio
 #----------------------------------
 
-# Sound effects (to be extracted from DMC banks)
-#/importer:WavImporter
-#/processor:SoundEffectProcessor
-#/processorParam:Quality=Best
-#/build:Audio/sfx_whistle.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/snap.wav
+/build:Audio/whistle.wav
+/build:Audio/tackle.wav
+/build:Audio/incomplete.wav
+/build:Audio/turnover.wav
+/build:Audio/touchdown.wav
+/build:Audio/menu_move.wav
+/build:Audio/menu_select.wav
 
 # Music (to be converted from NES format)
 #/importer:Mp3Importer
